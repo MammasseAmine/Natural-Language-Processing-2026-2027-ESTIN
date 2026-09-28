@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 01 – Introduction to NLP</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 1.5rem 2rem 2.2rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            min-height: 140px;
+        }
+
+        .hero-copy {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            margin-bottom: 0.85rem;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(10, 28, 42, 0.12);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 14px 26px rgba(10, 28, 42, 0.18);
+        }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.6rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            max-width: 620px;
+            line-height: 1.4;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg ellipse {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible ellipse {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .venn-container {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 280px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        .ambiguity-visual {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .messy-card {
+            background: #fef9f0;
+            border: 1px solid #f0e0c0;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin: 1.5rem 0 2rem;
+            position: relative;
+        }
+
+        .messy-bubble {
+            background: #ffffff;
+            border-radius: 1.5rem 1.5rem 1.5rem 0.5rem;
+            padding: 1.2rem 1.8rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            max-width: 500px;
+            margin: 0 auto 1.5rem;
+            font-size: 1.3rem;
+            position: relative;
+        }
+
+        .annotation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .annotation .tag {
+            background: #fff;
+            border: 1px solid #dce5ef;
+            border-radius: 30px;
+            padding: 0.2rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 1.5rem 1.1rem 1.8rem;
+            }
+            .hero-inner {
+                gap: 0.8rem;
+                min-height: auto;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+                margin-bottom: 0.7rem;
+            }
+            .nav-button {
+                width: 46px;
+                height: 46px;
+                font-size: 1.1rem;
+            }
+            .hero .chapter-badge {
+                font-size: 0.9rem;
+                padding: 0.6rem 1rem;
+            }
+            .content {
+                padding: 1.8rem 1.5rem;
+            }
+            .ambiguity-visual {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <div class="hero-inner">
+                <a class="nav-button" href="Chapter 01.html" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                <div class="hero-copy">
+                    <h1>Introduction to NLP</h1>
+                    <div class="chapter-badge">
+                        Teaching machines to understand human language
+                    </div>
+                </div>
+
+                <a class="nav-button" href="History of Natural Language Processing.html" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- 1. What is NLP? -->
+            <div class="section-title fade-up">
+                <i class="fas fa-question-circle"></i> What is NLP?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    <strong>Natural Language Processing</strong> (NLP) is a field that helps computers understand, work with, and even create human language.
+                    It is also called <em>Computational Linguistics</em>, <em>Human Language Technology</em>, or <em>Natural Language Engineering</em>.
+                    NLP sits at the meeting point of <strong>Linguistics</strong>, <strong>Computer Science</strong>, and <strong>Artificial Intelligence / Machine Learning</strong>.
+                </p>
+            </div>
+
+            <!-- Venn Diagram SVG -->
+            <div class="venn-container fade-up">
+                <svg class="draw-svg" width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="160" cy="130" r="90" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="1000" stroke-dashoffset="1000" />
+                    <circle cx="240" cy="130" r="90" fill="rgba(11,42,74,0.06)" stroke="#0b2a4a" stroke-width="2" stroke-dasharray="1000" stroke-dashoffset="1000" />
+                    <circle cx="200" cy="200" r="90" fill="rgba(70,100,140,0.06)" stroke="#2a5a7a" stroke-width="2" stroke-dasharray="1000" stroke-dashoffset="1000" />
+                    <text x="120" y="100" font-size="13" fill="#0b2a4a" font-weight="600">Linguistics</text>
+                    <text x="280" y="100" font-size="13" fill="#0b2a4a" font-weight="600">Computer</text>
+                    <text x="285" y="116" font-size="13" fill="#0b2a4a" font-weight="600">Science</text>
+                    <text x="170" y="270" font-size="13" fill="#0b2a4a" font-weight="600">AI / ML</text>
+                    <text x="185" y="155" font-size="12" fill="#1a4a6e" font-weight="700">NLP</text>
+                </svg>
+            </div>
+            <p class="fade-up" style="text-align: center; color: #475569; font-style: italic;">
+                NLP = turning messy human language into something a computer can understand and use.
+            </p>
+
+            <!-- 2. Human Language vs Computer Language -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-balance-scale"></i> Human Language vs Computer Language
+                <span class="title-line"></span>
+            </div>
+
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-user"></i> Human Language</h3>
+                    <ul>
+                        <li><i class="fas fa-exclamation-triangle"></i> Can be unclear – words have many meanings</li>
+                        <li><i class="fas fa-comments"></i> Meaning changes with context and tone</li>
+                        <li><i class="fas fa-random"></i> Many ways to say the same thing</li>
+                        <li><i class="fas fa-feather-alt"></i> Uses idioms, metaphors, and slang</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-robot"></i> Computer Language</h3>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Clear and exact – no double meanings</li>
+                        <li><i class="fas fa-code"></i> Follows strict rules and structure</li>
+                        <li><i class="fas fa-equals"></i> One instruction = one action</li>
+                        <li><i class="fas fa-cogs"></i> Designed by people, not evolved naturally</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 3. Why NLP Matters -->
+            <div class="section-title fade-up">
+                <i class="fas fa-star"></i> Why NLP Matters
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-globe" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Language is Everywhere</h4>
+                    <p style="font-size: 0.9rem;">We use language all the time. NLP helps machines talk to us in our own words.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-database" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Too Much Text</h4>
+                    <p style="font-size: 0.9rem;">Every day we create huge amounts of text (messages, articles, posts). NLP helps sort and understand it.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-headset" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Talking to Machines</h4>
+                    <p style="font-size: 0.9rem;">Chatbots, voice assistants, and smart speakers all need NLP to understand and reply.</p>
+                </div>
+            </div>
+
+            <!-- 4. Why NLP is Hard -->
+            <div class="section-title fade-up">
+                <i class="fas fa-mountain"></i> The Challenges
+                <span class="title-line"></span>
+            </div>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin: 1rem 0 0.8rem;">
+                <i class="fas fa-question"></i> Ambiguity – the biggest problem
+            </h3>
+            <div class="fade-up" style="margin-bottom: 1.5rem;">
+                <p><strong>Lexical ambiguity:</strong> "I went to the <em>bank</em>." (Did you mean a river bank or a money bank?)<br>
+                <strong>Syntactic ambiguity:</strong> "I saw the man with the telescope."</p>
+            </div>
+
+            <!-- Telescope SVG -->
+            <div class="ambiguity-visual fade-up">
+                <svg width="280" height="180" viewBox="0 0 280 180" class="draw-svg">
+                    <!-- Interpretation 1: I used telescope -->
+                    <text x="10" y="20" font-size="11" fill="#0b2a4a" font-weight="600">Meaning 1: I looked through the telescope</text>
+                    <circle cx="80" cy="110" r="15" fill="none" stroke="#1a4a6e" stroke-width="2"/>
+                    <line x1="80" y1="95" x2="80" y2="60" stroke="#1a4a6e" stroke-width="2"/>
+                    <line x1="65" y1="75" x2="95" y2="75" stroke="#1a4a6e" stroke-width="2"/>
+                    <line x1="95" y1="60" x2="140" y2="40" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="4"/>
+                    <text x="150" y="40" font-size="10" fill="#0b2a4a">telescope</text>
+                    <circle cx="200" cy="110" r="12" fill="none" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="215" y="130" font-size="10" fill="#0b2a4a">man</text>
+                </svg>
+                <svg width="280" height="180" viewBox="0 0 280 180" class="draw-svg">
+                    <!-- Interpretation 2: man holds telescope -->
+                    <text x="10" y="20" font-size="11" fill="#0b2a4a" font-weight="600">Meaning 2: The man has the telescope</text>
+                    <circle cx="80" cy="110" r="15" fill="none" stroke="#1a4a6e" stroke-width="2"/>
+                    <circle cx="200" cy="110" r="12" fill="none" stroke="#0b2a4a" stroke-width="2"/>
+                    <line x1="190" y1="100" x2="140" y2="70" stroke="#0b2a4a" stroke-width="2" stroke-dasharray="4"/>
+                    <text x="100" y="55" font-size="10" fill="#0b2a4a">telescope</text>
+                </svg>
+            </div>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin-top: 1.5rem;">
+                <i class="fas fa-feather"></i> Idioms & Metaphors
+            </h3>
+            <p class="fade-up">"It's raining cats and dogs." – A computer might think animals are falling from the sky. NLP must learn the real meaning: heavy rain.</p>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin-top: 1.2rem;">
+                <i class="fas fa-sitemap"></i> Context & Hidden Meaning
+            </h3>
+            <p class="fade-up">"The trophy didn't fit in the suitcase because <strong>it</strong> was too big." – We know "it" means the trophy, because suitcases don't shrink. Computers need to learn that kind of world knowledge.</p>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin-top: 1.2rem;">
+                <i class="fas fa-exclamation-circle"></i> Messy Text
+            </h3>
+            <div class="messy-card fade-up">
+                <div class="messy-bubble">
+                    “Thx 4 the info, gr8! ðŸ˜Š”
+                </div>
+                <div class="annotation">
+                    <span class="tag"><i class="fas fa-font"></i> abbreviation (Thx)</span>
+                    <span class="tag"><i class="fas fa-hashtag"></i> number slang (4, gr8)</span>
+                    <span class="tag"><i class="fas fa-smile"></i> emoji</span>
+                    <span class="tag"><i class="fas fa-spell-check"></i> typo / informal</span>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; font-style: italic; color: #5f7d97;">
+                    Real text is full of shortcuts, mistakes, and smileys – NLP must handle all of that.
+                </p>
+            </div>
+
+            <!-- Key takeaway -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #e6f0fa; border-radius: 1rem; padding: 1.5rem; border-left: 5px solid #1a4a6e;">
+                <p style="font-weight: 500; font-size: 1.05rem;">
+                    NLP turns the rich, messy beauty of human language into something a computer can use.
+                    The hardest parts come from what makes language human – unclear meanings, context, and creativity.
+                    Teaching a machine to really <em>understand</em> words is the goal.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing animations
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

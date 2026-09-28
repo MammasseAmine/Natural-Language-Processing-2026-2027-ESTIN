@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 01 – Levels of Analysis in NLP</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 1.5rem 2rem 2.2rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            min-height: 140px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-copy {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.8rem;
+            position: relative;
+            z-index: 1;
+            line-height: 1.1;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(10, 28, 42, 0.12);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 14px 26px rgba(10, 28, 42, 0.18);
+        }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.6rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            margin-top: 0.1rem;
+            position: relative;
+            z-index: 1;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ---------- LEVELS CARDS ---------- */
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .level-card {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.2rem 1.2rem 1rem;
+            border: 1px solid #e9edf2;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+        }
+
+        .level-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 20, 40, 0.08);
+        }
+
+        .level-card .level-icon {
+            font-size: 1.6rem;
+            color: #1a4a6e;
+            margin-bottom: 0.3rem;
+        }
+
+        .level-card h4 {
+            font-weight: 700;
+            color: #0b2a4a;
+            font-size: 1rem;
+        }
+
+        .level-card .level-tag {
+            display: inline-block;
+            background: #e6f0fa;
+            color: #1a4a6e;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.1rem 0.7rem;
+            border-radius: 20px;
+            margin-bottom: 0.4rem;
+            letter-spacing: 0.3px;
+        }
+
+        .level-card p {
+            font-size: 0.9rem;
+            color: #475569;
+            margin-top: 0.3rem;
+        }
+
+        /* ---------- TABLE ---------- */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.5rem 0 2rem;
+            border-radius: 1rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .table-wrap th {
+            background: #0b2a4a;
+            color: #fff;
+            padding: 0.7rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .table-wrap td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .table-wrap tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-wrap tr:hover td {
+            background: #f8faff;
+        }
+
+        /* ---------- COMPARISON ---------- */
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 240px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.35rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.92rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        /* ---------- SEMANTIC RELATIONS ---------- */
+        .rel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.8rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .rel-item {
+            background: #f0f6fe;
+            border-radius: 0.6rem;
+            padding: 0.6rem 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .rel-item strong {
+            color: #0b2a4a;
+            display: block;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1a4a6e;
+        }
+
+        /* ---------- WSD DIAGRAM (HORIZONTAL TREE) ---------- */
+        .wsd-diagram-horizontal {
+            display: flex;
+            justify-content: flex-start;
+            padding: 2.5rem 2rem;
+            background: #1f232e; /* Dark theme */
+            border-radius: 1rem;
+            border: 1px solid #333947;
+            margin: 1.5rem 0 0.5rem;
+            overflow-x: auto;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Custom scrollbar for dark area */
+        .wsd-diagram-horizontal::-webkit-scrollbar {
+            height: 8px;
+        }
+        .wsd-diagram-horizontal::-webkit-scrollbar-track {
+            background: #151820;
+            border-radius: 4px;
+        }
+        .wsd-diagram-horizontal::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+
+        .tree-h {
+            display: inline-flex;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tree-h ul {
+            padding-left: 45px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            list-style: none;
+            margin: 0;
+            position: relative;
+        }
+
+        .tree-h > ul {
+            padding-left: 0;
+        }
+
+        .tree-h li {
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding: 16px 0;
+        }
+
+        /* Horizontal entering line */
+        .tree-h li::before {
+            content: '';
+            position: absolute;
+            left: -22.5px;
+            top: 50%;
+            width: 22.5px;
+            border-top: 2px solid #6b7280; /* Grey line */
+        }
+        .tree-h > ul > li::before {
+            display: none;
+        }
+
+        /* Vertical spine */
+        .tree-h li::after {
+            content: '';
+            position: absolute;
+            left: -22.5px;
+            top: 0;
+            bottom: 0;
+            border-left: 2px solid #6b7280;
+        }
+        .tree-h > ul > li::after {
+            display: none;
+        }
+
+        /* Spine trims for first and last items */
+        .tree-h li:first-child::after {
+            top: 50%;
+        }
+        .tree-h li:last-child::after {
+            bottom: 50%;
+        }
+        .tree-h li:only-child::after {
+            display: none;
+        }
+
+        /* Container for the node and its outgoing line */
+        .node-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Outgoing line connecting parent right edge to the spine */
+        .node-container.has-children::after {
+            content: '';
+            position: absolute;
+            right: -22.5px;
+            top: 50%;
+            width: 22.5px;
+            border-top: 2px solid #6b7280;
+        }
+
+        /* Arrow heads pointing into nodes */
+        .node-container::before {
+            content: '';
+            position: absolute;
+            left: -10px; /* Sits right at the start of the node */
+            top: 50%;
+            transform: translateY(-50%);
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 7px solid #6b7280;
+            z-index: 1;
+        }
+        /* Remove arrow from the very first root node */
+        .tree-h > ul > li > .node-container::before {
+            display: none; 
+        }
+
+        /* The Nodes */
+        .h-node {
+            background: #2b303b;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #f3f4f6;
+            white-space: nowrap;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 2;
+        }
+
+        .h-node.root-node {
+            background: transparent;
+            border-color: #4b5563;
+        }
+
+        .h-node.dict {
+            border-color: #d97706; /* Orange/Amber border */
+            border-width: 2px;
+        }
+
+        .h-node.ml {
+            border-color: #0d9488; /* Teal border */
+            border-width: 2px;
+        }
+
+        /* WordNet Link Style inside dark node */
+        .wordnet-link {
+            color: #fbbf24; /* amber-400 */
+            text-decoration: none;
+            font-weight: 700;
+            transition: color 0.2s, text-decoration 0.2s;
+        }
+        .wordnet-link:hover {
+            color: #fcd34d;
+            text-decoration: underline;
+        }
+
+        /* ---------- PIPELINE ---------- */
+        .pipeline-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin: 1.5rem 0 2rem;
+            padding: 1.5rem;
+            background: #f8faff;
+            border-radius: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .pipe-step {
+            background: #fff;
+            border-radius: 2rem;
+            padding: 0.4rem 1.2rem;
+            border: 2px solid #1a4a6e;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #0b2a4a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .pipe-step i {
+            color: #1a4a6e;
+            font-size: 0.8rem;
+        }
+
+        .pipe-arrow {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        /* ---------- SYNTAX TREE (VERTICAL) ---------- */
+        .syntax-tree-wrapper {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem 1rem;
+            border: 1px solid #e9edf2;
+            margin: 0.5rem 0 1rem;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .syntax-tree-wrapper ul {
+            padding-top: 20px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            padding-left: 0;
+            list-style: none;
+            margin: 0;
+        }
+
+        .syntax-tree-wrapper ul ul {
+            padding-top: 10px;
+            margin-top: 0;
+        }
+
+        .syntax-tree-wrapper li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 0 10px;
+        }
+
+        .syntax-tree-wrapper ul::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: #1a4a6e;
+        }
+
+        .syntax-tree-wrapper ul::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: #1a4a6e;
+            transform: translateX(-50%);
+        }
+
+        .syntax-tree-wrapper li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: #1a4a6e;
+            transform: translateX(-50%);
+        }
+
+        .syntax-tree-wrapper li:only-child::before {
+            display: none;
+        }
+
+        .syntax-tree-wrapper .node {
+            border: 2px solid #1a4a6e;
+            border-radius: 8px;
+            padding: 4px 12px;
+            background: #ffffff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #0b2a4a;
+            margin-top: 20px;
+            z-index: 2;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .syntax-tree-wrapper > ul {
+            padding-top: 0;
+        }
+        .syntax-tree-wrapper > ul::before,
+        .syntax-tree-wrapper > ul::after {
+            display: none;
+        }
+        .syntax-tree-wrapper > ul > li {
+            padding-top: 0;
+        }
+        .syntax-tree-wrapper > ul > li::before {
+            display: none;
+        }
+        .syntax-tree-wrapper > ul > li > .node {
+            margin-top: 0;
+        }
+
+        /* ---------- GRAMMAR BOX ---------- */
+        .grammar-box {
+            background: #f0f6fe;
+            border-radius: 0.8rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border: 1px solid #e9edf2;
+        }
+
+        .grammar-box .grammar-rules {
+            font-family: monospace;
+            background: #fff;
+            padding: 0.8rem;
+            border-radius: 0.4rem;
+            font-size: 0.85rem;
+            border: 1px solid #e9edf2;
+            line-height: 1.8;
+        }
+
+        .sentence-result {
+            text-align: center;
+            margin-top: 0.8rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #0b2a4a;
+            background: #e6f0fa;
+            padding: 0.4rem;
+            border-radius: 0.4rem;
+            border: 2px solid #1a4a6e;
+        }
+
+        /* ---------- POS BUTTON ---------- */
+        .pos-btn {
+            background: #1a4a6e;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.8rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 2px 8px rgba(26, 74, 110, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pos-btn:hover {
+            background: #0b2a4a;
+            transform: scale(1.02);
+        }
+
+        .pos-btn i {
+            font-size: 1rem;
+        }
+
+        /* ---------- MODALS ---------- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: 2% auto;
+            padding: 1.8rem 2rem 2rem;
+            border: 1px solid #e9edf2;
+            width: 90%;
+            max-width: 750px;
+            border-radius: 1.2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            position: relative;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content h3 {
+            font-size: 1.4rem;
+            color: #0b2a4a;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            border-bottom: 2px solid #e9edf2;
+            padding-bottom: 0.6rem;
+            flex-shrink: 0;
+        }
+
+        .modal-content h3 i {
+            color: #1a4a6e;
+        }
+
+        .modal-table-wrap {
+            overflow-y: auto;
+            flex: 1;
+            border-radius: 0.6rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .modal-table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .modal-table-wrap th {
+            background: #0b2a4a;
+            color: #fff;
+            padding: 0.6rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .modal-table-wrap td {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .modal-table-wrap tr:nth-child(even) {
+            background: #f8faff;
+        }
+
+        .modal-table-wrap tr:hover td {
+            background: #e6f0fa;
+        }
+
+        .close-btn {
+            color: #94a3b8;
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-size: 2rem;
+            font-weight: 300;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #0b2a4a;
+        }
+
+        /* ---------- WORDNET GRAPH IN MODAL ---------- */
+        .wordnet-graph-container {
+            background: #f8faff;
+            border: 1px solid #e9edf2;
+            border-radius: 1rem;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.8rem;
+            margin-top: 1rem;
+            overflow-y: auto;
+        }
+
+        .wn-node {
+            background: #ffffff;
+            border: 2px solid #1a4a6e;
+            padding: 0.8rem 1.2rem;
+            border-radius: 0.8rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            min-width: 150px;
+            max-width: 280px;
+            line-height: 1.4;
+        }
+
+        .wn-node.center {
+            border-color: #d97706; /* Amber */
+            background: #fffbeb;
+            transform: scale(1.05);
+            margin: 0.5rem 0;
+        }
+
+        .wn-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.3rem;
+            font-weight: 500;
+        }
+
+        .wn-edge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: -0.2rem 0;
+        }
+
+        .wn-edge i {
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            margin: 0.2rem 0;
+        }
+
+        .wn-row {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        .wn-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ---------- LLM SECTION ---------- */
+        .llm-box {
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin: 1.5rem 0 1rem;
+            border-left: 5px solid #1a4a6e;
+        }
+
+        .llm-box .highlight {
+            background: #fff;
+            padding: 0.8rem 1.2rem;
+            border-radius: 0.6rem;
+            margin: 0.8rem 0;
+            border: 1px solid #dce5ef;
+        }
+
+        .llm-box .highlight strong {
+            color: #0b2a4a;
+        }
+
+        /* ---------- APPLICATIONS ---------- */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .app-card {
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 1.2rem 1.5rem 1.2rem 1.5rem;
+            border: 1px solid #e9edf2;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .app-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 20, 40, 0.06);
+        }
+
+        .app-card .app-header {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0b2a4a;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .app-card .app-header i {
+            color: #1a4a6e;
+            font-size: 1.2rem;
+            width: 1.6rem;
+            text-align: center;
+        }
+
+        .app-pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.25rem 0.15rem;
+        }
+
+        .app-pipeline .step {
+            background: #e6f0fa;
+            border-radius: 20px;
+            padding: 0.2rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            border: 1px solid #d0ddee;
+            white-space: nowrap;
+        }
+
+        .app-pipeline .arrow {
+            color: #94a3b8;
+            font-weight: 300;
+            font-size: 0.9rem;
+            margin: 0 1px;
+        }
+
+        /* ---------- EXAMPLE BOX ---------- */
+        .example-box {
+            background: #fefcf5;
+            border: 1px solid #ede8d8;
+            border-radius: 1rem;
+            padding: 1.2rem 1.8rem;
+            margin: 1rem 0 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .example-box .label {
+            font-weight: 600;
+            color: #0b2a4a;
+            min-width: 80px;
+        }
+
+        .example-box .text {
+            font-size: 1.1rem;
+            color: #1e293b;
+            background: #fff;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            border: 1px dashed #b8c9dd;
+        }
+
+        .example-box .note {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 1.8rem 1.5rem;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+            }
+            .content {
+                padding: 1.8rem 1.5rem;
+            }
+            .level-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .pipeline-flow {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.6rem;
+            }
+            .pipe-step {
+                justify-content: center;
+            }
+            .pipe-arrow {
+                transform: rotate(90deg);
+            }
+            .syntax-tree-wrapper ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .syntax-tree-wrapper ul::before {
+                width: 90%;
+                left: 5%;
+            }
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-content {
+                padding: 1.2rem;
+                margin: 1% auto;
+                width: 95%;
+            }
+            .modal-content h3 {
+                font-size: 1.1rem;
+            }
+            
+            /* Responsive Horizontal WSD Tree */
+            .wsd-diagram-horizontal {
+                padding: 1.5rem 1rem;
+            }
+            .h-node {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+            .tree-h ul {
+                padding-left: 25px;
+            }
+            .tree-h li::before,
+            .node-container.has-children::after {
+                width: 12.5px;
+            }
+            .tree-h li::before, .tree-h li::after { left: -12.5px; }
+            .node-container.has-children::after { right: -12.5px; }
+
+            .wn-row {
+                gap: 1rem;
+            }
+            .wn-node {
+                min-width: 120px;
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .level-grid {
+                grid-template-columns: 1fr;
+            }
+            .example-box {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .syntax-tree-wrapper li {
+                padding: 0 5px;
+            }
+            .syntax-tree-wrapper .node {
+                font-size: 0.75rem;
+                padding: 2px 8px;
+            }
+            .app-pipeline .step {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.6rem;
+            }
+            .pos-btn {
+                font-size: 0.85rem;
+                padding: 0.5rem 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- HEADER -->
+        <header class="hero">
+            <div class="hero-inner">
+                <a class="nav-button" href="Components of NLP.html" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                <div class="hero-copy">
+                    <h1>Levels of Analysis in NLP</h1>
+                    <div class="chapter-badge">
+                        From sounds to meaning – the layers of human language
+                    </div>
+                </div>
+
+                <a class="nav-button" href="NLP Tasks &amp; Applications.html" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- CONTENT -->
+        <div class="content">
+
+            <!-- ===== INTRO ===== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-arrow-up"></i> What Are "Levels of Analysis"?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    In Natural Language Processing, <strong>Levels of Analysis</strong> are the distinct layers at which we can examine, model, and compute human language.
+                    Each level captures a different type of linguistic information – from the physical sound all the way to the speaker's hidden intention.
+                </p>
+                <p>
+                    A good NLP system must often combine <strong>multiple levels</strong> to truly understand what is being said.
+                    This course walks through <strong>seven canonical levels</strong>, moving from the surface form (sounds) to meaning in context.
+                </p>
+            </div>
+
+            <!-- ===== LEVELS OVERVIEW ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-list"></i> The Seven Levels
+                <span class="title-line"></span>
+            </div>
+
+            <div class="level-grid fade-up">
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-volume-up"></i></div>
+                    <div class="level-tag">Level 1</div>
+                    <h4>Phonology</h4>
+                    <p>Sounds – how words are pronounced</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-puzzle-piece"></i></div>
+                    <div class="level-tag">Level 2</div>
+                    <h4>Morphology</h4>
+                    <p>Word structure – how words are built</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-book"></i></div>
+                    <div class="level-tag">Level 3</div>
+                    <h4>Lexical</h4>
+                    <p>Word meaning – what words mean</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-sitemap"></i></div>
+                    <div class="level-tag">Level 4</div>
+                    <h4>Syntax</h4>
+                    <p>Sentence structure – grammar rules</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-lightbulb"></i></div>
+                    <div class="level-tag">Level 5</div>
+                    <h4>Semantics</h4>
+                    <p>Literal meaning – what the sentence says</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-comment-dots"></i></div>
+                    <div class="level-tag">Level 6</div>
+                    <h4>Pragmatics</h4>
+                    <p>Contextual meaning – what the speaker means</p>
+                </div>
+                <div class="level-card">
+                    <div class="level-icon"><i class="fas fa-paragraph"></i></div>
+                    <div class="level-tag">Level 7</div>
+                    <h4>Discourse</h4>
+                    <p>Text-level meaning – how sentences connect</p>
+                </div>
+            </div>
+
+            <!-- ===== OVERVIEW TABLE ===== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-table"></i> Quick Reference
+                <span class="title-line"></span>
+            </div>
+            <div class="table-wrap fade-up">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Main Focus</th>
+                            <th>Example Question</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Phonology</strong></td><td>Speech sounds</td><td>How is a word pronounced?</td></tr>
+                        <tr><td><strong>Morphology</strong></td><td>Word formation</td><td>How is a word constructed?</td></tr>
+                        <tr><td><strong>Lexical</strong></td><td>Word properties</td><td>What does this word mean?</td></tr>
+                        <tr><td><strong>Syntax</strong></td><td>Sentence structure</td><td>Is the sentence grammatically correct?</td></tr>
+                        <tr><td><strong>Semantics</strong></td><td>Literal meaning</td><td>What does the sentence mean?</td></tr>
+                        <tr><td><strong>Pragmatics</strong></td><td>Contextual meaning</td><td>What is the speaker intending?</td></tr>
+                        <tr><td><strong>Discourse</strong></td><td>Text-level meaning</td><td>How are sentences connected?</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ===== PHONOLOGY ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-volume-up"></i> Phonological Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Phonology</strong> studies the sound system of a language. In speech-based NLP, this is the first step.</p>
+            </div>
+            <div class="comparison-grid fade-up" style="margin-top: 0.5rem;">
+                <div class="comp-col">
+                    <h3><i class="fas fa-key"></i> Key Concepts</h3>
+                    <ul>
+                        <li><i class="fas fa-circle"></i> <strong>Phoneme</strong> – the smallest sound unit</li>
+                        <li><i class="fas fa-circle"></i> <strong>Stress</strong> – emphasis on syllables</li>
+                        <li><i class="fas fa-circle"></i> <strong>Intonation</strong> – pitch patterns</li>
+                        <li><i class="fas fa-circle"></i> <strong>Pronunciation</strong> – how words are spoken</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-microchip"></i> Applications</h3>
+                    <ul>
+                        <li><i class="fas fa-microphone"></i> Speech Recognition</li>
+                        <li><i class="fas fa-volume-up"></i> Text-to-Speech Systems</li>
+                        <li><i class="fas fa-user-robot"></i> Voice Assistants</li>
+                        <li><i class="fas fa-language"></i> Pronunciation Modeling</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Example</span>
+                <span class="text">"cat" → /k/ + /Ã¦/ + /t/</span>
+                <span class="note">three phonemes</span>
+            </div>
+
+            <!-- ===== MORPHOLOGY ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-puzzle-piece"></i> Morphological Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Morphology</strong> looks at the internal structure of words. Words are built from smaller meaningful pieces called <strong>morphemes</strong>.</p>
+            </div>
+            <div class="comparison-grid fade-up" style="margin-top: 0.5rem;">
+                <div class="comp-col">
+                    <h3><i class="fas fa-cubes"></i> Types of Morphemes</h3>
+                    <ul>
+                        <li><i class="fas fa-tree"></i> <strong>Root</strong> – the core meaning</li>
+                        <li><i class="fas fa-forward"></i> <strong>Prefix</strong> – added at the start</li>
+                        <li><i class="fas fa-backward"></i> <strong>Suffix</strong> – added at the end</li>
+                        <li><i class="fas fa-exchange-alt"></i> <strong>Infix</strong> – inserted inside (in some languages)</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-code-branch"></i> Inflection vs Derivation</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-right"></i> <strong>Inflection</strong> – changes grammar (walk → walked)</li>
+                        <li><i class="fas fa-arrow-right"></i> <strong>Derivation</strong> – creates new words (happy → happiness)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Example</span>
+                <span class="text">"unhappiness"</span>
+                <span class="note">un + happy + ness = prefix + root + suffix</span>
+            </div>
+            <div class="fade-up" style="margin-top: 0.5rem; background: #f0f6fe; border-radius: 0.8rem; padding: 0.8rem 1.2rem;">
+                <p style="font-size:0.9rem;"><strong>Applications:</strong> Stemming, Lemmatization, Information Retrieval, Machine Translation</p>
+            </div>
+
+            <!-- ===== LEXICAL ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-book"></i> Lexical Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Lexical Analysis</strong> identifies individual words (tokens) and their properties.</p>
+            </div>
+            <div class="comparison-grid fade-up" style="margin-top: 0.5rem;">
+                <div class="comp-col">
+                    <h3><i class="fas fa-tasks"></i> Tasks</h3>
+                    <ul>
+                        <li><i class="fas fa-cut"></i> <strong>Tokenization</strong> – splitting text into words</li>
+                        <li><i class="fas fa-tag"></i> <strong>POS Tagging</strong> – marking word types (noun, verbâ€¦)</li>
+                        <li><i class="fas fa-flag"></i> <strong>NER</strong> – finding names, places, dates</li>
+                        <li><i class="fas fa-search"></i> <strong>Dictionary Lookup</strong> – checking word meaning</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-tags"></i> POS Tagging Example</h3>
+                    <ul>
+                        <li><i class="fas fa-chevron-right"></i> <strong>The</strong> → Determiner</li>
+                        <li><i class="fas fa-chevron-right"></i> <strong>cat</strong> → Noun</li>
+                        <li><i class="fas fa-chevron-right"></i> <strong>sat</strong> → Verb</li>
+                        <li><i class="fas fa-chevron-right"></i> <strong>on</strong> → Preposition</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Sentence</span>
+                <span class="text">"The cat sat on the mat."</span>
+                <span class="note">tokens: [The] [cat] [sat] [on] [the] [mat]</span>
+            </div>
+
+            <!-- ===== SYNTAX ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-sitemap"></i> Syntactic Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Syntax</strong> studies how words combine to form grammatically correct sentences.</p>
+            </div>
+            <div class="comparison-grid fade-up" style="margin-top: 0.5rem;">
+                <div class="comp-col">
+                    <h3><i class="fas fa-check-circle"></i> Correct</h3>
+                    <ul>
+                        <li><i class="fas fa-check" style="color:#2d8f5c;"></i> "The student solved the problem."</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-times-circle"></i> Incorrect</h3>
+                    <ul>
+                        <li><i class="fas fa-times" style="color:#b91c1c;"></i> "The problem student solved the."</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="fade-up" style="background: #f8faff; border-radius: 0.8rem; padding: 1rem; border: 1px solid #e9edf2; margin-top: 0.5rem;">
+                <p style="font-size:0.9rem;"><strong>Parsing</strong> identifies grammatical relationships. It builds a tree showing how words connect.</p>
+
+                <div class="grammar-box">
+                    <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.5rem;"><i class="fas fa-code"></i> Grammar Rules (Context-Free Grammar)</p>
+                    <div class="grammar-rules">
+                        S → NP VP<br>
+                        NP → Det N<br>
+                        VP → V NP<br>
+                        Det → "The" | "the"<br>
+                        N → "student" | "problem"<br>
+                        V → "solved"
+                    </div>
+                </div>
+
+                <div class="syntax-tree-wrapper">
+                    <ul>
+                        <li>
+                            <span class="node">S</span>
+                            <ul>
+                                <li>
+                                    <span class="node">NP</span>
+                                    <ul>
+                                        <li><span class="node">Det: The</span></li>
+                                        <li><span class="node">N: student</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node">VP</span>
+                                    <ul>
+                                        <li><span class="node">V: solved</span></li>
+                                        <li>
+                                            <span class="node">NP</span>
+                                            <ul>
+                                                <li><span class="node">Det: the</span></li>
+                                                <li><span class="node">N: problem</span></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sentence-result">
+                    <i class="fas fa-arrow-right" style="margin-right:0.5rem;"></i> The student solved the problem
+                </div>
+
+                <!-- POS TAG REFERENCE BUTTON -->
+                <div style="text-align: center; margin: 1.2rem 0 0.5rem;">
+                    <button id="posModalBtn" class="pos-btn"><i class="fas fa-tags"></i> View POS Tag Reference</button>
+                </div>
+            </div>
+
+            <div class="fade-up" style="margin-top: 0.8rem; background: #f0f6fe; border-radius: 0.8rem; padding: 0.8rem 1.2rem;">
+                <p style="font-size:0.9rem;"><strong>Applications:</strong> Grammar Checking, Question Answering, Machine Translation, Information Extraction</p>
+            </div>
+
+            <!-- ===== SEMANTICS ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-lightbulb"></i> Semantic Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Semantics</strong> focuses on the literal meaning of words and sentences.</p>
+            </div>
+            <div class="fade-up" style="margin-top: 0.8rem;">
+                <p><strong>Objectives:</strong></p>
+                <ul style="margin-left:2rem; list-style:disc;">
+                    <li>Determine sentence meaning</li>
+                    <li>Resolve ambiguity</li>
+                    <li>Identify relationships among concepts</li>
+                </ul>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Ambiguity</span>
+                <span class="text">"The bank is near the river."</span>
+                <span class="note">bank = riverbank</span>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Ambiguity</span>
+                <span class="text">"I deposited money in the bank."</span>
+                <span class="note">bank = financial institution</span>
+            </div>
+            <div class="fade-up" style="margin-top: 1rem;">
+                <p><strong>Semantic Relations:</strong></p>
+                <div class="rel-grid">
+                    <div class="rel-item"><strong>Synonym</strong>big = large</div>
+                    <div class="rel-item"><strong>Antonym</strong>hot â‰  cold</div>
+                    <div class="rel-item"><strong>Hypernym</strong>animal → dog</div>
+                    <div class="rel-item"><strong>Hyponym</strong>dog → animal</div>
+                </div>
+            </div>
+
+            <!-- ===== WORD SENSE DISAMBIGUATION (HORIZONTAL TREE) ===== -->
+            <div class="fade-up" style="margin-top: 1.5rem;">
+                <h4 style="font-weight:600; color:#0b2a4a; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.8rem;">
+                    <i class="fas fa-code-branch" style="color:#1a4a6e;"></i> Word Sense Disambiguation (WSD) Process
+                </h4>
+                <p style="margin-bottom:0.8rem; font-size:0.95rem;">
+                    When analyzing a sentence, words can be unambiguous or require disambiguation.
+                </p>
+
+                <div class="wsd-diagram-horizontal">
+                    <div class="tree-h">
+                        <ul>
+                            <li>
+                                <div class="node-container has-children">
+                                    <div class="h-node root-node">SENTENCE</div>
+                                </div>
+                                <ul>
+                                    <li>
+                                        <div class="node-container has-children">
+                                            <div class="h-node">Word Sense Using<br>WordNet</div>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node-container">
+                                                    <div class="h-node">Word Sense With<br>No AMBIGUITY</div>
+                                                </div>
+                                            </li>
+                                            <li>
+                                                <div class="node-container has-children">
+                                                    <div class="h-node">Word Sense With<br>AMBIGUITY</div>
+                                                </div>
+                                                <ul>
+                                                    <li>
+                                                        <div class="node-container has-children">
+                                                            <div class="h-node">Word Sense<br>Disambiguation</div>
+                                                        </div>
+                                                        <ul>
+                                                            <li>
+                                                                <div class="node-container">
+                                                                    <!-- UPDATED: Added Clickable WordNet Link -->
+                                                                    <div class="h-node dict">Dictionary Based (<a href="#" id="wordnetModalBtn" class="wordnet-link">WordNet</a>)</div>
+                                                                </div>
+                                                            </li>
+                                                            <li>
+                                                                <div class="node-container">
+                                                                    <div class="h-node ml">ML Based</div>
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <p style="font-size:0.85rem; color:#475569; margin-top:0.5rem; font-style:italic; text-align:center;">
+                    <i class="fas fa-lightbulb" style="color:#1a4a6e;"></i> The pipeline determines if ambiguity exists and routes it to specific disambiguation models.
+                </p>
+            </div>
+
+            <!-- ===== PRAGMATICS ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-comment-dots"></i> Pragmatic Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Pragmatics</strong> studies language in context. The intended meaning can be different from the literal meaning.</p>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Teacher</span>
+                <span class="text">"Can you open the window?"</span>
+                <span class="note">literal: question about ability → pragmatic: polite request</span>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Sarcasm</span>
+                <span class="text">"Oh great, another meeting."</span>
+                <span class="note">literal: positive → pragmatic: negative sarcasm</span>
+            </div>
+            <div class="fade-up" style="margin-top: 0.8rem; background: #f0f6fe; border-radius: 0.8rem; padding: 0.8rem 1.2rem;">
+                <p style="font-size:0.9rem;"><strong>Importance:</strong> Understanding intentions, Dialogue Systems, Chatbots, Virtual Assistants</p>
+            </div>
+
+            <!-- ===== DISCOURSE ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-paragraph"></i> Discourse Analysis
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p><strong>Discourse</strong> studies relationships among multiple sentences.</p>
+            </div>
+            <div class="example-box fade-up">
+                <span class="label"><i class="fas fa-example"></i> Coreference</span>
+                <span class="text">"John bought a new laptop. He loves it."</span>
+                <span class="note">"He" = John, "it" = laptop</span>
+            </div>
+            <div class="fade-up" style="margin-top: 0.8rem; background: #f0f6fe; border-radius: 0.8rem; padding: 0.8rem 1.2rem;">
+                <p style="font-size:0.9rem;"><strong>Key Tasks:</strong> Coreference Resolution, Topic Tracking, Text Summarization, Dialogue Understanding</p>
+            </div>
+
+            <!-- ===== SUMMARY TABLE ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-check-double"></i> Summary
+                <span class="title-line"></span>
+            </div>
+            <div class="table-wrap fade-up">
+                <table>
+                    <thead>
+                        <tr><th>Level</th><th>Purpose</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Phonology</strong></td><td>Analyze sounds</td></tr>
+                        <tr><td><strong>Morphology</strong></td><td>Analyze word structure</td></tr>
+                        <tr><td><strong>Lexical</strong></td><td>Analyze words</td></tr>
+                        <tr><td><strong>Syntax</strong></td><td>Analyze sentence structure</td></tr>
+                        <tr><td><strong>Semantics</strong></td><td>Analyze meaning</td></tr>
+                        <tr><td><strong>Pragmatics</strong></td><td>Analyze context</td></tr>
+                        <tr><td><strong>Discourse</strong></td><td>Analyze connected text</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ===== PIPELINE ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-route"></i> Simplified NLP Pipeline
+                <span class="title-line"></span>
+            </div>
+            <div class="pipeline-flow fade-up">
+                <span class="pipe-step"><i class="fas fa-volume-up"></i> Phonology</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-puzzle-piece"></i> Morphology</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-book"></i> Lexical</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-sitemap"></i> Syntax</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-lightbulb"></i> Semantics</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-comment-dots"></i> Pragmatics</span>
+                <span class="pipe-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="pipe-step"><i class="fas fa-paragraph"></i> Discourse</span>
+            </div>
+
+            <!-- ===== APPLICATIONS ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-rocket"></i> Applications in NLP Systems
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom:1rem;">Understanding the levels helps design and evaluate NLP applications. Here are some examples:</p>
+            </div>
+            <div class="app-grid fade-up">
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-microphone"></i> Speech Recognition</div>
+                    <div class="app-pipeline">
+                        <span class="step">Phonetic</span><span class="arrow">→</span>
+                        <span class="step">Morphological</span><span class="arrow">→</span>
+                        <span class="step">Syntactic</span><span class="arrow">→</span>
+                        <span class="step">Semantic</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-language"></i> Machine Translation</div>
+                    <div class="app-pipeline">
+                        <span class="step">Syntax</span><span class="arrow">→</span>
+                        <span class="step">Semantics</span><span class="arrow">→</span>
+                        <span class="step">Discourse</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-robot"></i> Chatbots</div>
+                    <div class="app-pipeline">
+                        <span class="step">Lexical</span><span class="arrow">→</span>
+                        <span class="step">Syntactic</span><span class="arrow">→</span>
+                        <span class="step">Semantic</span><span class="arrow">→</span>
+                        <span class="step">Pragmatic</span><span class="arrow">→</span>
+                        <span class="step">Discourse</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-search"></i> Information Extraction</div>
+                    <div class="app-pipeline">
+                        <span class="step">Morphological</span><span class="arrow">→</span>
+                        <span class="step">Syntactic</span><span class="arrow">→</span>
+                        <span class="step">Semantic</span><span class="arrow">→</span>
+                        <span class="step">Discourse</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-smile"></i> Sentiment Analysis</div>
+                    <div class="app-pipeline">
+                        <span class="step">Lexical</span><span class="arrow">→</span>
+                        <span class="step">Syntactic</span><span class="arrow">→</span>
+                        <span class="step">Semantic</span><span class="arrow">→</span>
+                        <span class="step">Pragmatic</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-folder-open"></i> Document Classification</div>
+                    <div class="app-pipeline">
+                        <span class="step">Lexical</span><span class="arrow">→</span>
+                        <span class="step">Discourse</span><span class="arrow">→</span>
+                        <span class="step">Corpus</span>
+                    </div>
+                </div>
+
+                <div class="app-card">
+                    <div class="app-header"><i class="fas fa-image"></i> Image Captioning</div>
+                    <div class="app-pipeline">
+                        <span class="step">Visual</span><span class="arrow">→</span>
+                        <span class="step">Lexical</span><span class="arrow">→</span>
+                        <span class="step">Syntactic</span><span class="arrow">→</span>
+                        <span class="step">Semantic</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2; margin: 1.5rem 0 1rem;">
+                <h4 style="color:#0b2a4a; margin-bottom:0.5rem;"><i class="fas fa-question-circle"></i> Example Pipeline for Question Answering</h4>
+                <ol style="margin-left:1.5rem; font-size:0.92rem; color:#1e293b;">
+                    <li>Text is tokenized and analyzed morphologically.</li>
+                    <li>Sentence structure is parsed syntactically.</li>
+                    <li>Meaning is constructed semantically.</li>
+                    <li>Pragmatic intent is inferred from context.</li>
+                    <li>Answer is selected or generated, considering discourse context.</li>
+                </ol>
+            </div>
+
+            <!-- ===== LLM ERA ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-brain"></i> Do the Levels Still Matter in the LLM Era?
+                <span class="title-line"></span>
+            </div>
+            <div class="llm-box fade-up">
+                <p style="font-weight:500; margin-bottom:0.8rem;">
+                    Modern large language models do not have explicit modules for "the syntax stage" or "the semantics stage."
+                    They are trained end-to-end to predict the next token. So is the level framework obsolete?
+                </p>
+                <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.5rem;">No – it has changed role from <em>blueprint</em> to <em>lens</em>.</p>
+
+                <div class="highlight">
+                    <strong><i class="fas fa-arrow-right"></i> What changed:</strong>
+                    The classical pipeline made each level an explicit, hand-built component.
+                    LLMs collapse the pipeline – a single network learns whatever representations help it predict text.
+                    Probing studies show these networks <strong>rediscover the levels internally</strong>:
+                    lower layers encode morphology and syntax, higher layers encode semantics and discourse – without ever being told to.
+                </div>
+
+                <div class="highlight">
+                    <strong><i class="fas fa-arrow-right"></i> Why you still need the framework:</strong>
+                    <ul style="margin-left:1.2rem; list-style:disc; margin-top:0.3rem;">
+                        <li><strong>Diagnosis.</strong> When a model fails, the levels give you vocabulary: is this a coreference error, a quantifier-scope error, a pragmatic misread? You cannot fix what you cannot name.</li>
+                        <li><strong>Evaluation.</strong> Benchmarks are organised by level – NLI tests semantics, Winograd tests discourse, sarcasm sets test pragmatics. Understanding the levels is understanding what is being measured.</li>
+                        <li><strong>Data &amp; prompting.</strong> Knowing where a task sits tells you what context a model needs to solve it.</li>
+                    </ul>
+                </div>
+
+                <p style="font-style:italic; color:#1a4a6e; margin-top:0.5rem;">
+                    <i class="fas fa-quote-left"></i> The levels are no longer how we build systems, but they remain how we understand them.
+                    The structure of language did not disappear because we stopped programming it by hand – it simply moved inside the weights.
+                </p>
+            </div>
+
+            <!-- ===== FINAL TAKEAWAY ===== -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #e6f0fa; border-radius: 1rem; padding: 1.5rem; border-left: 5px solid #1a4a6e;">
+                <p style="font-weight:500; font-size:1.05rem;">
+                    The seven levels of analysis give us a roadmap for understanding human language.
+                    Whether we build systems level-by-level or train a single neural network, these layers
+                    help us <strong>diagnose</strong>, <strong>evaluate</strong>, and <strong>improve</strong> NLP systems.
+                    Language is layered – and so is our understanding of it.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <!-- ===== WORDNET EXPLANATION MODAL ===== -->
+    <div id="wordnetModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeWordnetModalBtn">&times;</span>
+            <h3><i class="fas fa-project-diagram"></i> What is WordNet?</h3>
+            <div style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">
+                <p><strong>WordNet</strong> is a large, publicly available lexical database of English. It groups English words into sets of synonyms called <strong>synsets</strong>, provides short definitions, and records the various semantic relations between these synonym sets.</p>
+                <p style="margin-top: 0.5rem;">It acts like a combination of a dictionary and a thesaurus, organized logically to show how words are conceptually linked.</p>
+            </div>
+
+            <h4 style="color:#0b2a4a; margin-bottom: 0.5rem; font-weight: 700;"><i class="fas fa-sitemap" style="color:#1a4a6e;"></i> Example Semantic Graph: "Dog"</h4>
+            <div class="wordnet-graph-container">
+                
+                <div class="wn-col">
+                    <div class="wn-node">Animal, animate being<br><span class="wn-label">Broadest Concept</span></div>
+                    <div class="wn-edge"><i class="fas fa-long-arrow-alt-down"></i> is-a (Hypernym)</div>
+                    <div class="wn-node">Canine, canid<br><span class="wn-label">Broader Concept</span></div>
+                    <div class="wn-edge"><i class="fas fa-long-arrow-alt-down"></i> is-a (Hypernym)</div>
+                    
+                    <!-- Main Synset Node -->
+                    <div class="wn-node center">
+                        <strong>Dog, domestic dog, Canis familiaris</strong>
+                        <span class="wn-label">Synset (Target Word)</span>
+                    </div>
+                </div>
+
+                <!-- Branches for more specific details -->
+                <div class="wn-row">
+                    <div class="wn-col">
+                        <div class="wn-edge">is-a (Hyponym) <i class="fas fa-long-arrow-alt-down"></i></div>
+                        <div class="wn-node">Poodle, lapdog<br><span class="wn-label">Specific Type</span></div>
+                    </div>
+                    <div class="wn-col">
+                        <div class="wn-edge">has-part (Meronym) <i class="fas fa-long-arrow-alt-down"></i></div>
+                        <div class="wn-node">Paw<br><span class="wn-label">Physical Part</span></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== POS TAG MODAL ===== -->
+    <div id="posModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModalBtn">&times;</span>
+            <h3><i class="fas fa-tags"></i> Part-of-Speech (POS) Tag Reference</h3>
+            <div class="modal-table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Tag</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>CC</td><td>Coordinating conjunction</td></tr>
+                        <tr><td>CD</td><td>Cardinal number</td></tr>
+                        <tr><td>DT</td><td>Determiner</td></tr>
+                        <tr><td>EX</td><td>Existential there</td></tr>
+                        <tr><td>FW</td><td>Foreign word</td></tr>
+                        <tr><td>IN</td><td>Preposition or subordinating conjunction</td></tr>
+                        <tr><td>JJ</td><td>Adjective</td></tr>
+                        <tr><td>JJR</td><td>Adjective, comparative</td></tr>
+                        <tr><td>JJS</td><td>Adjective, superlative</td></tr>
+                        <tr><td>LS</td><td>List item marker</td></tr>
+                        <tr><td>MD</td><td>Modal</td></tr>
+                        <tr><td>NN</td><td>Noun, singular or mass</td></tr>
+                        <tr><td>NNS</td><td>Noun, plural</td></tr>
+                        <tr><td>NNP</td><td>Proper noun, singular</td></tr>
+                        <tr><td>NNPS</td><td>Proper noun, plural</td></tr>
+                        <tr><td>PDT</td><td>Predeterminer</td></tr>
+                        <tr><td>POS</td><td>Possessive ending</td></tr>
+                        <tr><td>PRP</td><td>Personal pronoun</td></tr>
+                        <tr><td>PRP$</td><td>Possessive pronoun</td></tr>
+                        <tr><td>RB</td><td>Adverb</td></tr>
+                        <tr><td>RBR</td><td>Adverb, comparative</td></tr>
+                        <tr><td>RBS</td><td>Adverb, superlative</td></tr>
+                        <tr><td>RP</td><td>Particle</td></tr>
+                        <tr><td>SYM</td><td>Symbol</td></tr>
+                        <tr><td>TO</td><td>to</td></tr>
+                        <tr><td>UH</td><td>Interjection</td></tr>
+                        <tr><td>VB</td><td>Verb, base form</td></tr>
+                        <tr><td>VBD</td><td>Verb, past tense</td></tr>
+                        <tr><td>VBG</td><td>Verb, gerund or present participle</td></tr>
+                        <tr><td>VBN</td><td>Verb, past participle</td></tr>
+                        <tr><td>VBP</td><td>Verb, non-3rd person singular present</td></tr>
+                        <tr><td>VBZ</td><td>Verb, 3rd person singular present</td></tr>
+                        <tr><td>WDT</td><td>Wh-determiner</td></tr>
+                        <tr><td>WP</td><td>Wh-pronoun</td></tr>
+                        <tr><td>WP$</td><td>Possessive wh-pronoun</td></tr>
+                        <tr><td>WRB</td><td>Wh-adverb</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => {
+            observer.observe(el);
+        });
+
+        // ===== MODALS LOGIC =====
+        const posModal = document.getElementById('posModal');
+        const posModalBtn = document.getElementById('posModalBtn');
+        const closePosModalBtn = document.getElementById('closeModalBtn');
+
+        const wordnetModal = document.getElementById('wordnetModal');
+        const wordnetModalBtn = document.getElementById('wordnetModalBtn');
+        const closeWordnetModalBtn = document.getElementById('closeWordnetModalBtn');
+
+        // Open POS Modal
+        posModalBtn.addEventListener('click', () => {
+            posModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
+
+        // Close POS Modal
+        closePosModalBtn.addEventListener('click', () => {
+            posModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        // Open WordNet Modal
+        wordnetModalBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent page scroll to top
+            wordnetModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
+
+        // Close WordNet Modal
+        closeWordnetModalBtn.addEventListener('click', () => {
+            wordnetModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        // Close modals when clicking outside the modal content
+        window.addEventListener('click', (e) => {
+            if (e.target === posModal) {
+                posModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            if (e.target === wordnetModal) {
+                wordnetModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (posModal.style.display === 'block') posModal.style.display = 'none';
+                if (wordnetModal.style.display === 'block') wordnetModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+    </script>
+</body>
+</html>

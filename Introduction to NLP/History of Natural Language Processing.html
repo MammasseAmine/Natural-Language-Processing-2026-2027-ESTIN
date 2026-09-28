@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 01 – History of Natural Language Processing</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 8px 40px rgba(0, 20, 40, 0.08);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 1.5rem 2rem 2.2rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            min-height: 140px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-copy {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.8rem;
+            position: relative;
+            line-height: 1.1;
+        }
+
+        .hero .subtitle {
+            font-size: 1rem;
+            font-weight: 500;
+            opacity: 0.9;
+            position: relative;
+            max-width: 700px;
+            line-height: 1.5;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(10, 28, 42, 0.12);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 14px 26px rgba(10, 28, 42, 0.18);
+        }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.6rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            margin-top: 0.9rem;
+            position: relative;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* ---------- PARADIGM PILLS ---------- */
+        .paradigm-strip {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem 1.5rem;
+            padding: 1.2rem 2rem;
+            background: #f8faff;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .paradigm-strip .pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1e293b;
+            padding: 0.35rem 1.2rem;
+            border-radius: 100px;
+            background: #fff;
+            border: 1px solid #dce5ef;
+            transition: all 0.2s;
+        }
+
+        .paradigm-strip .pill i {
+            font-size: 0.9rem;
+        }
+
+        .pill.symbolic { border-color: #8b5cf6; color: #6d28d9; }
+        .pill.symbolic i { color: #8b5cf6; }
+        .pill.statistical { border-color: #0ea5e9; color: #0369a1; }
+        .pill.statistical i { color: #0ea5e9; }
+        .pill.neural { border-color: #f59e0b; color: #b45309; }
+        .pill.neural i { color: #f59e0b; }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+        }
+
+        /* ---------- BUTTON STYLES ---------- */
+        .view-image-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #1a4a6e;
+            color: #fff;
+            padding: 0.8rem 1.8rem;
+            border-radius: 100px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(26, 74, 110, 0.2);
+            margin-top: 0.5rem;
+        }
+
+        .view-image-btn:hover {
+            background: #0b2a4a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(11, 42, 74, 0.3);
+        }
+
+        /* ---------- VERTICAL TIMELINE ---------- */
+        .timeline-section {
+            margin: 2rem 0 3rem;
+            position: relative;
+        }
+
+        .timeline-section .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .timeline-section .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* Vertical timeline container */
+        .vertical-timeline {
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        /* Central line */
+        .vertical-timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: linear-gradient(to bottom, #8b5cf6, #0ea5e9, #f59e0b, #f59e0b);
+            transform: translateX(-50%);
+            border-radius: 4px;
+            z-index: 1;
+        }
+
+        /* Each timeline item */
+        .timeline-item {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 2.5rem 2.5rem 0;
+            position: relative;
+            width: 50%;
+            left: 0;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .timeline-item:nth-child(even) {
+            left: 50%;
+            padding: 0 0 2.5rem 2.5rem;
+            justify-content: flex-start;
+        }
+
+        /* Dots – perfectly centered */
+        .timeline-item .dot {
+            position: absolute;
+            top: 1.2rem;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #1a4a6e;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 3px #1a4a6e;
+            z-index: 2;
+            transition: transform 0.3s;
+        }
+
+        .timeline-item .dot { right: -11px; left: auto; }
+        .timeline-item:nth-child(even) .dot { left: -11px; right: auto; }
+        .timeline-item:hover .dot { transform: scale(1.3); }
+        .timeline-item:nth-child(even):hover .dot { transform: scale(1.3); }
+
+        .dot.symbolic { background: #8b5cf6; box-shadow: 0 0 0 3px #8b5cf6; }
+        .dot.statistical { background: #0ea5e9; box-shadow: 0 0 0 3px #0ea5e9; }
+        .dot.deep, .dot.transformer, .dot.llm { background: #f59e0b; box-shadow: 0 0 0 3px #f59e0b; }
+
+        /* Card content on each side */
+        .timeline-item .content-box {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            border: 1px solid #e9edf2;
+            width: 100%; 
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .timeline-item .content-box::after {
+            content: '\f0a6';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 1rem;
+            right: 1.2rem;
+            color: #cbd5e1;
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .timeline-item .content-box:hover {
+            box-shadow: 0 8px 24px rgba(0, 20, 40, 0.08);
+            transform: translateY(-3px);
+            border-color: #cbd5e1;
+        }
+
+        .timeline-item .content-box:hover::after {
+            opacity: 1;
+        }
+
+        .timeline-item .year { font-weight: 700; font-size: 1.1rem; color: #0b2a4a; display: block; }
+        .timeline-item .label { font-size: 0.9rem; font-weight: 600; color: #1e293b; margin: 0.2rem 0 0.3rem; }
+        .timeline-item .desc { font-size: 0.85rem; color: #475569; line-height: 1.5; }
+
+        .timeline-item .era-tag {
+            display: inline-block; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; padding: 0.15rem 0.7rem; border-radius: 20px; color: #fff; margin-top: 0.4rem;
+        }
+
+        .era-tag.symbolic { background: #8b5cf6; }
+        .era-tag.statistical { background: #0ea5e9; }
+        .era-tag.deep, .era-tag.transformer, .era-tag.llm { background: #f59e0b; }
+
+        /* ---------- SECTION TITLE (reuse) ---------- */
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 2.5rem 0 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        /* ---------- MILESTONE TABLE ---------- */
+        .milestone-table-wrap {
+            overflow-x: auto;
+            margin: 1.5rem 0 2rem;
+            border-radius: 1rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .milestone-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 600px;
+        }
+
+        .milestone-table th {
+            background: #f1f5f9;
+            text-align: left;
+            padding: 0.8rem 1.2rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            border-bottom: 2px solid #dce5ef;
+        }
+
+        .milestone-table td {
+            padding: 0.7rem 1.2rem;
+            border-bottom: 1px solid #eef2f6;
+            color: #1e293b;
+        }
+
+        .milestone-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .milestone-table .year-col {
+            font-weight: 700;
+            color: #1a4a6e;
+            white-space: nowrap;
+        }
+
+        .milestone-table .tag-col {
+            white-space: nowrap;
+        }
+
+        .tag-sm {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 0.1rem 0.6rem;
+            border-radius: 20px;
+            color: #fff;
+        }
+
+        .tag-sm.symbolic { background: #8b5cf6; }
+        .tag-sm.statistical { background: #0ea5e9; }
+        .tag-sm.deep, .tag-sm.llm { background: #f59e0b; }
+        .tag-sm.ml { background: #0ea5e9; }
+
+        /* ---------- KEY TAKEAWAY ---------- */
+        .takeaway-box {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.8rem 2rem;
+            border-left: 5px solid #1a4a6e;
+            margin-top: 2rem;
+        }
+
+        .takeaway-box p {
+            font-weight: 500;
+            font-size: 1.05rem;
+            color: #0b2a4a;
+        }
+
+        /* ---------- MODAL (POPUP) STYLES ---------- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #fff;
+            width: 90%;
+            max-width: 550px;
+            border-radius: 1.2rem;
+            padding: 2.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            transform: translateY(30px) scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.2rem; right: 1.5rem;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover { color: #0f172a; }
+        .modal-year { font-weight: 800; color: #1a4a6e; font-size: 1rem; margin-bottom: 0.2rem; display: block; }
+        .modal-title { font-size: 1.6rem; font-weight: 700; color: #0f172a; margin-bottom: 1.2rem; line-height: 1.3; }
+        .modal-body { font-size: 1.05rem; color: #334155; line-height: 1.7; margin-bottom: 1.8rem; }
+        
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #e11d48;
+            color: #fff;
+            padding: 0.8rem 1.5rem;
+            border-radius: 100px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+
+        .modal-btn:hover { background: #be123c; }
+
+        /* ---------- FADE-UP (general) ---------- */
+        .fade-up { opacity: 0; transform: translateY(24px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.5rem 1.1rem 1.8rem; }
+            .hero-inner { gap: 0.8rem; min-height: auto; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .hero .subtitle { font-size: 0.92rem; }
+            .nav-button {
+                width: 46px;
+                height: 46px;
+                font-size: 1.1rem;
+            }
+            .hero .chapter-badge {
+                font-size: 0.9rem;
+                padding: 0.6rem 1rem;
+            }
+            .content { padding: 1.5rem 1.2rem; }
+            .vertical-timeline::before { left: 20px; }
+            .timeline-item { width: 100%; padding: 0 0 2rem 3.5rem !important; left: 0 !important; justify-content: flex-start !important; }
+            .timeline-item .dot, .timeline-item:nth-child(even) .dot { left: 9px !important; right: auto !important; transform: none !important; }
+            .timeline-item:hover .dot, .timeline-item:nth-child(even):hover .dot { transform: scale(1.2) !important; }
+            .timeline-item .content-box { width: 100%; }
+            .modal-card { padding: 2rem 1.5rem; }
+            .milestone-table { font-size: 0.8rem; min-width: 480px; }
+            .milestone-table th, .milestone-table td { padding: 0.5rem 0.8rem; }
+            .takeaway-box p { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-card">
+        <!-- HEADER -->
+        <header class="hero">
+            <div class="hero-inner">
+                <a class="nav-button" href="What is NLP.html" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                <div class="hero-copy">
+                    <h1>History of Natural Language Processing</h1>
+                    <div class="chapter-badge">
+                        From Turing to Transformers – 75+ years of teaching machines to understand language (1948 âžœ 2026)
+                    </div>
+                </div>
+
+                <a class="nav-button" href="Components of NLP.html" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- PARADIGM PILLS -->
+        <div class="paradigm-strip">
+            <span class="pill symbolic"><i class="fas fa-cogs"></i> Symbolic / Rule-Based</span>
+            <span class="pill statistical"><i class="fas fa-chart-bar"></i> Statistical</span>
+            <span class="pill neural"><i class="fas fa-brain"></i> Neural / Deep Learning</span>
+        </div>
+
+        <div class="content">
+            <div class="fade-up" style="margin-bottom: 0.5rem;">
+                <p style="font-size: 1.05rem; color: #1e293b; text-align:center;">
+                    <em>Click on any card below to learn more about how it changed AI!</em>
+                </p>
+            </div>
+
+            <!-- ===== NEW BUTTON TO VIEW FULL INFOGRAPHIC ===== -->
+            <div class="fade-up" style="text-align: center; margin-bottom: 3rem;">
+                <!-- Replace "Resource history/nlp-timeline-infographic.png" with your exact image file name -->
+                <a href="Resource history/nlp-timeline-infographic.png" target="_blank" class="view-image-btn">
+                    <i class="fas fa-external-link-alt"></i> View Full NLP History Infographic
+                </a>
+            </div>
+
+            <!-- TIMELINE -->
+            <div class="timeline-section">
+                <div class="vertical-timeline">
+
+                    <div class="timeline-item">
+                        <div class="dot symbolic"></div>
+                        <div class="content-box" onclick="openModal(1)">
+                            <span class="year">1948</span>
+                            <div class="label">Shannon – Information Theory</div>
+                            <div class="desc">First statistical model of language. Introduced entropy and the noisy-channel model.</div>
+                            <span class="era-tag symbolic">Symbolic</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot symbolic"></div>
+                        <div class="content-box" onclick="openModal(2)">
+                            <span class="year">1950</span>
+                            <div class="label">Turing Test</div>
+                            <div class="desc">Alan Turing proposed that if a machine can hold a conversation, it's intelligent.</div>
+                            <span class="era-tag symbolic">Symbolic</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot symbolic"></div>
+                        <div class="content-box" onclick="openModal(3)">
+                            <span class="year">1957</span>
+                            <div class="label">Chomsky – Generative Grammar</div>
+                            <div class="desc">Formal grammars show language follows rules. This shaped NLP for decades.</div>
+                            <span class="era-tag symbolic">Symbolic</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot symbolic"></div>
+                        <div class="content-box" onclick="openModal(4)">
+                            <span class="year">1966</span>
+                            <div class="label">ELIZA · ALPAC Report</div>
+                            <div class="desc">First chatbot (ELIZA) · First AI winter (machine translation funding collapsed).</div>
+                            <span class="era-tag symbolic">Symbolic</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot statistical"></div>
+                        <div class="content-box" onclick="openModal(5)">
+                            <span class="year">1990s</span>
+                            <div class="label">Statistical Revolution</div>
+                            <div class="desc">HMMs, PCFGs, IBM Models – data and probability replace hand-crafted rules.</div>
+                            <span class="era-tag statistical">Statistical</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot statistical"></div>
+                        <div class="content-box" onclick="openModal(6)">
+                            <span class="year">2000s</span>
+                            <div class="label">Machine Learning Era</div>
+                            <div class="desc">SVMs, feature engineering, and large annotated corpora boost performance.</div>
+                            <span class="era-tag statistical">Statistical</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot deep"></div>
+                        <div class="content-box" onclick="openModal(7)">
+                            <span class="year">2013</span>
+                            <div class="label">Word2Vec</div>
+                            <div class="desc">Pre-trained word embeddings become mainstream – words as dense vectors.</div>
+                            <span class="era-tag deep">Deep</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot deep"></div>
+                        <div class="content-box" onclick="openModal(8)">
+                            <span class="year">2014</span>
+                            <div class="label">Seq2Seq + Attention</div>
+                            <div class="desc">End-to-end neural translation with attention mechanism – big quality jump.</div>
+                            <span class="era-tag deep">Deep</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot transformer"></div>
+                        <div class="content-box" onclick="openModal(9)">
+                            <span class="year">2017</span>
+                            <div class="label">Transformer – "Attention Is All You Need"</div>
+                            <div class="desc">Self-attention replaces recurrence. Parallel training unlocks massive scaling.</div>
+                            <span class="era-tag transformer">Transformer</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot transformer"></div>
+                        <div class="content-box" onclick="openModal(10)">
+                            <span class="year">2018</span>
+                            <div class="label">BERT · GPT</div>
+                            <div class="desc">Pre-train then fine-tune becomes the standard workflow for NLP.</div>
+                            <span class="era-tag transformer">Transformer</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot llm"></div>
+                        <div class="content-box" onclick="openModal(11)">
+                            <span class="year">2020</span>
+                            <div class="label">GPT-3 · Scaling Laws</div>
+                            <div class="desc">In-context learning emerges. Quantitative laws show how scale improves performance.</div>
+                            <span class="era-tag llm">LLM</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot llm"></div>
+                        <div class="content-box" onclick="openModal(12)">
+                            <span class="year">2022</span>
+                            <div class="label">ChatGPT · RLHF</div>
+                            <div class="desc">Reinforcement Learning from Human Feedback aligns models. Mass adoption.</div>
+                            <span class="era-tag llm">LLM</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="dot llm"></div>
+                        <div class="content-box" onclick="openModal(13)">
+                            <span class="year">2023–26</span>
+                            <div class="label">Open Models · Multimodal · Agents</div>
+                            <div class="desc">Open models (LLaMA, Mistral), multimodal (text+image+audio), tool use.</div>
+                            <span class="era-tag llm">LLM</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- MILESTONE TABLE -->
+            <div class="section-title fade-up" style="margin-top:1rem;">
+                <i class="fas fa-list-ul"></i> Key Milestones
+                <span class="title-line"></span>
+            </div>
+
+            <div class="milestone-table-wrap fade-up">
+                <table class="milestone-table">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Milestone</th>
+                            <th>Why It Matters</th>
+                            <th>Era</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="year-col">1948</td>
+                            <td>Shannon – Information Theory</td>
+                            <td>First statistical model of language</td>
+                            <td class="tag-col"><span class="tag-sm symbolic">Symbolic</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">1950</td>
+                            <td>Turing Test</td>
+                            <td>Conversation as a benchmark for AI</td>
+                            <td class="tag-col"><span class="tag-sm symbolic">Symbolic</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">1957</td>
+                            <td>Chomsky – Generative Grammar</td>
+                            <td>Formal grammars as the dominant framework</td>
+                            <td class="tag-col"><span class="tag-sm symbolic">Symbolic</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">1966</td>
+                            <td>ELIZA · ALPAC Report</td>
+                            <td>First chatbot · First AI winter</td>
+                            <td class="tag-col"><span class="tag-sm symbolic">Symbolic</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">1990s</td>
+                            <td>Statistical Revolution</td>
+                            <td>HMMs, PCFGs, IBM Models – data over rules</td>
+                            <td class="tag-col"><span class="tag-sm statistical">Statistical</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2000s</td>
+                            <td>Machine Learning Era</td>
+                            <td>SVMs, feature engineering, corpora</td>
+                            <td class="tag-col"><span class="tag-sm ml">ML</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2013</td>
+                            <td>Word2Vec</td>
+                            <td>Pre-trained embeddings go mainstream</td>
+                            <td class="tag-col"><span class="tag-sm deep">Deep</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2014</td>
+                            <td>Seq2Seq + Attention</td>
+                            <td>End-to-end neural translation</td>
+                            <td class="tag-col"><span class="tag-sm deep">Deep</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2017</td>
+                            <td>Transformer – "Attention Is All You Need"</td>
+                            <td>Architecture of the modern era</td>
+                            <td class="tag-col"><span class="tag-sm deep">Deep</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2018</td>
+                            <td>BERT · GPT</td>
+                            <td>Pre-train / fine-tune becomes the standard</td>
+                            <td class="tag-col"><span class="tag-sm deep">Deep</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2020</td>
+                            <td>GPT-3 · Scaling Laws</td>
+                            <td>In-context learning · quantitative theory of scale</td>
+                            <td class="tag-col"><span class="tag-sm llm">LLM</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2022</td>
+                            <td>ChatGPT · RLHF</td>
+                            <td>Mass-market LLM product · alignment</td>
+                            <td class="tag-col"><span class="tag-sm llm">LLM</span></td>
+                        </tr>
+                        <tr>
+                            <td class="year-col">2023–26</td>
+                            <td>Open Models · Multimodal · Agents</td>
+                            <td>Ecosystem broadens, tool use, reasoning</td>
+                            <td class="tag-col"><span class="tag-sm llm">LLM</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- KEY TAKEAWAY -->
+            <div class="section-title fade-up" style="margin-top:2rem;">
+                <i class="fas fa-key"></i> What We Learned
+                <span class="title-line"></span>
+            </div>
+
+            <div class="takeaway-box fade-up">
+                <p>
+                    <strong>NLP has moved from hand-crafted rules → probabilities → learned representations → massive, general-purpose models.</strong>
+                    Each era built on the last. Today, we use a mix of all three – rule-based tools for small jobs, statistical thinking for everything,
+                    and neural networks for the heavy lifting. The future is <strong>multimodal, agentic, and increasingly open</strong>.
+                    But the core challenge remains the same: turning the rich, messy beauty of human language into something a machine can truly understand.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <!-- MODAL POPUP -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-card">
+            <i class="fas fa-times modal-close" onclick="closeModal()"></i>
+            <span class="modal-year" id="modalYear">Year</span>
+            <h2 class="modal-title" id="modalTitle">Title</h2>
+            <div class="modal-body" id="modalBody">Explanation text goes here.</div>
+            <a href="#" class="modal-btn" id="modalPdfBtn" target="_blank" style="display: none;">
+                <i class="fas fa-file-pdf"></i> Read Original Paper
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 1. Intersection Observer for Fade-up animations
+        const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -30px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .timeline-item').forEach(el => observer.observe(el));
+
+        // 2. Data for the Modals
+        const historyDetails = {
+            1: {
+                year: "1948",
+                title: "Information Theory (Shannon)",
+                text: "Claude Shannon wrote a famous paper that started 'Information Theory'. He showed how we can measure information using math. This gave scientists the very first mathematical way to look at human language, helping computers understand that language has predictable patterns.",
+                pdf: "Resource history/entropy.pdf"
+            },
+            2: {
+                year: "1950",
+                title: "The Turing Test",
+                text: "Alan Turing asked a simple question: 'Can machines think?' He created the Turing Test. The idea is that if a human chatting with a computer cannot tell it is a computer, then the computer is considered intelligent. This sparked the dream of creating AI that can chat just like us.",
+                pdf: "Resource history/turing.pdf"
+            },
+            3: {
+                year: "1957",
+                title: "Generative Grammar (Chomsky)",
+                text: "Noam Chomsky wrote a book stating that human language isn't just random words, but it follows strict, math-like rules called grammar. Because computers are very good at rules, early programmers tried to use these grammar rules to teach computers how to speak and translate.",
+                pdf: "Resource history/Chomsky-1957.pdf"
+            },
+            4: {
+                year: "1966",
+                title: "ELIZA (The First Chatbot)",
+                text: "Scientists at MIT built ELIZA, the world's first chatbot. It acted like a therapist. Even though it wasn't truly smart–it just looked at your words and repeated them back as questions–people actually felt like they were talking to a real human being!",
+                pdf: "Resource history/weizenbaum.eliza.1966.pdf"
+            },
+            5: {
+                year: "1990s",
+                title: "The Statistical Revolution",
+                text: "Instead of writing thousands of strict grammar rules by hand (which was taking forever), scientists tried a new way. They started feeding huge amounts of text to computers. The computers used statistics–counting which words appear next to each other often–to guess the meaning. This worked much better!"
+            },
+            6: {
+                year: "2000s",
+                title: "Machine Learning Era",
+                text: "Computers became much faster, and the internet gave us tons of data. We started using 'Machine Learning'. Instead of giving the computer rules, we gave it thousands of examples (like emails labeled 'Spam' or 'Not Spam'), and the computer learned how to sort them all by itself."
+            },
+            7: {
+                year: "2013",
+                title: "Word2Vec (Words as Numbers)",
+                text: "Google researchers found a brilliant way to turn words into numbers (called vectors). If words had similar meanings, their numbers were placed close to each other in a mathematical map. Because of this, the computer suddenly understood that 'King' is to 'Man' exactly what 'Queen' is to 'Woman'."
+            },
+            8: {
+                year: "2014",
+                title: "Seq2Seq & Attention",
+                text: "Scientists built a 'Deep Learning' model that could read a whole sentence in English, remember it, and then write it out in French. They added a special feature called 'Attention', which told the computer exactly which specific words it should focus on while translating."
+            },
+            9: {
+                year: "2017",
+                title: "The Transformer Architecture",
+                text: "Google researchers wrote a famous paper called 'Attention Is All You Need'. They invented the Transformer. Older models had to read a sentence one word at a time. The Transformer could read ALL the words at the exact same time. This made AI incredibly fast and smart. Almost every modern AI uses this today!",
+                pdf: "Resource history/Attention Is All You Need.pdf"
+            },
+            10: {
+                year: "2018",
+                title: "BERT & GPT",
+                text: "AI models like BERT (by Google) and GPT (by OpenAI) started doing something called 'pre-training'. They were made to read huge chunks of the entire internet just to learn how human language works. Once they learned the basics, they could easily be tweaked to do specific jobs like summarizing text."
+            },
+            11: {
+                year: "2020",
+                title: "GPT-3 & Massive Scale",
+                text: "OpenAI built GPT-3, an absolutely massive model. It was so big and had read so much text that you didn't even need to retrain it for new tasks. You could simply type a plain English instruction like 'Translate this to Spanish', and it would just do it!"
+            },
+            12: {
+                year: "2022",
+                title: "ChatGPT is Born",
+                text: "OpenAI released ChatGPT. They trained it using feedback from real humans so it would be polite, helpful, and safe. It became the fastest-growing app in human history because absolutely anyone could talk to it naturally to write computer code, stories, or get help with homework."
+            },
+            13: {
+                year: "2023–26",
+                title: "Open Models & AI Agents",
+                text: "AI models became 'open source', meaning anyone could download and build on them (like Meta's LLaMA). AI also learned to 'see' images and 'hear' audio. Today, AI isn't just a chatbot; it can use calculators, browse the web, and act as a smart personal assistant."
+            }
+        };
+
+        // 3. Modal Logic
+        const modal = document.getElementById('infoModal');
+        const mYear = document.getElementById('modalYear');
+        const mTitle = document.getElementById('modalTitle');
+        const mBody = document.getElementById('modalBody');
+        const mPdfBtn = document.getElementById('modalPdfBtn');
+
+        function openModal(id) {
+            const data = historyDetails[id];
+            if (!data) return;
+
+            mYear.innerText = data.year;
+            mTitle.innerText = data.title;
+            mBody.innerText = data.text;
+
+            if (data.pdf) {
+                mPdfBtn.href = data.pdf;
+                mPdfBtn.style.display = "inline-flex";
+            } else {
+                mPdfBtn.style.display = "none";
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = "auto";
+        }
+
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+
+</body>
+</html>

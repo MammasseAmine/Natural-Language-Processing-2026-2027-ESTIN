@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 01 – Components of NLP</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #ffffff; /* Changed to match the card for a seamless full-width look */
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            /* Removed max-width to make it full width */
+            min-height: 100vh;
+            margin: 0 auto;
+            background: #ffffff;
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 1.5rem 2rem 2.2rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        .hero-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.2rem;
+            min-height: 140px;
+        }
+
+        .hero-copy {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.8rem;
+            line-height: 1.1;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 20px rgba(10, 28, 42, 0.12);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 14px 26px rgba(10, 28, 42, 0.18);
+        }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.6rem;
+            border-radius: 999px;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            margin-top: 0.1rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .hero .chapter-badge i {
+            margin-right: 0.4rem;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 3rem 5%; /* Changed to percentage for better full-width scaling */
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg ellipse,
+        .draw-svg polyline,
+        .draw-svg polygon {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible ellipse,
+        .draw-svg.visible polyline,
+        .draw-svg.visible polygon {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .flow-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .flow-step {
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.2rem 1.8rem;
+            text-align: center;
+            border: 1px solid #dce5ef;
+            min-width: 140px;
+            font-weight: 600;
+            color: #0b2a4a;
+            flex: 1; /* Allows boxes to stretch naturally on wide screens */
+            max-width: 250px;
+        }
+
+        .flow-arrow {
+            font-size: 1.6rem;
+            color: #1a4a6e;
+            font-weight: 300;
+        }
+
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 260px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 2rem; /* Increased padding for full width layout */
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        .nlg-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .nlg-step {
+            flex: 1;
+            min-width: 250px;
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border-left: 4px solid #1a4a6e;
+        }
+
+        .nlg-step h4 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nlg-step h4 i {
+            color: #1a4a6e;
+        }
+
+        .nlg-step p {
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        .highlight-box {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            border-left: 5px solid #1a4a6e;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box p {
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+
+        .pill {
+            display: inline-block;
+            background: #1a4a6e;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.7rem;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            margin-left: 0.3rem;
+        }
+
+        .component-image {
+            text-align: center;
+            margin: 1.5rem 0 3rem;
+        }
+
+        .component-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e9edf2;
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero {
+                padding: 2rem 1.5rem;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+            }
+            .content {
+                padding: 1.8rem 1.5rem;
+            }
+            .flow-arrow {
+                transform: rotate(90deg);
+                display: inline-block;
+                margin: 0.5rem 0;
+            }
+            .flow-container {
+                flex-direction: column;
+            }
+            .flow-step {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <div class="hero-inner">
+                <a class="nav-button" href="History of Natural Language Processing.html" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+
+                <div class="hero-copy">
+                    <h1>Components of NLP</h1>
+                    <div class="chapter-badge">
+                        How Machines Understand &amp; Generate Language
+                    </div>
+                </div>
+
+                <a class="nav-button" href="Levels of Analysis in NLP.html" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- ====== YOUR IMAGE GOES HERE – PLACED FIRST ====== -->
+            <div class="component-image fade-up">
+                <img src="Components of NLP.jpg" alt="Components of NLP – NLU and NLG breakdown" />
+                <p style="font-size:0.85rem; color:#64748b; margin-top:0.4rem; font-style:italic;">
+                </p>
+            </div>
+
+            <!-- ========== 1. OVERVIEW ========== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-compass"></i> Two Sides of Language AI
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up" style="margin-bottom: 1.5rem;">
+                <p style="font-size: 1.05rem;">
+                    When computers work with human language, they do two main things:
+                    <strong>understand</strong> what we say and <strong>generate</strong> language back to us.
+                    These are called <strong>NLU</strong> and <strong>NLG</strong>.
+                </p>
+            </div>
+
+            <!-- Simple flow: NLU → NLG -->
+            <div class="flow-container fade-up">
+                <div class="flow-step">
+                    <i class="fas fa-ear-listen" style="display:block; font-size:1.6rem; margin-bottom:0.2rem;"></i>
+                    Human Language
+                </div>
+                <span class="flow-arrow"><i class="fas fa-arrow-right"></i></span>
+                <div class="flow-step" style="background:#dce8f5; border-color:#1a4a6e;">
+                    <i class="fas fa-brain" style="display:block; font-size:1.6rem; margin-bottom:0.2rem;"></i>
+                    NLU <span class="pill">Understand</span>
+                </div>
+                <span class="flow-arrow"><i class="fas fa-arrow-right"></i></span>
+                <div class="flow-step" style="background:#dce8f5; border-color:#1a4a6e;">
+                    <i class="fas fa-pen-fancy" style="display:block; font-size:1.6rem; margin-bottom:0.2rem;"></i>
+                    NLG <span class="pill">Generate</span>
+                </div>
+                <span class="flow-arrow"><i class="fas fa-arrow-right"></i></span>
+                <div class="flow-step">
+                    <i class="fas fa-comment-dots" style="display:block; font-size:1.6rem; margin-bottom:0.2rem;"></i>
+                    Computer Response
+                </div>
+            </div>
+
+            <p class="fade-up" style="text-align:center; color:#475569; font-style:italic; margin-bottom:1.5rem;">
+                NLU reads and understands. NLG writes and replies. Together, they make conversational AI possible.
+            </p>
+
+            <!-- ========== 2. NLU ========== -->
+            <div class="section-title fade-up" style="margin-top: 3rem;">
+                <i class="fas fa-microphone-listen"></i> Natural Language Understanding (NLU)
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up">
+                <p style="margin-bottom: 1.5rem;">
+                    <strong>NLU</strong> is the part of NLP that helps machines <em>understand</em> human language.
+                    It takes messy, natural text and turns it into structured data that a computer can work with.
+                    NLU answers the question: <strong>"What does this text <em>mean</em>?"</strong>
+                </p>
+            </div>
+
+            <!-- What NLU does -->
+            <div class="fade-up" style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-bottom:2rem;">
+                <div style="flex:1; min-width:220px; background:#f0f6fe; border-radius:1rem; padding:1.5rem; text-align:center;">
+                    <i class="fas fa-tags" style="color:#1a4a6e; font-size:2rem; margin-bottom: 0.5rem;"></i>
+                    <h4 style="margin:0.5rem 0;">Extracts Meaning</h4>
+                    <p style="font-size:0.9rem;">Finds concepts, entities, and relationships</p>
+                </div>
+                <div style="flex:1; min-width:220px; background:#f0f6fe; border-radius:1rem; padding:1.5rem; text-align:center;">
+                    <i class="fas fa-face-smile" style="color:#1a4a6e; font-size:2rem; margin-bottom: 0.5rem;"></i>
+                    <h4 style="margin:0.5rem 0;">Detects Emotion</h4>
+                    <p style="font-size:0.9rem;">Understands sentiment and tone</p>
+                </div>
+                <div style="flex:1; min-width:220px; background:#f0f6fe; border-radius:1rem; padding:1.5rem; text-align:center;">
+                    <i class="fas fa-arrows-split-up-and-left" style="color:#1a4a6e; font-size:2rem; margin-bottom: 0.5rem;"></i>
+                    <h4 style="margin:0.5rem 0;">Resolves Ambiguity</h4>
+                    <p style="font-size:0.9rem;">Figures out what words really refer to</p>
+                </div>
+            </div>
+
+            <!-- NLU Output -->
+            <div class="highlight-box fade-up" style="border-left-color:#2a7a9e;">
+                <p style="font-weight:600; color:#0b2a4a;">
+                    <i class="fas fa-arrow-right" style="color:#1a4a6e; margin-right:0.5rem;"></i>
+                    NLU takes <strong>human language</strong> as input and produces <strong>structured data</strong> as output.
+                </p>
+                <p style="font-size:0.95rem; margin-top:0.5rem; color:#334155;">
+                    Example: "I need a flight to Paris next Tuesday" → <code style="background:#fff; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.9em; border: 1px solid #dce5ef;">{ intent: "book_flight", destination: "Paris", date: "2026-07-01" }</code>
+                </p>
+            </div>
+
+            <!-- ========== 3. AMBIGUITY TYPES ========== -->
+            <h3 class="fade-up" style="font-weight:700; color:#0b2a4a; margin:3rem 0 1rem;">
+                <i class="fas fa-question-circle" style="color:#1a4a6e;"></i> The Big Challenge: Ambiguity
+            </h3>
+            <p class="fade-up" style="margin-bottom:1.5rem;">
+                Human language is full of unclear meanings. NLU must figure out the right one.
+                Here are three types of ambiguity NLU has to handle.
+            </p>
+
+            <!-- 3.1 Lexical Ambiguity -->
+            <h4 class="fade-up" style="font-weight:600; color:#1a4a6e; margin-top:1.2rem;">
+                <i class="fas fa-book-open"></i> Lexical Ambiguity – Words with Many Meanings
+            </h4>
+            <div class="fade-up" style="background:#f8faff; border-radius:1rem; padding:1.5rem; border:1px solid #e9edf2; margin:1rem 0 1.5rem;">
+                <div style="display:flex; flex-wrap:wrap; gap:2rem;">
+                    <div style="flex:1; min-width:250px;">
+                        <p><strong style="color:#0b2a4a; font-size: 1.1rem;">"Bank"</strong></p>
+                        <p style="font-size:0.95rem; margin-top: 0.5rem;">ðŸ¦ "I went to the <em>bank</em> to deposit money." → financial institution</p>
+                        <p style="font-size:0.95rem; margin-top: 0.3rem;">ðŸŒŠ "The <em>bank</em> of the river was covered in flowers." → side of a river</p>
+                    </div>
+                    <div style="flex:1; min-width:250px;">
+                        <p><strong style="color:#0b2a4a; font-size: 1.1rem;">"Head"</strong></p>
+                        <p style="font-size:0.95rem; margin-top: 0.5rem;">ðŸ¤• "I have a <em>head</em>ache." → body part</p>
+                        <p style="font-size:0.95rem; margin-top: 0.3rem;">ðŸ‘” "The <em>head</em> of the company spoke." → leader, boss</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3.2 Syntactic Ambiguity -->
+            <h4 class="fade-up" style="font-weight:600; color:#1a4a6e; margin-top:1.5rem;">
+                <i class="fas fa-tree"></i> Syntactic Ambiguity – Multiple Parse Trees
+            </h4>
+            <div class="fade-up" style="background:#f8faff; border-radius:1rem; padding:1.5rem; border:1px solid #e9edf2; margin:1rem 0 1.5rem;">
+                <p style="font-weight:500; color:#0b2a4a; font-size: 1.05rem;">"I went to the store with my friend and bought a shirt."</p>
+                <ul style="list-style:none; padding:1rem 0 0; font-size:0.95rem;">
+                    <li style="padding:0.3rem 0;">âœ… <strong>Meaning 1:</strong> I went with my friend. I bought a shirt.</li>
+                    <li style="padding:0.3rem 0;">âœ… <strong>Meaning 2:</strong> I went with my friend. <em>We both</em> bought a shirt.</li>
+                </ul>
+                <p style="font-size:0.9rem; color:#64748b; margin-top:0.8rem;">
+                    <i class="fas fa-info-circle"></i> The sentence structure changes the meaning.
+                </p>
+            </div>
+
+            <!-- 3.3 Referential Ambiguity -->
+            <h4 class="fade-up" style="font-weight:600; color:#1a4a6e; margin-top:1.5rem;">
+                <i class="fas fa-arrow-pointer"></i> Referential Ambiguity – Who or What Does "It" Mean?
+            </h4>
+            <div class="fade-up" style="background:#f8faff; border-radius:1rem; padding:1.5rem; border:1px solid #e9edf2; margin:1rem 0 2.5rem;">
+                <p style="font-weight:500; color:#0b2a4a; font-size: 1.05rem;">"The student was given a low grade by the teacher because <strong>he</strong> was late."</p>
+                <ul style="list-style:none; padding:1rem 0 0; font-size:0.95rem;">
+                    <li style="padding:0.3rem 0;">âœ… <strong>Meaning 1:</strong> The <em>student</em> was late.</li>
+                    <li style="padding:0.3rem 0;">âœ… <strong>Meaning 2:</strong> The <em>teacher</em> was late.</li>
+                </ul>
+                <div style="margin-top:1rem; background:#eef4fa; border-radius:0.5rem; padding:1rem;">
+                    <p style="font-size:0.9rem; color:#1e293b; margin: 0;">
+                        <i class="fas fa-lightbulb" style="color:#f59e0b; margin-right: 0.4rem;"></i>
+                        <strong>Another example:</strong> "John told his father that <strong>he</strong> was going to the park."<br>
+                        → Who is "he"? John or his father? NLU needs context to decide.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ========== 4. NLG ========== -->
+            <div class="section-title fade-up" style="margin-top:3.5rem;">
+                <i class="fas fa-pen-to-square"></i> Natural Language Generation (NLG)
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up">
+                <p style="margin-bottom:1.5rem;">
+                    <strong>NLG</strong>
+                    is the opposite of NLU. It takes structured data and turns it into
+                    human-like text. NLG answers the question: <strong>"How do I express this meaning in words?"</strong>
+                </p>
+            </div>
+
+            <!-- NLG output -->
+            <div class="highlight-box fade-up" style="border-left-color:#1a6e4a;">
+                <p style="font-weight:600; color:#0b2a4a;">
+                    <i class="fas fa-arrow-right" style="color:#1a6e4a; margin-right:0.5rem;"></i>
+                    NLG takes <strong>structured data</strong> as input and produces <strong>human language</strong> as output.
+                </p>
+                <p style="font-size:0.95rem; margin-top:0.5rem; color:#334155;">
+                    Example: <code style="background:#fff; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.9em; border: 1px solid #dce5ef;">{ temp: 22, condition: "sunny", city: "London" }</code> → "It's a sunny 22Â°C in London today."
+                </p>
+            </div>
+
+            <!-- The 3 Steps of NLG -->
+            <h3 class="fade-up" style="font-weight:700; color:#0b2a4a; margin:2.5rem 0 1rem;">
+                <i class="fas fa-layer-group" style="color:#1a4a6e;"></i> The Three Steps of NLG
+            </h3>
+
+            <div class="nlg-steps fade-up">
+                <div class="nlg-step">
+                    <h4><i class="fas fa-list-check"></i> 1. Text Planning</h4>
+                    <p><strong>What to say?</strong> Decide the main ideas, structure, and flow of the text. What's the purpose? What order makes sense?</p>
+                    <p style="font-size:0.85rem; color:#64748b; margin-top:0.8rem;">
+                        <i class="fas fa-lightbulb" style="color:#f59e0b;"></i> Like outlining an essay before writing it.
+                    </p>
+                </div>
+                <div class="nlg-step">
+                    <h4><i class="fas fa-pen-fancy"></i> 2. Sentence Planning</h4>
+                    <p><strong>How to say it?</strong> Choose the right words, grammar, and style. Make each sentence clear and natural.</p>
+                    <p style="font-size:0.85rem; color:#64748b; margin-top:0.8rem;">
+                        <i class="fas fa-lightbulb" style="color:#f59e0b;"></i> Picking the perfect words and sentence structure.
+                    </p>
+                </div>
+                <div class="nlg-step">
+                    <h4><i class="fas fa-check-double"></i> 3. Text Realization</h4>
+                    <p><strong>Write it out!</strong> Turn the planned sentences into the final text. Add punctuation, formatting, and polish.</p>
+                    <p style="font-size:0.85rem; color:#64748b; margin-top:0.8rem;">
+                        <i class="fas fa-lightbulb" style="color:#f59e0b;"></i> The final draft – making it look and read great.
+                    </p>
+                </div>
+            </div>
+
+            <!-- SVG showing NLG flow -->
+            <div class="fade-up" style="display:flex; justify-content:center; margin:2rem 0 3rem;">
+                <svg class="draw-svg" width="500" height="140" viewBox="0 0 500 140" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="20" width="110" height="60" rx="12" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="2" />
+                    <text x="30" y="48" font-size="11" fill="#0b2a4a" font-weight="600">Structured</text>
+                    <text x="38" y="64" font-size="11" fill="#0b2a4a" font-weight="600">Data</text>
+
+                    <line x1="120" y1="50" x2="170" y2="50" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="6,4" />
+                    <text x="130" y="40" font-size="9" fill="#1a4a6e">Plan</text>
+
+                    <rect x="170" y="20" width="100" height="60" rx="12" fill="#dce8f5" stroke="#1a4a6e" stroke-width="2" />
+                    <text x="190" y="48" font-size="11" fill="#0b2a4a" font-weight="600">Text</text>
+                    <text x="190" y="64" font-size="11" fill="#0b2a4a" font-weight="600">Planning</text>
+
+                    <line x1="270" y1="50" x2="310" y2="50" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="6,4" />
+                    <text x="278" y="40" font-size="9" fill="#1a4a6e">Sentence</text>
+
+                    <rect x="310" y="20" width="110" height="60" rx="12" fill="#dce8f5" stroke="#1a4a6e" stroke-width="2" />
+                    <text x="330" y="48" font-size="11" fill="#0b2a4a" font-weight="600">Sentence</text>
+                    <text x="330" y="64" font-size="11" fill="#0b2a4a" font-weight="600">Planning</text>
+
+                    <line x1="420" y1="50" x2="460" y2="50" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="6,4" />
+                    <text x="428" y="40" font-size="9" fill="#1a4a6e">Realize</text>
+
+                    <rect x="460" y="10" width="30" height="70" rx="12" fill="#dce8f5" stroke="#1a4a6e" stroke-width="2" />
+                    <text x="468" y="48" font-size="10" fill="#0b2a4a" font-weight="600">âœï¸</text>
+
+                    <text x="220" y="110" font-size="10" fill="#64748b" font-style="italic">NLG turns data → text in three stages</text>
+                </svg>
+            </div>
+
+            <!-- ========== 5. NLU vs NLG ========== -->
+            <div class="section-title fade-up" style="margin-top:3rem;">
+                <i class="fas fa-arrows-left-right"></i> NLU vs NLG – The Comparison
+                <span class="title-line"></span>
+            </div>
+
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-microphone-listen"></i> NLU (Understanding)</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-right-to-bracket"></i> Input: Human language</li>
+                        <li><i class="fas fa-arrow-left-from-bracket"></i> Output: Structured data</li>
+                        <li><i class="fas fa-question"></i> Answers: "What does this mean?"</li>
+                        <li><i class="fas fa-brain"></i> Reads and interprets</li>
+                        <li><i class="fas fa-code"></i> Turns text into machine-readable form</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-pen-to-square"></i> NLG (Generation)</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-right-to-bracket"></i> Input: Structured data</li>
+                        <li><i class="fas fa-arrow-left-from-bracket"></i> Output: Human language</li>
+                        <li><i class="fas fa-question"></i> Answers: "How do I say this?"</li>
+                        <li><i class="fas fa-pen-fancy"></i> Writes and generates</li>
+                        <li><i class="fas fa-comment"></i> Turns data into natural text</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ========== 6. KEY TAKEAWAY ========== -->
+            <div class="section-title fade-up" style="margin-top:3rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up highlight-box" style="border-left-color:#1a4a6e; padding: 2rem;">
+                <p style="font-weight:600; font-size:1.1rem; color:#0b2a4a;">
+                    <i class="fas fa-circle-check" style="color:#1a6e4a; margin-right:0.5rem;"></i>
+                    NLU and NLG are two sides of the same coin.
+                </p>
+                <p style="margin-top:0.8rem; color:#1e293b; font-size: 1.05rem;">
+                    <strong>NLU</strong> helps machines <em>understand</em> what we say by extracting meaning from messy text.
+                    <strong>NLG</strong> helps machines <em>reply</em> by turning data into natural, human-like language.
+                </p>
+                <p style="margin-top:0.5rem; color:#334155; font-size:0.95rem;">
+                    Together, they power chatbots, voice assistants, translation tools, and many other AI applications
+                    that talk with us in our own words.
+                </p>
+                <div style="margin-top:1.5rem; display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">
+                    <span style="background:#0b2a4a; color:#fff; padding:0.5rem 1.5rem; border-radius:30px; font-size:0.95rem;">
+                        <i class="fas fa-ear-listen" style="margin-right: 0.3rem;"></i> NLU = Listen &amp; Understand
+                    </span>
+                    <span style="background:#1a4a6e; color:#fff; padding:0.5rem 1.5rem; border-radius:30px; font-size:0.95rem;">
+                        <i class="fas fa-pen-fancy" style="margin-right: 0.3rem;"></i> NLG = Think &amp; Reply
+                    </span>
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing animations
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
