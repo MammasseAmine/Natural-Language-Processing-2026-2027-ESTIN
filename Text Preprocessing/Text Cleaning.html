@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 02 – Introduction to Text Cleaning</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            /* max-width: 1200px; removed to make it full width */
+            margin: 0 auto;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0f2b3d 0%, #1e4a6a 100%);
+            padding: 2rem 3rem 2.5rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            left: -100px;
+            top: -150px;
+        }
+
+        .hero::after {
+            width: 420px;
+            height: 420px;
+            right: -100px;
+            top: -150px;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 900px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin: 0;
+            line-height: 1.1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero .chapter-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            position: relative;
+            z-index: 1;
+            color: #edf5ff;
+            min-width: 440px;
+            max-width: 100%;
+        }
+
+        .hero .sub {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 0.6rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .nav-arrow.left {
+            left: 30px;
+        }
+
+        .nav-arrow.right {
+            right: 30px;
+        }
+
+        .lesson-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2.2rem;
+            padding-top: 1.4rem;
+            border-top: 1px solid #eceff5;
+        }
+
+        .lesson-nav a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            text-decoration: none;
+            color: #123d60;
+            background: #f2f7fd;
+            border: 1px solid #dfeaf5;
+            border-radius: 999px;
+            padding: 0.8rem 1.2rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .lesson-nav a:hover {
+            transform: translateY(-1px);
+            background: #eaf3ff;
+        }
+
+        .lesson-nav .next {
+            margin-left: auto;
+        }
+
+        .lesson-nav i {
+            font-size: 0.9rem;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Stagger children */
+        .stagger>* {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .stagger.visible>*:nth-child(1) {
+            transition-delay: 0.05s;
+        }
+        .stagger.visible>*:nth-child(2) {
+            transition-delay: 0.12s;
+        }
+        .stagger.visible>*:nth-child(3) {
+            transition-delay: 0.19s;
+        }
+        .stagger.visible>*:nth-child(4) {
+            transition-delay: 0.26s;
+        }
+        .stagger.visible>*:nth-child(5) {
+            transition-delay: 0.33s;
+        }
+        .stagger.visible>*:nth-child(6) {
+            transition-delay: 0.40s;
+        }
+
+        .stagger.visible>* {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg ellipse,
+        .draw-svg polygon {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.8s ease-in-out;
+        }
+
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible ellipse,
+        .draw-svg.visible polygon {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .key-idea {
+            background: #f0f6fe;
+            border-left: 5px solid #1a4a6e;
+            border-radius: 0.75rem;
+            padding: 1.2rem 1.8rem;
+            margin: 0.5rem 0 1.5rem;
+            font-weight: 500;
+            color: #0b2a4a;
+        }
+
+        .key-idea i {
+            color: #1a4a6e;
+            margin-right: 0.6rem;
+        }
+
+        /* ---------- DESTROY WARNING BOX ---------- */
+        .destroy-box {
+            background: #fef6f0;
+            border-left: 5px solid #b91c1c;
+            border-radius: 0.75rem;
+            padding: 1.2rem 1.8rem;
+            margin: 1rem 0 1.5rem;
+            color: #4a1e1e;
+        }
+
+        .destroy-box strong {
+            color: #b91c1c;
+        }
+
+        .destroy-box .destroy-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .destroy-box .destroy-title i {
+            color: #b91c1c;
+            font-size: 1.2rem;
+        }
+
+        .destroy-box .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem 1.2rem;
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .destroy-box .examples .example-item {
+            background: #ffffff;
+            border-radius: 0.4rem;
+            padding: 0.2rem 0.8rem;
+            border: 1px solid #f0d0c0;
+            font-family: 'Inter', monospace;
+            font-size: 0.9rem;
+        }
+
+        .destroy-box .examples .example-item .arrow {
+            color: #b91c1c;
+            font-weight: 600;
+            margin: 0 0.2rem;
+        }
+
+        /* ---------- NEW: EMOJI STRATEGY BOX ---------- */
+        .emoji-box {
+            background: #f0f8f0;
+            border-left: 5px solid #1a7a4a;
+            border-radius: 0.75rem;
+            padding: 1.2rem 1.8rem;
+            margin: 1rem 0 1.5rem;
+            color: #1e3a2e;
+        }
+
+        .emoji-box .emoji-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .emoji-box .emoji-title i {
+            color: #1a7a4a;
+            font-size: 1.2rem;
+        }
+
+        .emoji-box .rule {
+            background: #ffffff;
+            border-radius: 0.5rem;
+            padding: 0.6rem 1rem;
+            margin-top: 0.6rem;
+            border: 1px solid #b8d8c8;
+            font-weight: 600;
+            color: #0b3a1e;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .emoji-box .rule i {
+            color: #1a7a4a;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .grid-3col {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .grid-4col {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .stat-card {
+            background: #f8faff;
+            border: 1px solid #e9edf2;
+            border-radius: 1rem;
+            padding: 1.2rem 1.5rem;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 20, 40, 0.06);
+        }
+
+        .stat-card .icon {
+            font-size: 1.8rem;
+            color: #1a4a6e;
+            margin-bottom: 0.4rem;
+        }
+
+        .stat-card h4 {
+            font-weight: 600;
+            color: #0b2a4a;
+            font-size: 1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-card p {
+            font-size: 0.85rem;
+            color: #5f7d97;
+            margin: 0;
+        }
+
+        .comp-col {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 1rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .comp-col li:last-child {
+            border-bottom: none;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        /* Operation cards */
+        .op-card {
+            background: #ffffff;
+            border: 1px solid #e9edf2;
+            border-radius: 0.75rem;
+            padding: 1rem 1.2rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .op-card:hover {
+            border-color: #b0c8dd;
+        }
+
+        .op-card .op-label {
+            font-weight: 600;
+            color: #0b2a4a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .op-card .op-label i {
+            color: #1a4a6e;
+            width: 1.4rem;
+            text-align: center;
+        }
+
+        .op-card .op-example {
+            font-size: 0.85rem;
+            color: #5f7d97;
+            margin-top: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            background: #f4f7fc;
+            border-radius: 0.4rem;
+            font-family: 'Inter', monospace;
+        }
+
+        .op-card .op-example .arrow {
+            color: #1a4a6e;
+            font-weight: 600;
+        }
+
+        /* Pipeline diagram */
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 1.5rem;
+            background: #f4f7fc;
+            border-radius: 1rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .pipeline-step {
+            background: #ffffff;
+            border: 1px solid #dce5ef;
+            border-radius: 30px;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #0b2a4a;
+            white-space: nowrap;
+        }
+
+        .pipeline-step.active {
+            background: #1a4a6e;
+            color: #fff;
+            border-color: #1a4a6e;
+        }
+
+        .pipeline-arrow {
+            color: #94a9c2;
+            font-size: 1rem;
+        }
+
+        /* Tables */
+        .clean-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin: 1rem 0 1.5rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #e9edf2;
+        }
+
+        .clean-table th {
+            background: #f0f6fe;
+            color: #0b2a4a;
+            font-weight: 600;
+            padding: 0.7rem 1rem;
+            text-align: left;
+            border-bottom: 2px solid #dce5ef;
+        }
+
+        .clean-table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .clean-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .clean-table .highlight {
+            background: #f8faff;
+        }
+
+        /* ====== CORRECTED TABLE: Classical ML vs Transformers ====== */
+        .model-comp {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 0;
+            border: 1px solid #e9edf2;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: 1rem 0 1.5rem;
+            background: #ffffff;
+        }
+
+        .model-comp .mc-header {
+            background: #f0f6fe;
+            font-weight: 600;
+            padding: 0.75rem 0.6rem;
+            text-align: center;
+            border-bottom: 2px solid #dce5ef;
+            color: #0b2a4a;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .model-comp .mc-header .sub {
+            font-weight: 400;
+            font-size: 0.7rem;
+            color: #5f7d97;
+            display: block;
+        }
+
+        .model-comp .mc-cell {
+            padding: 0.55rem 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid #eceff5;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            background: #ffffff;
+        }
+
+        .model-comp .mc-cell .check {
+            color: #1a8a4a;
+        }
+        .model-comp .mc-cell .cross {
+            color: #b91c1c;
+        }
+
+        .model-comp .mc-label {
+            font-weight: 500;
+            color: #0b2a4a;
+            background: #fafcff;
+            justify-content: flex-start;
+            padding-left: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .model-comp .mc-row {
+            display: contents;
+        }
+
+        .model-comp .mc-row:last-child .mc-cell {
+            border-bottom: none;
+        }
+
+        /* Responsive grid for model comp */
+        @media (max-width: 768px) {
+            .model-comp {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                font-size: 0.7rem;
+            }
+            .model-comp .mc-cell {
+                padding: 0.35rem 0.2rem;
+                font-size: 0.7rem;
+            }
+            .model-comp .mc-header {
+                font-size: 0.7rem;
+                padding: 0.5rem 0.2rem;
+            }
+            .model-comp .mc-header .sub {
+                font-size: 0.6rem;
+            }
+            .model-comp .mc-label {
+                font-size: 0.7rem;
+                padding-left: 0.4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .model-comp {
+                font-size: 0.55rem;
+            }
+            .model-comp .mc-cell {
+                padding: 0.25rem 0.1rem;
+                font-size: 0.55rem;
+                gap: 0.15rem;
+            }
+            .model-comp .mc-header {
+                font-size: 0.55rem;
+                padding: 0.3rem 0.1rem;
+            }
+            .model-comp .mc-header .sub {
+                font-size: 0.5rem;
+            }
+            .model-comp .mc-label {
+                font-size: 0.55rem;
+                padding-left: 0.2rem;
+            }
+        }
+
+        /* Tag / badge */
+        .tag {
+            display: inline-block;
+            background: #e9edf2;
+            border-radius: 30px;
+            padding: 0.1rem 0.9rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .tag-blue {
+            background: #dce8f5;
+            color: #0b2a4a;
+        }
+
+        /* Messy text demo */
+        .messy-demo {
+            background: #fef9f0;
+            border: 1px solid #f0e0c0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .messy-demo .raw {
+            background: #ffffff;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 1rem;
+            font-weight: 500;
+            color: #0b2a4a;
+        }
+
+        .messy-demo .cleaned {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            color: #0b2a4a;
+            border-left: 4px solid #1a4a6e;
+        }
+
+        .messy-demo .cleaned .label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5f7d97;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        /* Takeaway box */
+        .takeaway-box {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border-left: 5px solid #1a4a6e;
+            margin-top: 1rem;
+        }
+
+        .takeaway-box p {
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+
+        .takeaway-box ul {
+            margin-top: 0.6rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-box ul li {
+            padding: 0.2rem 0;
+            display: flex;
+            align-items: baseline;
+            gap: 0.6rem;
+            font-size: 0.95rem;
+        }
+
+        .takeaway-box ul li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .grid-3col {
+                grid-template-columns: 1fr 1fr;
+            }
+            .grid-4col {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                padding: 1.8rem 1.5rem;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+            }
+            .content {
+                padding: 1.8rem 1.2rem;
+            }
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+            .grid-3col {
+                grid-template-columns: 1fr;
+            }
+            .grid-4col {
+                grid-template-columns: 1fr 1fr;
+            }
+            .pipeline {
+                gap: 0.3rem;
+                padding: 1rem;
+            }
+            .pipeline-step {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.8rem;
+            }
+            .pipeline-arrow {
+                font-size: 0.7rem;
+            }
+            .clean-table {
+                font-size: 0.75rem;
+            }
+            .clean-table th,
+            .clean-table td {
+                padding: 0.4rem 0.6rem;
+            }
+            .destroy-box .examples {
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+            .emoji-box .rule {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .grid-4col {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+            }
+            .destroy-box .examples .example-item {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- ====== HEADER ====== -->
+        <header class="hero">
+            <a href="Chapter 02.html" class="nav-arrow left" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <div class="hero-inner">
+                <h1>Introduction to Text Cleaning</h1>
+                <div class="chapter-badge">
+                    Clean text, clearer meaning
+                </div>
+            </div>
+
+            <a href="Tokenization.html" class="nav-arrow right" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </header>
+
+        <!-- ====== CONTENT ====== -->
+        <div class="content">
+
+            <!-- 1. WHAT IS TEXT CLEANING? -->
+            <div class="section-title fade-up">
+                <i class="fas fa-question-circle"></i> What is Text Cleaning?
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem;">
+                    <strong>Text Cleaning</strong> is one of the most important stages of Text Preprocessing.
+                    Real-world textual data is often <strong>noisy</strong>, inconsistent, incomplete, and contains irrelevant information.
+                    Before applying machine learning or deep learning models, the text must be cleaned and normalized.
+                </p>
+            </div>
+
+            <div class="key-idea fade-up">
+                <i class="fas fa-lightbulb"></i>
+                <strong>Key idea:</strong> Cleaning is <em>lossy by design</em>. Every operation throws away information.
+                The art is discarding only the variation that is <em>noise</em> for your specific task – and keeping what is <em>signal</em>.
+                There is no universal "clean" text.
+            </div>
+
+            <!-- 2. WHY TEXT CLEANING MATTERS -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-rocket"></i> Why Text Cleaning Matters
+                <span class="title-line"></span>
+            </div>
+
+            <div class="grid-4col stagger fade-up">
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-font"></i></div>
+                    <h4>Reduces Vocabulary</h4>
+                    <p>"Hello", "hello!", "HELLO" → 3 features → 1</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-bullseye"></i></div>
+                    <h4>Improves Accuracy</h4>
+                    <p>Noise misleads algorithms; clean text = better predictions</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-balance-scale"></i></div>
+                    <h4>Ensures Consistency</h4>
+                    <p>Merging datasets from different sources requires uniform formatting</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-tachometer-alt"></i></div>
+                    <h4>Speeds Up Training</h4>
+                    <p>Fewer unique tokens = faster training &amp; inference</p>
+                </div>
+            </div>
+
+            <div class="fade-up" style="margin-bottom: 1rem;">
+                <p style="font-size: 0.95rem; color: #475569;">
+                    <i class="fas fa-exclamation-triangle" style="color: #b07c1e; margin-right: 0.4rem;"></i>
+                    Imagine building a spam classifier: raw emails contain headers, signatures, and formatting.
+                    Without cleaning, the classifier may learn that <code>&lt;div&gt;</code> indicates spam – obviously wrong.
+                </p>
+            </div>
+
+            <!-- 3. COMMON OPERATIONS -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-list"></i> Common Text Cleaning Operations
+                <span class="title-line"></span>
+            </div>
+
+            <div class="grid-3col stagger fade-up">
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-text-height"></i> Lowercasing</div>
+                    <div class="op-example"><span class="arrow">→</span> Apple, APPLE, apple → apple</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-remove-format"></i> Remove Punctuation</div>
+                    <div class="op-example"><span class="arrow">→</span> "Hello!!!" → "Hello"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-hashtag"></i> Remove Numbers</div>
+                    <div class="op-example"><span class="arrow">→</span> "3 books in 2025" → "books in"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-link"></i> Remove URLs</div>
+                    <div class="op-example"><span class="arrow">→</span> "Visit https://x.com" → "Visit"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-envelope"></i> Remove Emails</div>
+                    <div class="op-example"><span class="arrow">→</span> "test@mail.com" → ""</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-smile"></i> Remove Emojis</div>
+                    <div class="op-example"><span class="arrow">→</span> "Hello ðŸ˜Š" → "Hello"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-arrows-alt-h"></i> Remove Extra Spaces</div>
+                    <div class="op-example"><span class="arrow">→</span> "NLP  is  amazing" → "NLP is amazing"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-compress-arrows-alt"></i> Expand Contractions</div>
+                    <div class="op-example"><span class="arrow">→</span> "don't" → "do not"</div>
+                </div>
+                <div class="op-card">
+                    <div class="op-label"><i class="fas fa-code"></i> Remove HTML/XML</div>
+                    <div class="op-example"><span class="arrow">→</span> "&lt;p&gt;Hello&lt;/p&gt;" → "Hello"</div>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!--  WHAT YOU DESTROY (punctuation warning)                       -->
+            <!-- ============================================================ -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-skull"></i> What You Destroy
+                <span class="title-line"></span>
+            </div>
+
+            <div class="destroy-box fade-up">
+                <div class="destroy-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Removing punctuation indiscriminately breaks:
+                </div>
+                <div class="examples">
+                    <span class="example-item">decimals <span class="arrow">→</span> 3.14 → 314</span>
+                    <span class="example-item">hyphenated words <span class="arrow">→</span> state-of-the-art → stateoftheart</span>
+                    <span class="example-item">apostrophes in contractions <span class="arrow">→</span> don't → dont</span>
+                    <span class="example-item">emoticons <span class="arrow">→</span> :-) → </span>
+                    <span class="example-item" style="background:#fef0e8;">For sentiment, <strong>!</strong> and <strong>?</strong> carry real signal.</span>
+                </div>
+                <p style="margin-top: 0.8rem; font-weight: 500; color: #4a1e1e;">
+                    <i class="fas fa-asterisk" style="color:#b91c1c; font-size:0.7rem;"></i>
+                    Be selective.
+                </p>
+            </div>
+
+            <!-- ============================================================ -->
+            <!--  NEW: EMOJIS – REMOVE, KEEP, OR TRANSLATE?                   -->
+            <!-- ============================================================ -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-smile"></i> Emojis: Remove, Keep, or Translate?
+                <span class="title-line"></span>
+            </div>
+
+            <div class="emoji-box fade-up">
+                <div class="emoji-title">
+                    <i class="fas fa-exchange-alt"></i>
+                    Translating emojis to text (demojize)
+                </div>
+                <p style="margin-bottom: 0.5rem;">
+                    Translating emojis to text keeps their meaning available to a model that only sees words –
+                    a <strong>smart middle ground</strong> for sentiment with BoW / TFâ€‘IDF.
+                </p>
+                <div class="rule">
+                    <i class="fas fa-rule"></i>
+                    <span><strong>Rule of thumb:</strong> Demojize for sentiment with bagâ€‘ofâ€‘words models. Keep raw emojis for transformers (their tokenizers handle them). Remove only when you are certain they carry nothing for your task.</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.8rem; font-size: 0.9rem;">
+                    <span style="background:#ffffff; padding:0.2rem 0.8rem; border-radius:30px; border:1px solid #b8d8c8;">
+                        <i class="fas fa-check-circle" style="color:#1a7a4a;"></i> Bagâ€‘ofâ€‘words → demojize
+                    </span>
+                    <span style="background:#ffffff; padding:0.2rem 0.8rem; border-radius:30px; border:1px solid #b8d8c8;">
+                        <i class="fas fa-check-circle" style="color:#1a7a4a;"></i> Transformers → keep raw
+                    </span>
+                    <span style="background:#ffffff; padding:0.2rem 0.8rem; border-radius:30px; border:1px solid #f0d0c0;">
+                        <i class="fas fa-minus-circle" style="color:#b07c1e;"></i> Remove only if truly noise
+                    </span>
+                </div>
+            </div>
+
+            <!-- 4. DETAILED OPERATIONS WITH EXAMPLES -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-eye"></i> Operations in Action
+                <span class="title-line"></span>
+            </div>
+
+            <div class="messy-demo fade-up">
+                <div class="raw">
+                    <i class="fas fa-file-alt" style="color: #1a4a6e; margin-right: 0.5rem;"></i>
+                    “Hello!!! ðŸ˜Š Visit https://openai.com NOW!!! Contact me at test@gmail.com”
+                </div>
+                <div class="cleaned">
+                    <span class="label"><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Cleaned</span>
+                    “hello visit now contact me”
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-top: 0.8rem;">
+                    <span class="tag tag-blue"><i class="fas fa-text-height"></i> lowercased</span>
+                    <span class="tag tag-blue"><i class="fas fa-remove-format"></i> punctuation removed</span>
+                    <span class="tag tag-blue"><i class="fas fa-link"></i> URL removed</span>
+                    <span class="tag tag-blue"><i class="fas fa-envelope"></i> email removed</span>
+                    <span class="tag tag-blue"><i class="fas fa-smile"></i> emoji removed</span>
+                    <span class="tag tag-blue"><i class="fas fa-arrows-alt-h"></i> spaces normalized</span>
+                </div>
+            </div>
+
+            <!-- 5. CHALLENGES & BEST PRACTICES -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-exclamation-triangle"></i> Challenges &amp; Best Practices
+                <span class="title-line"></span>
+            </div>
+
+            <div class="grid-2col fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-skull"></i> Common Pitfalls</h3>
+                    <ul>
+                        <li><i class="fas fa-times"></i> Removing too much – hurting performance</li>
+                        <li><i class="fas fa-times"></i> Punctuation can carry meaning (<em>!</em>, <em>?</em>)</li>
+                        <li><i class="fas fa-times"></i> Numbers may be critical (finance, dates)</li>
+                        <li><i class="fas fa-times"></i> Emojis contain sentiment</li>
+                        <li><i class="fas fa-times"></i> URLs can provide useful context</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-check-circle"></i> Best Practices</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Understand your dataset first</li>
+                        <li><i class="fas fa-check"></i> Keep domain-specific information</li>
+                        <li><i class="fas fa-check"></i> Build reusable preprocessing pipelines</li>
+                        <li><i class="fas fa-check"></i> Document every cleaning step</li>
+                        <li><i class="fas fa-check"></i> Evaluate performance before &amp; after</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 6. ORDER MATTERS -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-sort-amount-down"></i> Order Matters
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem;">
+                    Cleaning steps are <strong>not commutative</strong>. A wrong order quietly corrupts data.
+                </p>
+            </div>
+
+            <div class="pipeline fade-up">
+                <span class="pipeline-step active"><i class="fas fa-code"></i> HTML</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-link"></i> URLs</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-envelope"></i> Emails</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-compress-arrows-alt"></i> Contractions</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-text-height"></i> Lowercase</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-remove-format"></i> Punctuation</span>
+                <span class="pipeline-arrow"><i class="fas fa-chevron-right"></i></span>
+                <span class="pipeline-step"><i class="fas fa-arrows-alt-h"></i> Whitespace</span>
+            </div>
+
+            <div class="fade-up" style="font-size: 0.9rem; color: #5f7d97; text-align: center; margin-bottom: 1rem;">
+                <i class="fas fa-lightbulb" style="color: #b07c1e;"></i>
+                Go from <strong>most structured</strong> to <strong>least structured</strong>.
+                Normalize whitespace <em>last</em> – every prior step leaves gaps behind.
+            </div>
+
+            <!-- 7. NUMBERS STRATEGIES -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-calculator"></i> Handling Numbers
+                <span class="title-line"></span>
+            </div>
+
+            <div class="grid-3col fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-trash"></i> Remove</h3>
+                    <p style="font-size: 0.9rem; color: #475569;"><code>re.sub(r"\d+", "", text)</code></p>
+                    <p style="font-size: 0.85rem; color: #5f7d97; margin-top: 0.3rem;">Fine when numbers are pure noise (e.g. topic models).</p>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-tag"></i> Replace with Token</h3>
+                    <p style="font-size: 0.9rem; color: #475569;"><code>re.sub(r"\d+", "&lt;NUM&gt;", text)</code></p>
+                    <p style="font-size: 0.85rem; color: #5f7d97; margin-top: 0.3rem;">Keeps "a number was here" – useful for many tasks.</p>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-save"></i> Keep</h3>
+                    <p style="font-size: 0.9rem; color: #475569;">Do not remove digits.</p>
+                    <p style="font-size: 0.85rem; color: #5f7d97; margin-top: 0.3rem;">Essential for finance, dates, quantities – where 0.05 vs 0.95 is the whole point.</p>
+                </div>
+            </div>
+
+            <!-- 8. DOMAIN-SPECIFIC STRATEGIES -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-tasks"></i> Task-Specific Cleaning Strategies
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up" style="overflow-x: auto;">
+                <table class="clean-table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Recommended Cleaning Strategy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Sentiment Analysis</strong></td>
+                            <td>Preserve negation, possibly preserve emojis and exclamation marks</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><strong>Topic Modeling</strong></td>
+                            <td>Remove stop words, punctuation, and possibly numbers</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Named Entity Recognition</strong></td>
+                            <td>Preserve capitalization and punctuation when relevant</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><strong>Machine Translation</strong></td>
+                            <td>Minimal cleaning; preserve grammar and structure</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Information Retrieval</strong></td>
+                            <td>Normalize case, remove noise, possibly stem or lemmatize</td>
+                        </tr>
+                        <tr class="highlight">
+                            <td><strong>Social Media Mining</strong></td>
+                            <td>Handle hashtags, mentions, emojis, slang, and misspellings carefully</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- 9. CLASSICAL ML vs TRANSFORMERS – CORRECTED TABLE              -->
+            <!-- ============================================================ -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-microchip"></i> Classical ML vs Transformers
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem; font-size: 0.95rem;">
+                    Transformers learn from raw surface forms. <strong>Over-cleaning hurts BERT, mBERT, AraBERT, and CamemBERT.</strong>
+                </p>
+            </div>
+
+            <!-- === CORRECTED GRID TABLE === -->
+            <div class="model-comp fade-up">
+                <!-- Header row (4 columns) -->
+                <div class="mc-header">Cleaning Step</div>
+                <div class="mc-header">
+                    Classical ML
+                    <span class="sub">TFâ€‘IDF, SVM, NB</span>
+                </div>
+                <div class="mc-header">
+                    Deep Learning
+                    <span class="sub">LSTM, CNN</span>
+                </div>
+                <div class="mc-header">
+                    Transformers
+                    <span class="sub">BERT, AraBERT, CamemBERT</span>
+                </div>
+
+                <!-- Row: Unicode NFKC -->
+                <div class="mc-cell mc-label">Unicode NFKC</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Do</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Do</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Do</div>
+
+                <!-- Row: Lowercasing -->
+                <div class="mc-cell mc-label">Lowercasing</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Do</div>
+                <div class="mc-cell">Optional</div>
+                <div class="mc-cell"><span class="cross"><i class="fas fa-times-circle"></i></span> Avoid <span style="font-size:0.65rem;color:#5f7d97;">(use uncased)</span></div>
+
+                <!-- Row: HTML/URLs -->
+                <div class="mc-cell mc-label">HTML / URLs</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Remove</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Remove</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Remove</div>
+
+                <!-- Row: Punctuation -->
+                <div class="mc-cell mc-label">Punctuation</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Remove</div>
+                <div class="mc-cell">Minimal</div>
+                <div class="mc-cell"><span class="cross"><i class="fas fa-times-circle"></i></span> Keep</div>
+
+                <!-- Row: Stopwords -->
+                <div class="mc-cell mc-label">Stopwords</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Remove</div>
+                <div class="mc-cell">Optional</div>
+                <div class="mc-cell"><span class="cross"><i class="fas fa-times-circle"></i></span> Keep</div>
+
+                <!-- Row: Emojis -->
+                <div class="mc-cell mc-label">Emojis</div>
+                <div class="mc-cell">Replace/Remove</div>
+                <div class="mc-cell">Keep as tokens</div>
+                <div class="mc-cell"><span class="check"><i class="fas fa-check-circle"></i></span> Keep</div>
+            </div>
+
+            <!-- 10. KEY TAKEAWAYS -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-key"></i> Key Takeaways
+                <span class="title-line"></span>
+            </div>
+
+            <div class="takeaway-box fade-up">
+                <ul>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Cleaning normalizes spurious variation so genuine linguistic signal stands out – it is <strong>lossy by design</strong>.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> There is <strong>no universal clean text</strong>: what is noise depends entirely on the source and the downstream task.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Build cleaning as <strong>composable, testable functions</strong> and run them most-structured → least-structured, whitespace last.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Decode &amp; Unicode-normalize first; the worst bugs (mojibake, combining chars, zero-width) are invisible.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Every removal destroys something – case, negation, numbers, emojis, and punctuation are often <strong>signal, not noise</strong>.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Classical pipelines clean aggressively; transformers prefer <strong>minimal cleaning</strong>. Match the cleaning to the model.</li>
+                    <li><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Validate empirically: justify each step by its effect on a downstream metric, not by habit.</li>
+                </ul>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing animations
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -40px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg, .stagger').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Also observe individual stat cards inside stagger
+        document.querySelectorAll('.stagger .stat-card, .stagger .op-card, .stagger .comp-col').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

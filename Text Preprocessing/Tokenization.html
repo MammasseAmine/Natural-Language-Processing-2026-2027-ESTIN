@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 02 – Tokenization</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0f2b3d 0%, #1e4a6a 100%);
+            padding: 2rem 3rem 2.5rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            left: -100px;
+            top: -150px;
+        }
+
+        .hero::after {
+            width: 420px;
+            height: 420px;
+            right: -100px;
+            top: -150px;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 900px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin: 0;
+            line-height: 1.1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero .slogan {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #edf5ff;
+            min-width: 440px;
+            max-width: 100%;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .nav-arrow.left {
+            left: 30px;
+        }
+
+        .nav-arrow.right {
+            right: 30px;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 260px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        .token-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin: 1.5rem 0 2rem;
+            justify-content: center;
+        }
+
+        .token-card {
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.2rem 1.8rem;
+            text-align: center;
+            flex: 1;
+            min-width: 140px;
+            border: 1px solid #dce5ef;
+        }
+
+        .token-card .token-example {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            background: #fff;
+            padding: 0.3rem 0.8rem;
+            border-radius: 30px;
+            display: inline-block;
+            margin-top: 0.3rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .token-card .token-label {
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .pipeline-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .pipeline-step {
+            background: #e6f0fa;
+            border-radius: 30px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #0b2a4a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid #c8d8e8;
+        }
+
+        .pipeline-step i {
+            color: #1a4a6e;
+        }
+
+        .pipeline-arrow {
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        .special-tokens-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0 2rem;
+            font-size: 0.95rem;
+        }
+
+        .special-tokens-table th {
+            background: #0b2a4a;
+            color: #fff;
+            padding: 0.7rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .special-tokens-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #e9edf2;
+        }
+
+        .special-tokens-table tr:nth-child(even) {
+            background: #f8faff;
+        }
+
+        .special-tokens-table .token-code {
+            font-family: 'Courier New', monospace;
+            background: #eef2f6;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        /* ---------- BUTTONS & DEMO ACTIONS ---------- */
+        .demo-box {
+            background: #f0f6fe;
+            border-radius: 1.2rem;
+            padding: 2rem;
+            margin: 2rem 0 1rem;
+            border: 1px solid #dce5ef;
+        }
+
+        .demo-box textarea {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 0.8rem;
+            border: 2px solid #dce5ef;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s;
+            background: #fff;
+        }
+
+        .demo-box textarea:focus {
+            outline: none;
+            border-color: #1a4a6e;
+        }
+
+        .demo-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 1rem 0 1.5rem;
+        }
+
+        .demo-btn {
+            background: #1a4a6e;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .demo-btn:hover {
+            background: #0b2a4a;
+            transform: scale(1.02);
+        }
+
+        .demo-btn:active {
+            transform: scale(0.96);
+        }
+
+        .demo-btn-outline {
+            background: transparent;
+            color: #1a4a6e;
+            border: 2px solid #1a4a6e;
+        }
+
+        .demo-btn-outline:hover {
+            background: #1a4a6e;
+            color: #fff;
+        }
+
+        .demo-output {
+            background: #fff;
+            border-radius: 0.8rem;
+            padding: 1.2rem 1.5rem;
+            border: 2px solid #dce5ef;
+            min-height: 60px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            word-break: break-all;
+            transition: border-color 0.3s;
+        }
+
+        .demo-output .token-tag {
+            display: inline-block;
+            background: #e6f0fa;
+            padding: 0.1rem 0.6rem;
+            border-radius: 12px;
+            margin: 0.1rem 0.15rem;
+            font-size: 0.9rem;
+            border: 1px solid #c8d8e8;
+        }
+
+        .demo-output .token-tag-special { background: #fef0c0; border-color: #e0c880; }
+        .demo-output .token-tag-punct { background: #f0e8e8; border-color: #d0c8c8; }
+
+        .demo-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .demo-stats span {
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .demo-stats i { color: #1a4a6e; }
+
+        /* ---------- BPE MODAL & ANIMATIONS ---------- */
+        .bpe-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 42, 74, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .bpe-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bpe-modal {
+            background: #ffffff;
+            width: 95%;
+            max-width: 1000px;
+            max-height: 90vh;
+            border-radius: 1.2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(30px) scale(0.98);
+            transition: transform 0.3s ease;
+        }
+
+        .bpe-modal-overlay.active .bpe-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .bpe-header {
+            background: #0b2a4a;
+            color: #fff;
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bpe-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bpe-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            font-size: 1.2rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .bpe-close:hover { background: rgba(255,255,255,0.3); }
+
+        .bpe-toolbar {
+            background: #f0f6fe;
+            border-bottom: 1px solid #dce5ef;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .bpe-status {
+            font-size: 0.95rem;
+            color: #1a4a6e;
+            background: #e6f0fa;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 250px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #c8d8e8;
+        }
+
+        .bpe-body {
+            padding: 1.5rem 2rem;
+            display: flex;
+            gap: 2rem;
+            flex: 1;
+            overflow-y: auto;
+            flex-wrap: wrap;
+        }
+
+        .bpe-column {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .bpe-column h3 {
+            font-size: 1.1rem;
+            color: #0b2a4a;
+            border-bottom: 2px solid #e9edf2;
+            padding-bottom: 0.5rem;
+        }
+
+        .bpe-word-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            background: #f8faff;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e9edf2;
+        }
+
+        .bpe-freq-badge {
+            background: #0b2a4a;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            margin-right: 1rem;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .bpe-token {
+            display: inline-block;
+            background: #ffffff;
+            border: 1px solid #c8d8e8;
+            padding: 0.2rem 0.5rem;
+            margin: 0 0.15rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #1a4a6e;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        /* Animation classes */
+        .bpe-token.highlight {
+            background: #fef0c0;
+            border-color: #b76e1e;
+            color: #b76e1e;
+            transform: scale(1.15) translateY(-2px);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(183, 110, 30, 0.2);
+        }
+
+        .bpe-rules-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .bpe-rule-item {
+            background: #eef2f6;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            color: #0b2a4a;
+            border-left: 4px solid #1a4a6e;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .pipeline-arrow { display: none; }
+            .pipeline-steps { flex-direction: column; align-items: center; }
+            .bpe-toolbar { flex-direction: column; align-items: stretch; }
+            .bpe-body { flex-direction: column; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.2rem 1rem; }
+            .section-title { font-size: 1.1rem; }
+            .demo-box { padding: 1.2rem; }
+            .bpe-header, .bpe-body { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a href="Text Cleaning.html" class="nav-arrow left" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <div class="hero-inner">
+                <h1>Tokenization</h1>
+                <div class="slogan">Turning text into pieces a computer can understand</div>
+            </div>
+
+            <a href="Sentence Segmentation.html" class="nav-arrow right" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- ============================== -->
+            <!-- 1. WHAT IS TOKENIZATION?        -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-cut"></i> What is Tokenization?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    <strong>Tokenization</strong> is the process of breaking a text into smaller pieces called <strong>tokens</strong>.
+                    These tokens can be words, sentences, characters, or even subwords – depending on what we need.
+                </p>
+                <p style="margin-bottom: 1.2rem;">
+                    It is usually the <strong>first step</strong> in any NLP pipeline because computers can't understand raw text directly.
+                    They need to work with numbers, and tokenization is how we turn text into something a computer can process.
+                </p>
+            </div>
+
+            <!-- Example -->
+            <div class="fade-up" style="margin: 1.5rem 0 2rem; background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2;">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.5rem;">
+                    <i class="fas fa-arrow-right" style="color: #1a4a6e;"></i> Example
+                </p>
+                <p style="font-size: 1.05rem; margin-bottom: 0.8rem;">
+                    <strong>Input:</strong> <span style="background: #eef2f6; padding: 0.1rem 0.6rem; border-radius: 4px;">"I love Natural Language Processing."</span>
+                </p>
+                <p style="font-size: 1.05rem;">
+                    <strong>Tokens:</strong>
+                    <span style="display: inline-flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem;">
+                        <span class="token-tag">I</span>
+                        <span class="token-tag">love</span>
+                        <span class="token-tag">Natural</span>
+                        <span class="token-tag">Language</span>
+                        <span class="token-tag">Processing</span>
+                        <span class="token-tag token-tag-punct">.</span>
+                    </span>
+                </p>
+            </div>
+
+            <!-- ============================== -->
+            <!-- 2. WHY IS TOKENIZATION IMPORTANT? -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-star"></i> Why is Tokenization Important?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1; min-width: 180px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-puzzle-piece" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem; font-size: 1rem;">Breaks text into pieces</h4>
+                    <p style="font-size: 0.9rem;">Turns long text into small, manageable units.</p>
+                </div>
+                <div style="flex: 1; min-width: 180px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-chart-bar" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem; font-size: 1rem;">Helps analysis</h4>
+                    <p style="font-size: 0.9rem;">Makes it easier to extract features and patterns.</p>
+                </div>
+                <div style="flex: 1; min-width: 180px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-brain" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem; font-size: 1rem;">Works with ML models</h4>
+                    <p style="font-size: 0.9rem;">Needed for models like BERT and GPT to learn.</p>
+                </div>
+                <div style="flex: 1; min-width: 180px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-search" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem; font-size: 1rem;">Improves search</h4>
+                    <p style="font-size: 0.9rem;">Makes searching and indexing text much better.</p>
+                </div>
+            </div>
+
+            <!-- ============================== -->
+            <!-- 3. TYPES OF TOKENS              -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-list"></i> Types of Tokens
+                <span class="title-line"></span>
+            </div>
+
+            <div class="token-grid fade-up">
+                <div class="token-card">
+                    <div class="token-label"><i class="fas fa-font"></i> Word Token</div>
+                    <div class="token-example">book, NLP, student</div>
+                </div>
+                <div class="token-card">
+                    <div class="token-label"><i class="fas fa-paragraph"></i> Sentence Token</div>
+                    <div class="token-example">"I study NLP."</div>
+                </div>
+                <div class="token-card">
+                    <div class="token-label"><i class="fas fa-keyboard"></i> Character Token</div>
+                    <div class="token-example">N, L, P</div>
+                </div>
+                <div class="token-card">
+                    <div class="token-label"><i class="fas fa-layer-group"></i> Subword Token</div>
+                    <div class="token-example">play + ing</div>
+                </div>
+            </div>
+
+            <!-- ============================== -->
+            <!-- 4. WORD TOKENIZATION            -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-word-simple"></i> Word Tokenization
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem;">
+                    <strong>Word tokenization</strong> splits text into individual words. It's the simplest and most common approach.
+                </p>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.2rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">Sentence:</p>
+                <p style="font-style: italic; margin-bottom: 0.5rem;">"John studies NLP every day."</p>
+                <p style="font-weight: 600; color: #0b2a4a;">Word Tokens:</p>
+                <p>["John", "studies", "NLP", "every", "day", "."]</p>
+            </div>
+
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Simple and easy to understand</li>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Easy to implement</li>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Works well for many languages</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #b76e1e;"></i> Disadvantages</h3>
+                    <ul>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Very large vocabulary</li>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Can't handle new words well</li>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> OOV problem: new words become <span class="token-code">[UNK]</span></li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Use Case Box for Word Tokenization -->
+            <div class="fade-up" style="background: #f0f6fe; border-radius: 0.8rem; padding: 1rem 1.5rem; border-left: 4px solid #1a4a6e; margin-bottom: 2rem;">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.3rem;">
+                    <i class="fas fa-briefcase" style="color: #1a4a6e;"></i> Common Use Cases
+                </p>
+                <p style="font-size: 0.95rem; color: #475569;">
+                    Simple spam detection, keyword extraction (SEO), basic sentiment analysis, and traditional bag-of-words models.
+                </p>
+            </div>
+<!-- ============================== -->
+            <!-- 5. SENTENCE TOKENIZATION       -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-paragraph"></i> Sentence Tokenization
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.2rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">Input:</p>
+                <p style="font-style: italic; margin-bottom: 0.5rem;">Hello students. Welcome to NLP. Today we study tokenization.</p>
+                <p style="font-weight: 600; color: #0b2a4a;">Output:</p>
+                <p style="font-family: 'Courier New', monospace; font-size: 0.9rem; background: #eef2f6; padding: 0.5rem 0.8rem; border-radius: 6px;">
+                    ["Hello students.", "Welcome to NLP.", "Today we study tokenization."]
+                </p>
+                <p style="margin-top: 0.8rem; font-size: 0.9rem; color: #475569;">
+                    <i class="fas fa-info-circle" style="color: #1a4a6e;"></i> This is also called <strong>Sentence Boundary Detection (SBD)</strong>.
+                </p>
+            </div>
+
+          <!-- ðŸ‘‡ PASTE THIS NEW BLOCK HERE ðŸ‘‡ -->
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Preserves context and full meaning</li>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Great for tasks like translation & summarization</li>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Helps in analyzing grammar and syntax</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #b76e1e;"></i> Disadvantages</h3>
+                    <ul>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Hard to handle ambiguous punctuation (e.g., "Dr.", "U.S.")</li>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Too broad for deep word-level analysis</li>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Struggles with informal text lacking proper punctuation</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Use Case Box for Sentence Tokenization -->
+            <div class="fade-up" style="background: #f0f6fe; border-radius: 0.8rem; padding: 1rem 1.5rem; border-left: 4px solid #1a4a6e; margin-bottom: 2rem;">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.3rem;">
+                    <i class="fas fa-briefcase" style="color: #1a4a6e;"></i> Common Use Cases
+                </p>
+                <p style="font-size: 0.95rem; color: #475569;">
+                    Machine translation (translating document sentence-by-sentence), text summarization, and breaking up long documents for easier processing.
+                </p>
+            </div>
+            <!-- ðŸ‘† END OF NEW BLOCK ðŸ‘† -->
+
+
+            <!-- ============================== -->
+            <!-- 6. CHARACTER TOKENIZATION       -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-keyboard"></i> Character Tokenization
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.2rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">Word:</p>
+                <p style="font-style: italic; margin-bottom: 0.5rem;">"NLP"</p>
+                <p style="font-weight: 600; color: #0b2a4a;">Character Tokens:</p>
+                <p>["N", "L", "P"]</p>
+            </div>
+
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Benefits</h3>
+                    <ul>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> No out-of-vocabulary problem</li>
+                        <li><i class="fas fa-check" style="color: #2e7d32;"></i> Handles misspellings well</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: #b76e1e;"></i> Drawbacks</h3>
+                    <ul>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> Very long sequences</li>
+                        <li><i class="fas fa-times" style="color: #b71c1c;"></i> More expensive to compute</li>
+                    </ul>
+                </div>
+            </div>
+<!-- Use Case Box for Character Tokenization -->
+            <div class="fade-up" style="background: #f0f6fe; border-radius: 0.8rem; padding: 1rem 1.5rem; border-left: 4px solid #1a4a6e; margin-bottom: 2rem;">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.3rem;">
+                    <i class="fas fa-briefcase" style="color: #1a4a6e;"></i> Common Use Cases
+                </p>
+                <p style="font-size: 0.95rem; color: #475569;">
+                    Spell checkers, analyzing DNA/protein sequences, extracting text from blurry images (OCR), and processing languages without spaces (like Chinese).
+                </p>
+            </div>
+            <!-- ============================== -->
+            <!-- 7. SUBWORD TOKENIZATION         -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-layer-group"></i> Subword Tokenization
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Modern NLP systems use <strong>subword tokenization</strong> to get the best of both word-level and character-level approaches.
+                    It splits words into smaller meaningful pieces.
+                </p>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.5rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">Word:</p>
+                <p style="font-style: italic; margin-bottom: 0.5rem;">"unhappiness"</p>
+                <p style="font-weight: 600; color: #0b2a4a;">Subword Tokens:</p>
+                <p>["un", "happi", "ness"]</p>
+                <p style="margin-top: 0.8rem; font-size: 0.9rem; color: #475569;">
+                    <i class="fas fa-info-circle" style="color: #1a4a6e;"></i> Subword methods reduce vocabulary size while still handling unknown words.
+                </p>
+            </div>
+<!-- Use Case Box for Subword Tokenization -->
+            <div class="fade-up" style="background: #f0f6fe; border-radius: 0.8rem; padding: 1rem 1.5rem; border-left: 4px solid #1a4a6e; margin-bottom: 2rem;">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.3rem;">
+                    <i class="fas fa-briefcase" style="color: #1a4a6e;"></i> Common Use Cases
+                </p>
+                <p style="font-size: 0.95rem; color: #475569;">
+                    <strong>Modern Large Language Models (LLMs)</strong>. This is the industry standard used to train AI like ChatGPT, BERT, Claude, and LLaMA because it handles multiple languages and complex words perfectly.
+                </p>
+            </div>
+            <!-- ============================== -->
+            <!-- 8. BPE - BYTE PAIR ENCODING     -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-code-merge"></i> Byte Pair Encoding (BPE)
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    <strong>BPE</strong> is one of the most popular tokenization methods used in modern language models like GPT.
+                </p>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.5rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">How it works:</p>
+                <ol style="padding-left: 1.5rem; margin: 0.5rem 0 0.8rem; line-height: 2;">
+                    <li>Start with individual characters</li>
+                    <li>Count how often each pair of characters appears in the training data</li>
+                    <li>Merge the most frequent pair into a single new token</li>
+                    <li>Repeat until you reach the target vocabulary size</li>
+                </ol>
+                <div style="background: #eef2f6; padding: 0.8rem 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.9rem;">
+                    l o w &nbsp; → &nbsp; l o w e r &nbsp; → &nbsp; n e w e s t
+                    <br><br>
+                    <span style="font-weight: 600; color: #0b2a4a;">Frequent pair:</span> "e s" &nbsp; → &nbsp; <span style="background: #dce5ef; padding: 0.1rem 0.4rem; border-radius: 4px;">"es"</span>
+                </div>
+            </div>
+
+            <!-- BPE Modal Launcher -->
+            <div class="demo-box fade-up" style="margin-top: 0.5rem; text-align: center; padding: 2.5rem 2rem;">
+                <h3 style="margin-bottom: 0.8rem; color: #0b2a4a;">See BPE in Action</h3>
+                <p style="font-size: 0.95rem; color: #475569; margin-bottom: 1.5rem;">
+                    Launch our interactive visualizer to see exactly how the BPE algorithm counts, highlights, and merges character pairs using a real example corpus.
+                </p>
+                <button class="demo-btn" id="openBpeModalBtn" style="margin: 0 auto; font-size: 1.05rem; padding: 0.8rem 2rem;">
+                    <i class="fas fa-play-circle"></i> Launch Interactive Simulation
+                </button>
+            </div>
+
+            <!-- ============================== -->
+            <!-- 9. WORDPIECE                    -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-puzzle-piece"></i> WordPiece Tokenization
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.5rem;">
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>WordPiece</strong> was created by Google and is used in <strong>BERT</strong>.
+                </p>
+                <p style="font-weight: 600; color: #0b2a4a;">Word:</p>
+                <p style="font-style: italic; margin-bottom: 0.5rem;">"playing"</p>
+                <p style="font-weight: 600; color: #0b2a4a;">Tokens:</p>
+                <p>["play", <span style="background: #fef0c0; padding: 0.1rem 0.4rem; border-radius: 4px;">"##ing"</span>]</p>
+                <p style="margin-top: 0.8rem; font-size: 0.9rem; color: #475569;">
+                    <i class="fas fa-info-circle" style="color: #1a4a6e;"></i> The <span class="token-code">##</span> symbol means the token continues the word.
+                </p>
+            </div>
+
+           <!-- ============================== -->
+            <!-- 10. SENTENCEPIECE               -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-globe"></i> SentencePiece
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #f8faff; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; margin-bottom: 1.5rem;">
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>SentencePiece</strong> is a language-independent tokenizer from Google.
+                    It treats text as a raw stream of characters, including spaces. Spaces are replaced by a special symbol (<strong>_</strong>).
+                </p>
+                
+                <!-- Examples -->
+                <div style="background: #eef2f6; border-radius: 8px; padding: 1rem; margin-top: 1rem; border: 1px solid #dce5ef;">
+                    <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.5rem;">Examples:</p>
+                    
+                    <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+                        <strong>English:</strong> "Hello world"<br>
+                        <strong>Tokens:</strong> <span style="font-family: 'Courier New', monospace;">["_Hello", "_world"]</span>
+                    </p>
+                    
+                    <p style="font-size: 0.95rem;">
+                        <strong>Japanese (no spaces):</strong> "ã“ã‚“ã«ã¡ã¯ä¸–ç•Œ" (Hello World)<br>
+                        <strong>Tokens:</strong> <span style="font-family: 'Courier New', monospace;">["_ã“ã‚“ã«ã¡ã¯", "_ä¸–ç•Œ"]</span>
+                    </p>
+                </div>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
+                    <div style="background: #e6f0fa; border-radius: 30px; padding: 0.3rem 1.2rem; font-size: 0.9rem;">
+                        <i class="fas fa-check" style="color: #2e7d32;"></i> No pre-tokenization needed
+                    </div>
+                    <div style="background: #e6f0fa; border-radius: 30px; padding: 0.3rem 1.2rem; font-size: 0.9rem;">
+                        <i class="fas fa-check" style="color: #2e7d32;"></i> Perfect for multilingual data
+                    </div>
+                    <div style="background: #e6f0fa; border-radius: 30px; padding: 0.3rem 1.2rem; font-size: 0.9rem;">
+                        <i class="fas fa-check" style="color: #2e7d32;"></i> Used in LLaMA & ALBERT
+                    </div>
+                </div>
+            </div>
+            <!-- ============================== -->
+            <!-- 11. CHALLENGES IN TOKENIZATION  -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-mountain"></i> Challenges in Tokenization
+                <span class="title-line"></span>
+            </div>
+
+            <div class="fade-up" style="overflow-x: auto;">
+                <table class="special-tokens-table">
+                    <thead>
+                        <tr>
+                            <th>Problem</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Contractions</td>
+                            <td><span class="token-code">don't</span> → do + n't</td>
+                        </tr>
+                        <tr>
+                            <td>Abbreviations</td>
+                            <td><span class="token-code">Dr.</span>, <span class="token-code">Prof.</span>, <span class="token-code">U.S.A.</span></td>
+                        </tr>
+                        <tr>
+                            <td>Hyphenated Words</td>
+                            <td><span class="token-code">state-of-the-art</span></td>
+                        </tr>
+                        <tr>
+                            <td>Languages without spaces</td>
+                            <td>Chinese, Japanese</td>
+                        </tr>
+                        <tr>
+                            <td>Emojis</td>
+                            <td>ðŸ˜Š â¤ï¸ ðŸš€</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+         
+            <!-- ============================== -->
+            <!-- 13. SPECIAL TOKENS & VOCABULARY -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-tags"></i> Special Tokens &amp; Vocabulary
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Beyond normal words, tokenizers use <strong>special tokens</strong> that carry structural meaning.
+                    These tokens help models understand the shape and purpose of the input.
+                </p>
+            </div>
+
+            <div class="fade-up" style="overflow-x: auto;">
+                <table class="special-tokens-table">
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Role</th>
+                            <th>Used In</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="token-code">[CLS]</span> / <span class="token-code">&lt;s&gt;</span></td>
+                            <td>Start of sequence; its embedding is used for classification</td>
+                            <td>BERT / RoBERTa</td>
+                        </tr>
+                        <tr>
+                            <td><span class="token-code">[SEP]</span> / <span class="token-code">&lt;/s&gt;</span></td>
+                            <td>Separator between segments; end of sequence</td>
+                            <td>BERT</td>
+                        </tr>
+                        <tr>
+                            <td><span class="token-code">[PAD]</span></td>
+                            <td>Fills short sequences to the same length; ignored by attention</td>
+                            <td>All models</td>
+                        </tr>
+                        <tr>
+                            <td><span class="token-code">[MASK]</span></td>
+                            <td>Target for prediction in masked language modeling</td>
+                            <td>BERT</td>
+                        </tr>
+                        <tr>
+                            <td><span class="token-code">[UNK]</span></td>
+                            <td>Fallback for words not in the vocabulary</td>
+                            <td>Word / WordPiece</td>
+                        </tr>
+                        <tr>
+                            <td><span class="token-code">&lt;|endoftext|&gt;</span></td>
+                            <td>Document boundary in generative training</td>
+                            <td>GPT</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="fade-up" style="background: #fef9f0; border-radius: 1rem; padding: 1.2rem 1.5rem; border-left: 5px solid #b76e1e; margin: 1rem 0 1.5rem;">
+                <p style="font-weight: 600; color: #0b2a4a;">
+                    <i class="fas fa-bug" style="color: #b76e1e;"></i> Common Bug
+                </p>
+                <p style="font-size: 0.95rem;">
+                    Mismatched special tokens are a top source of silent failures.
+                    Always pair a model with its own tokenizer – using the wrong <span class="token-code">[CLS]</span> placement or chat template quietly wrecks performance.
+                </p>
+            </div>
+
+          <!-- ============================== -->
+            <!-- 14. FROM TOKENS TO NUMBERS      -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-hashtag"></i> From Tokens to Numbers (Encoding & Decoding)
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    Neural networks cannot read text; they only understand math. 
+                    Because of this, every token must be mapped to a unique integer ID using a <strong>Vocabulary</strong> (a giant lookup dictionary).
+                </p>
+            </div>
+
+            <!-- The Lookup Dictionary -->
+            <div class="fade-up" style="background: #ffffff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #dce5ef; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <p style="font-weight: 600; color: #0b2a4a; margin-bottom: 0.8rem;">
+                    <i class="fas fa-book" style="color: #1a4a6e;"></i> The Vocabulary (Lookup Table)
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; font-family: 'Courier New', monospace; font-size: 0.95rem;">
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">[PAD] &rarr; <strong>0</strong></span>
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">[UNK] &rarr; <strong>1</strong></span>
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">I &rarr; <strong>104</strong></span>
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">love &rarr; <strong>305</strong></span>
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">NLP &rarr; <strong>891</strong></span>
+                    <span style="background: #f8faff; border: 1px solid #e9edf2; padding: 0.4rem 0.8rem; border-radius: 6px;">. &rarr; <strong>9</strong></span>
+                </div>
+                <p style="font-size: 0.85rem; color: #475569; margin-top: 0.8rem;">
+                    <em>* Modern models have vocabularies with 30,000 to over 100,000 unique token IDs.</em>
+                </p>
+            </div>
+
+            <!-- Encoding vs Decoding Grid -->
+            <div class="comparison-grid fade-up" style="margin-top: 0;">
+                
+                <!-- ENCODING -->
+                <div class="comp-col" style="background: #f0f6fe; border-color: #c8d8e8;">
+                    <h3 style="color: #1a4a6e;"><i class="fas fa-sign-in-alt"></i> 1. Encoding (Text &rarr; IDs)</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 1rem; color: #475569;">How we prepare text for the AI model.</p>
+                    
+                    <div style="background: #fff; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                        <strong>1. Text:</strong> "I love NLP."
+                    </div>
+                    <div style="text-align: center; color: #94a3b8;"><i class="fas fa-arrow-down"></i></div>
+                    <div style="background: #fff; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                        <strong>2. Tokens:</strong> ["I", "love", "NLP", "."]
+                    </div>
+                    <div style="text-align: center; color: #94a3b8;"><i class="fas fa-arrow-down"></i></div>
+                    <div style="background: #0b2a4a; color: #fff; padding: 0.8rem; border-radius: 8px; font-family: 'Courier New', monospace;">
+                        <strong>3. IDs:</strong> [104, 305, 891, 9]
+                    </div>
+                </div>
+
+                <!-- DECODING -->
+                <div class="comp-col" style="background: #fef9f0; border-color: #f0e0c0;">
+                    <h3 style="color: #b76e1e;"><i class="fas fa-sign-out-alt"></i> 2. Decoding (IDs &rarr; Text)</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 1rem; color: #475569;">How the AI model replies to us.</p>
+                    
+                    <div style="background: #0b2a4a; color: #fff; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; font-family: 'Courier New', monospace;">
+                        <strong>1. AI Predicts:</strong> [104, 305, 891]
+                    </div>
+                    <div style="text-align: center; color: #94a3b8;"><i class="fas fa-arrow-down"></i></div>
+                    <div style="background: #fff; padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                        <strong>2. Tokens:</strong> ["I", "love", "NLP"]
+                    </div>
+                    <div style="text-align: center; color: #94a3b8;"><i class="fas fa-arrow-down"></i></div>
+                    <div style="background: #fff; padding: 0.8rem; border-radius: 8px; font-size: 0.95rem; border: 2px solid #b76e1e;">
+                        <strong>3. Text:</strong> "I love NLP"
+                    </div>
+                </div>
+            </div>
+
+
+            
+            <!-- ============================== -->
+            <!-- 15. CHAPTER SUMMARY             -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-key"></i> Summary
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="background: #e6f0fa; border-radius: 1rem; padding: 1.5rem; border-left: 5px solid #1a4a6e;">
+                <ul style="list-style: none; padding: 0; line-height: 2.2;">
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> <strong>Tokenization</strong> converts text into tokens – the first step in any NLP system.</li>
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Common approaches: <strong>sentence</strong>, <strong>word</strong>, <strong>character</strong>, and <strong>subword</strong> tokenization.</li>
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> <strong>BPE</strong>, <strong>WordPiece</strong>, and <strong>SentencePiece</strong> are the modern standards.</li>
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Subword tokenization balances vocabulary size and handling of unknown words.</li>
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> <strong>Special tokens</strong> like <span class="token-code">[CLS]</span>, <span class="token-code">[SEP]</span>, <span class="token-code">[PAD]</span>, and <span class="token-code">[UNK]</span> carry structural meaning.</li>
+                    <li><i class="fas fa-check-circle" style="color: #2e7d32;"></i> Tokenization directly impacts model performance – choose wisely!</li>
+                </ul>
+            </div>
+
+            <!-- ============================== -->
+            <!-- 16. INTERACTIVE DEMO            -->
+            <!-- ============================== -->
+            <div class="section-title fade-up">
+                <i class="fas fa-laptop-code"></i> Interactive Text Tokenizer
+                <span class="title-line"></span>
+            </div>
+
+            <div class="demo-box fade-up">
+                <p style="margin-bottom: 0.8rem; font-weight: 500;">
+                    <i class="fas fa-pen" style="color: #1a4a6e;"></i> Type some text and see how basic tokenization works!
+                </p>
+                <textarea id="demoInput" placeholder="Type something here... e.g. I love Natural Language Processing!">I love Natural Language Processing!</textarea>
+
+                <div class="demo-actions">
+                    <button class="demo-btn" id="demoWordBtn"><i class="fas fa-word-simple"></i> Word Tokens</button>
+                    <button class="demo-btn" id="demoCharBtn"><i class="fas fa-keyboard"></i> Character Tokens</button>
+                    <button class="demo-btn" id="demoSentenceBtn"><i class="fas fa-paragraph"></i> Sentence Tokens</button>
+                    <button class="demo-btn demo-btn-outline" id="demoClearBtn"><i class="fas fa-eraser"></i> Clear</button>
+                </div>
+
+                <div class="demo-output" id="demoOutput">
+                    <span style="color: #94a3b8;">Click a button above to see tokens appear here.</span>
+                </div>
+
+                <div class="demo-stats">
+                    <span id="demoTokenCount"><i class="fas fa-hashtag"></i> Tokens: 0</span>
+                    <span id="demoCharCount"><i class="fas fa-keyboard"></i> Characters: 0</span>
+                    <span id="demoWordCount"><i class="fas fa-word-simple"></i> Words: 0</span>
+                </div>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <!-- ============================================== -->
+    <!-- BPE INTERACTIVE MODAL OVERLAY                  -->
+    <!-- ============================================== -->
+    <div class="bpe-modal-overlay" id="bpeModalOverlay">
+        <div class="bpe-modal">
+            <div class="bpe-header">
+                <h2><i class="fas fa-code-merge"></i> Byte Pair Encoding (BPE) Simulator</h2>
+                <button class="bpe-close" id="closeBpeModalBtn"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="bpe-toolbar">
+                <div class="bpe-status" id="bpeStatus">
+                    Ready to train. Click "Next Step" to begin algorithm.
+                </div>
+                <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+                    <button class="demo-btn demo-btn-outline" id="bpeResetBtn" style="padding: 0.4rem 1rem;">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                    <button class="demo-btn" id="bpeStepBtn" style="padding: 0.4rem 1.2rem;">
+                        <i class="fas fa-step-forward"></i> Next Step
+                    </button>
+                    <button class="demo-btn" id="bpeAutoPlayBtn" style="padding: 0.4rem 1.2rem; background: #2e7d32;">
+                        <i class="fas fa-play"></i> Auto Play
+                    </button>
+                </div>
+            </div>
+
+            <div class="bpe-body">
+                <!-- Corpus View -->
+                <div class="bpe-column">
+                    <h3>1. Training Corpus (Dictionary)</h3>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1rem;">
+                        Each word is split into characters. The special <code style="background:#eef2f6;padding:2px 4px;border-radius:3px;">&lt;/w&gt;</code> token marks the end of a word.
+                    </p>
+                    <div id="bpeCorpusContainer">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- Vocabulary/Rules View -->
+                <div class="bpe-column" style="flex: 0.8;">
+                    <h3>2. Learned Merges & Vocabulary</h3>
+                    <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1rem;">
+                        The most frequent adjacent pair is merged and added to the rules.
+                    </p>
+                    <ul class="bpe-rules-list" id="bpeRulesContainer">
+                        <li style="color: #94a3b8; font-style: italic; font-size: 0.9rem; padding: 0.5rem 0;">No merges learned yet.</li>
+                    </ul>
+                    
+                    <!-- Container for final vocabulary output -->
+                    <div id="bpeFinalVocabContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // INTERSECTION OBSERVER for fade-up 
+        // ============================================================
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -40px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up').forEach(el => {
+            observer.observe(el);
+        });
+
+        // ============================================================
+        // INTERACTIVE DEMO (word / char / sentence)
+        // ============================================================
+        const demoInput = document.getElementById('demoInput');
+        const demoOutput = document.getElementById('demoOutput');
+        const tokenCountSpan = document.getElementById('demoTokenCount');
+        const charCountSpan = document.getElementById('demoCharCount');
+        const wordCountSpan = document.getElementById('demoWordCount');
+
+        function updateStats(text, tokens) {
+            const charCount = text.length;
+            const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+            tokenCountSpan.innerHTML = `<i class="fas fa-hashtag"></i> Tokens: ${tokens.length}`;
+            charCountSpan.innerHTML = `<i class="fas fa-keyboard"></i> Characters: ${charCount}`;
+            wordCountSpan.innerHTML = `<i class="fas fa-word-simple"></i> Words: ${wordCount}`;
+        }
+
+        function renderTokens(tokens, type = 'word') {
+            if (!tokens || tokens.length === 0) {
+                demoOutput.innerHTML = '<span style="color: #94a3b8;">No tokens to display.</span>';
+                return;
+            }
+            let html = '';
+            tokens.forEach((t, i) => {
+                let cls = 'token-tag';
+                if (/^[.,!?;:()"\'\-]$/.test(t)) cls += ' token-tag-punct';
+                if (/^\[.*\]$/.test(t) || /^<.*>$/.test(t) || /^#+/.test(t)) cls += ' token-tag-special';
+                const spacing = (type === 'char' && t === ' ') ? '&nbsp;' : t;
+                html += `<span class="${cls}">${spacing}</span>`;
+            });
+            demoOutput.innerHTML = html;
+            updateStats(demoInput.value, tokens);
+        }
+
+        function tokenizeWords(text) {
+            const tokens = [];
+            const parts = text.match(/[^\s]+|\s+/g) || [];
+            for (const part of parts) {
+                if (part.trim() === '') continue;
+                let remaining = part;
+                while (remaining.length > 0 && /[.,!?;:()"\'\-]$/.test(remaining)) {
+                    tokens.push(remaining.slice(-1));
+                    remaining = remaining.slice(0, -1);
+                }
+                if (remaining.length > 0) {
+                    let lead = '';
+                    while (remaining.length > 0 && /^[.,!?;:()"\'\-]/.test(remaining)) {
+                        lead += remaining[0];
+                        remaining = remaining.slice(1);
+                    }
+                    if (lead) tokens.push(lead);
+                    if (remaining) tokens.push(remaining);
+                }
+            }
+            return tokens;
+        }
+
+        function tokenizeChars(text) {
+            return text.split('');
+        }
+
+        function tokenizeSentences(text) {
+            const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+            return sentences.map(s => s.trim());
+        }
+
+        document.getElementById('demoWordBtn').addEventListener('click', () => {
+            const text = demoInput.value;
+            if (!text.trim()) {
+                demoOutput.innerHTML = '<span style="color: #94a3b8;">Please type some text first.</span>';
+                return;
+            }
+            const tokens = tokenizeWords(text);
+            renderTokens(tokens, 'word');
+        });
+
+        document.getElementById('demoCharBtn').addEventListener('click', () => {
+            const text = demoInput.value;
+            if (!text) {
+                demoOutput.innerHTML = '<span style="color: #94a3b8;">Please type some text first.</span>';
+                return;
+            }
+            const tokens = tokenizeChars(text);
+            renderTokens(tokens, 'char');
+        });
+
+        document.getElementById('demoSentenceBtn').addEventListener('click', () => {
+            const text = demoInput.value;
+            if (!text.trim()) {
+                demoOutput.innerHTML = '<span style="color: #94a3b8;">Please type some text first.</span>';
+                return;
+            }
+            const sentences = tokenizeSentences(text);
+            if (sentences.length === 0) {
+                demoOutput.innerHTML = '<span style="color: #94a3b8;">No sentences found.</span>';
+                return;
+            }
+            let html = '';
+            sentences.forEach(s => {
+                html += `<span class="token-tag token-tag-special" style="background:#dce5ef; border-color:#b0c8d8;">${s}</span>`;
+            });
+            demoOutput.innerHTML = html;
+            updateStats(text, sentences);
+        });
+
+        document.getElementById('demoClearBtn').addEventListener('click', () => {
+            demoInput.value = '';
+            demoOutput.innerHTML = '<span style="color: #94a3b8;">Click a button above to see tokens appear here.</span>';
+            tokenCountSpan.innerHTML = '<i class="fas fa-hashtag"></i> Tokens: 0';
+            charCountSpan.innerHTML = '<i class="fas fa-keyboard"></i> Characters: 0';
+            wordCountSpan.innerHTML = '<i class="fas fa-word-simple"></i> Words: 0';
+        });
+
+        window.addEventListener('load', () => {
+            const defaultText = demoInput.value;
+            if (defaultText.trim()) {
+                const tokens = tokenizeWords(defaultText);
+                renderTokens(tokens, 'word');
+            }
+        });
+
+        // ============================================================
+        // BPE MODAL & ANIMATED SIMULATION
+        // ============================================================
+        const bpeModalOverlay = document.getElementById('bpeModalOverlay');
+        const openBpeModalBtn = document.getElementById('openBpeModalBtn');
+        const closeBpeModalBtn = document.getElementById('closeBpeModalBtn');
+        
+        // Data Elements
+        const bpeCorpusContainer = document.getElementById('bpeCorpusContainer');
+        const bpeRulesContainer = document.getElementById('bpeRulesContainer');
+        const bpeFinalVocabContainer = document.getElementById('bpeFinalVocabContainer');
+        const bpeStatus = document.getElementById('bpeStatus');
+        const bpeStepBtn = document.getElementById('bpeStepBtn');
+        const bpeAutoPlayBtn = document.getElementById('bpeAutoPlayBtn');
+        const bpeResetBtn = document.getElementById('bpeResetBtn');
+
+        // Initial Data Structure (Classic Example)
+        const initialCorpus = [
+            { id: 1, count: 5, tokens: ['l', 'o', 'w', '&lt;/w&gt;'] },
+            { id: 2, count: 2, tokens: ['l', 'o', 'w', 'e', 'r', '&lt;/w&gt;'] },
+            { id: 3, count: 6, tokens: ['n', 'e', 'w', 'e', 's', 't', '&lt;/w&gt;'] },
+            { id: 4, count: 3, tokens: ['w', 'i', 'd', 'e', 's', 't', '&lt;/w&gt;'] }
+        ];
+
+        let currentCorpus = [];
+        let learnedRules = [];
+        let isAnimating = false;
+        let autoPlayTimer = null;
+
+        // Modal Controls
+        openBpeModalBtn.addEventListener('click', () => {
+            bpeModalOverlay.classList.add('active');
+            if (currentCorpus.length === 0) resetBPE();
+        });
+
+        closeBpeModalBtn.addEventListener('click', () => {
+            bpeModalOverlay.classList.remove('active');
+            stopAutoPlay();
+        });
+
+        bpeModalOverlay.addEventListener('click', (e) => {
+            if (e.target === bpeModalOverlay) {
+                bpeModalOverlay.classList.remove('active');
+                stopAutoPlay();
+            }
+        });
+
+        // Core Functions
+        function resetBPE() {
+            stopAutoPlay();
+            isAnimating = false;
+            currentCorpus = JSON.parse(JSON.stringify(initialCorpus));
+            learnedRules = [];
+            bpeFinalVocabContainer.innerHTML = '';
+            bpeStatus.innerHTML = `Ready to train. Click "Next Step" to begin.`;
+            bpeStepBtn.disabled = false;
+            renderCorpus();
+            renderRules();
+        }
+
+        function renderCorpus() {
+            bpeCorpusContainer.innerHTML = '';
+            currentCorpus.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'bpe-word-row';
+                row.dataset.id = item.id;
+                
+                const badge = document.createElement('div');
+                badge.className = 'bpe-freq-badge';
+                badge.innerText = `x${item.count}`;
+                
+                const tokenWrapper = document.createElement('div');
+                tokenWrapper.style.display = 'flex';
+                tokenWrapper.style.flexWrap = 'wrap';
+                tokenWrapper.style.gap = '2px';
+
+                item.tokens.forEach((token, idx) => {
+                    const span = document.createElement('span');
+                    span.className = 'bpe-token';
+                    // We use innerHTML because of &lt;/w&gt;
+                    span.innerHTML = token;
+                    span.dataset.idx = idx;
+                    tokenWrapper.appendChild(span);
+                });
+
+                row.appendChild(badge);
+                row.appendChild(tokenWrapper);
+                bpeCorpusContainer.appendChild(row);
+            });
+        }
+
+        function renderRules() {
+            if (learnedRules.length === 0) {
+                bpeRulesContainer.innerHTML = '<li style="color: #94a3b8; font-style: italic; font-size: 0.9rem; padding: 0.5rem 0;">No merges learned yet.</li>';
+                return;
+            }
+            bpeRulesContainer.innerHTML = '';
+            learnedRules.forEach((rule, idx) => {
+                const li = document.createElement('li');
+                li.className = 'bpe-rule-item';
+                li.innerHTML = `<strong>Step ${idx + 1}:</strong> &nbsp;${rule.t1} + ${rule.t2} &nbsp; <i class="fas fa-arrow-right" style="color:#94a3b8; font-size:0.8rem; margin:0 5px;"></i> &nbsp; <strong>${rule.merged}</strong>`;
+                bpeRulesContainer.appendChild(li);
+            });
+            // Auto-scroll to bottom of rules
+            bpeRulesContainer.parentElement.scrollTop = bpeRulesContainer.parentElement.scrollHeight;
+        }
+
+        async function stepBPE() {
+            if (isAnimating) return;
+            isAnimating = true;
+            bpeStepBtn.disabled = true;
+
+            // 1. Calculate frequencies
+            const pairFreqs = {};
+            currentCorpus.forEach(item => {
+                for (let i = 0; i < item.tokens.length - 1; i++) {
+                    const pairKey = item.tokens[i] + '|||' + item.tokens[i+1];
+                    pairFreqs[pairKey] = (pairFreqs[pairKey] || 0) + item.count;
+                }
+            });
+
+            // Find best
+            let bestPair = null;
+            let maxCount = 0;
+            for (const [pairKey, count] of Object.entries(pairFreqs)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    bestPair = pairKey;
+                }
+            }
+
+            // End Condition
+            if (maxCount < 2 || !bestPair) {
+                bpeStatus.innerHTML = `<strong><i class="fas fa-check-circle" style="color:#2e7d32;"></i> Training Complete!</strong> No pairs appear more than once.`;
+                
+                // Extract and show final vocabulary
+                const finalVocab = new Set();
+                currentCorpus.forEach(item => {
+                    item.tokens.forEach(tok => finalVocab.add(tok));
+                });
+                const vocabArr = Array.from(finalVocab).sort();
+                
+                const vocabHtml = `
+                    <div style="margin-top: 1.5rem; padding: 1.2rem; background: #eef2f6; border: 2px dashed #1a4a6e; border-radius: 8px; animation: slideIn 0.5s ease-out forwards;">
+                        <h4 style="color: #0b2a4a; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-box-open"></i> Final Token Vocabulary
+                        </h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            ${vocabArr.map(t => `<span class="bpe-token" style="background:#fff; border-color:#1a4a6e;">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+                bpeFinalVocabContainer.innerHTML = vocabHtml;
+                bpeRulesContainer.parentElement.scrollTop = bpeRulesContainer.parentElement.scrollHeight;
+
+                stopAutoPlay();
+                isAnimating = false;
+                return;
+            }
+
+            const [t1, t2] = bestPair.split('|||');
+            bpeStatus.innerHTML = `Finding most frequent pair... Found <strong>"${t1}"</strong> + <strong>"${t2}"</strong> (Count: ${maxCount}).`;
+
+            // 2. Highlight them visually
+            const rows = document.querySelectorAll('.bpe-word-row');
+            currentCorpus.forEach((item, rowIdx) => {
+                const tokenSpans = rows[rowIdx].querySelectorAll('.bpe-token');
+                for (let i = 0; i < item.tokens.length - 1; i++) {
+                    if (item.tokens[i] === t1 && item.tokens[i+1] === t2) {
+                        tokenSpans[i].classList.add('highlight');
+                        tokenSpans[i+1].classList.add('highlight');
+                    }
+                }
+            });
+
+            // Wait for user to see the highlight
+            await new Promise(r => setTimeout(r, 900));
+
+            // 3. Perform Merge
+            const mergedToken = t1 + (t2 === '&lt;/w&gt;' ? '&lt;/w&gt;' : t2);
+            learnedRules.push({ t1: t1, t2: t2, merged: mergedToken });
+            
+            bpeStatus.innerHTML = `Merging <strong>"${t1}"</strong> + <strong>"${t2}"</strong> into <strong>"${mergedToken}"</strong>...`;
+
+            currentCorpus.forEach(item => {
+                const newTokens = [];
+                for (let i = 0; i < item.tokens.length; i++) {
+                    if (i < item.tokens.length - 1 && item.tokens[i] === t1 && item.tokens[i+1] === t2) {
+                        newTokens.push(mergedToken);
+                        i++; // skip the next token as it's merged
+                    } else {
+                        newTokens.push(item.tokens[i]);
+                    }
+                }
+                item.tokens = newTokens;
+            });
+
+            // Re-render
+            renderCorpus();
+            renderRules();
+            
+            // Re-highlight newly merged tokens momentarily for effect
+            const newRows = document.querySelectorAll('.bpe-word-row');
+            currentCorpus.forEach((item, rowIdx) => {
+                const tokenSpans = newRows[rowIdx].querySelectorAll('.bpe-token');
+                item.tokens.forEach((tok, i) => {
+                    if (tok === mergedToken) {
+                        tokenSpans[i].style.backgroundColor = '#e6f0fa';
+                        tokenSpans[i].style.borderColor = '#1a4a6e';
+                        setTimeout(() => {
+                            tokenSpans[i].style.backgroundColor = '';
+                            tokenSpans[i].style.borderColor = '';
+                        }, 500);
+                    }
+                });
+            });
+
+            await new Promise(r => setTimeout(r, 600));
+
+            isAnimating = false;
+            bpeStepBtn.disabled = false;
+            
+            if (!autoPlayTimer) {
+                bpeStatus.innerHTML = `Merge complete. Click "Next Step" to find the next pair.`;
+            }
+        }
+
+        function toggleAutoPlay() {
+            if (autoPlayTimer) {
+                stopAutoPlay();
+            } else {
+                bpeAutoPlayBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                bpeAutoPlayBtn.style.background = '#b71c1c';
+                
+                // Fire immediately if not animating
+                if(!isAnimating) stepBPE();
+                
+                autoPlayTimer = setInterval(() => {
+                    if (!isAnimating) {
+                        stepBPE();
+                    }
+                }, 1800); // interval is slightly longer than the step animation
+            }
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+                bpeAutoPlayBtn.innerHTML = '<i class="fas fa-play"></i> Auto Play';
+                bpeAutoPlayBtn.style.background = '#2e7d32';
+                if (!isAnimating && bpeStatus.innerHTML.indexOf("Training Complete") === -1) {
+                    bpeStatus.innerHTML = `Auto-play paused. Click "Next Step" to continue manually.`;
+                }
+            }
+        }
+
+        bpeStepBtn.addEventListener('click', () => { stopAutoPlay(); stepBPE(); });
+        bpeAutoPlayBtn.addEventListener('click', toggleAutoPlay);
+        bpeResetBtn.addEventListener('click', resetBPE);
+
+    </script>
+</body>
+</html>

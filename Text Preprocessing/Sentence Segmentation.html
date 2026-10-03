@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 02 – Sentence Segmentation</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0f2b3d 0%, #1e4a6a 100%);
+            padding: 2rem 3rem 2.5rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            left: -100px;
+            top: -150px;
+        }
+
+        .hero::after {
+            width: 420px;
+            height: 420px;
+            right: -100px;
+            top: -150px;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 900px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin: 0;
+            line-height: 1.1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero .chapter-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            position: relative;
+            z-index: 1;
+            color: #edf5ff;
+            min-width: 440px;
+            max-width: 100%;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .nav-arrow.left {
+            left: 30px;
+        }
+
+        .nav-arrow.right {
+            right: 30px;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg ellipse,
+        .draw-svg polyline,
+        .draw-svg polygon {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible ellipse,
+        .draw-svg.visible polyline,
+        .draw-svg.visible polygon {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .example-box {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            border: 1px solid #e9edf2;
+            margin: 1rem 0 1.8rem;
+        }
+
+        .example-box .input-text {
+            font-size: 1.1rem;
+            background: #fff;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            border-left: 4px solid #1a4a6e;
+            margin-bottom: 1rem;
+        }
+
+        .example-box .output-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .example-box .output-list li {
+            padding: 0.4rem 0 0.4rem 1.8rem;
+            border-bottom: 1px solid #eceff5;
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        .example-box .output-list li::before {
+            content: "â–¸";
+            position: absolute;
+            left: 0;
+            color: #1a4a6e;
+            font-weight: 700;
+        }
+
+        .marker-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin: 1.2rem 0 1.8rem;
+            justify-content: center;
+        }
+
+        .marker-card {
+            background: #fff;
+            border: 1px solid #e9edf2;
+            border-radius: 0.75rem;
+            padding: 1rem 1.8rem;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .marker-card .symbol {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0b2a4a;
+            line-height: 1.2;
+        }
+
+        .marker-card .label {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-top: 0.2rem;
+        }
+
+        .problem-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin: 1.2rem 0 1.8rem;
+        }
+
+        .problem-item {
+            flex: 1;
+            min-width: 180px;
+            background: #fefcf5;
+            border-radius: 0.75rem;
+            padding: 1rem 1.4rem;
+            border: 1px solid #f0e8d8;
+        }
+
+        .problem-item .p-label {
+            font-weight: 600;
+            color: #0b2a4a;
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .problem-item .p-example {
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
+        .problem-item .p-example .highlight {
+            background: #fef0d0;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+        }
+
+        .rule-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.2rem 1.8rem;
+            margin: 1.2rem 0 1.8rem;
+        }
+
+        .rule-flow .step {
+            background: #fff;
+            border-radius: 2rem;
+            padding: 0.4rem 1.2rem;
+            border: 1px solid #dce5ef;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .rule-flow .arrow {
+            color: #1a4a6e;
+            font-size: 1rem;
+        }
+
+        .rule-flow .decision {
+            background: #1a4a6e;
+            color: #fff;
+            border-radius: 2rem;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .comp-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 240px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.35rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        .feature-table-wrap {
+            overflow-x: auto;
+            margin: 1rem 0 1.8rem;
+        }
+
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            background: #fff;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #e9edf2;
+        }
+
+        .feature-table th {
+            background: #0b2a4a;
+            color: #fff;
+            padding: 0.6rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .feature-table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #eceff5;
+        }
+
+        .feature-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .feature-table .label-b {
+            background: #d4edda;
+            color: #155724;
+            font-weight: 600;
+            padding: 0.1rem 0.8rem;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+
+        .feature-table .label-nb {
+            background: #f8d7da;
+            color: #721c24;
+            font-weight: 600;
+            padding: 0.1rem 0.8rem;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+
+        .downstream-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.2rem 0 1.8rem;
+        }
+
+        .downstream-item {
+            flex: 1;
+            min-width: 160px;
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #e9edf2;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .downstream-item i {
+            color: #1a4a6e;
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+
+        .downstream-item h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            margin-bottom: 0.2rem;
+        }
+
+        .downstream-item p {
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .takeaway-box {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border-left: 5px solid #1a4a6e;
+            margin: 1.5rem 0 0.5rem;
+        }
+
+        .takeaway-box p {
+            font-weight: 500;
+            font-size: 1.05rem;
+        }
+
+        .badge-pill {
+            display: inline-block;
+            background: #1a4a6e;
+            color: #fff;
+            padding: 0.1rem 1rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .inline-code {
+            background: #eef2f6;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Inter', monospace;
+            font-size: 0.9rem;
+            color: #0b2a4a;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                padding: 1.8rem 1.5rem;
+            }
+            .hero h1 {
+                font-size: clamp(2.2rem, 4vw, 3.2rem);
+            }
+            .content {
+                padding: 1.8rem 1.2rem;
+            }
+            .rule-flow {
+                flex-direction: column;
+                padding: 1rem;
+            }
+            .rule-flow .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a href="Tokenization.html" class="nav-arrow left" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <div class="hero-inner">
+                <h1>Sentence Segmentation</h1>
+                <div class="chapter-badge">
+                    Sentence Boundary Detection (SBD)
+                </div>
+            </div>
+
+            <a href="Stop Words.html" class="nav-arrow right" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- 1. What is Sentence Segmentation? -->
+            <div class="section-title fade-up">
+                <i class="fas fa-scissors"></i> What is Sentence Segmentation?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    <strong>Sentence Segmentation</strong> (also called <em>Sentence Boundary Detection</em> or <em>SBD</em>)
+                    is the task of splitting a chunk of text into individual sentences.
+                    It's the very first step in almost any NLP pipeline – and it's trickier than it looks.
+                </p>
+            </div>
+
+            <!-- Example with Dr. Smith -->
+            <div class="example-box fade-up">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem;">
+                    <i class="fas fa-arrow-right" style="color: #1a4a6e;"></i>
+                    <strong style="font-size: 1rem;">Example</strong>
+                </div>
+                <div class="input-text">
+                    <i class="fas fa-file-alt" style="color: #1a4a6e; margin-right: 0.5rem;"></i>
+                    <strong>Input:</strong> Dr. Smith arrived at 8 a.m. He started the lecture immediately. The students were ready.
+                </div>
+                <ul class="output-list">
+                    <li><strong>1.</strong> Dr. Smith arrived at 8 a.m.</li>
+                    <li><strong>2.</strong> He started the lecture immediately.</li>
+                    <li><strong>3.</strong> The students were ready.</li>
+                </ul>
+                <p style="font-size: 0.9rem; color: #475569; margin-top: 0.4rem;">
+                    <i class="fas fa-check-circle" style="color: #1a4a6e;"></i>
+                    The system correctly splits at the sentence boundaries – even with <span class="inline-code">Dr.</span> and <span class="inline-code">a.m.</span> in the first sentence.
+                </p>
+            </div>
+
+            <!-- 2. What Defines a Sentence? -->
+            <div class="section-title fade-up">
+                <i class="fas fa-gavel"></i> What Defines a Sentence?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem;">
+                    In written language, sentences are usually separated by one of these punctuation marks:
+                </p>
+            </div>
+
+            <div class="marker-grid fade-up">
+                <div class="marker-card">
+                    <div class="symbol">.</div>
+                    <div class="label">Period</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">"The lecture is starting."</div>
+                </div>
+                <div class="marker-card">
+                    <div class="symbol">?</div>
+                    <div class="label">Question Mark</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">"Are you ready?"</div>
+                </div>
+                <div class="marker-card">
+                    <div class="symbol">!</div>
+                    <div class="label">Exclamation Mark</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">"Excellent work!"</div>
+                </div>
+            </div>
+            <p class="fade-up" style="font-style: italic; color: #475569; text-align: center; margin-bottom: 1.2rem;">
+                These punctuation marks are called <strong>sentence boundary markers</strong>.
+            </p>
+
+            <!-- 3. The SBD Problem -->
+            <div class="section-title fade-up">
+                <i class="fas fa-exclamation-triangle"></i> The Sentence Boundary Detection Problem
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Detecting sentence boundaries <strong>seems simple</strong> – but it's actually full of traps.
+                    The same punctuation mark can mean different things depending on context.
+                </p>
+            </div>
+
+            <!-- Ambiguous cases -->
+            <div class="problem-grid fade-up">
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-user-md"></i> Abbreviation</span>
+                    <div class="p-example"><span class="highlight">Dr.</span> Ahmed teaches NLP.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">The period after "Dr." is not a sentence end.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-percent"></i> Decimal Number</span>
+                    <div class="p-example">The accuracy reached <span class="highlight">98.7%</span>.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">The period is part of the number.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-link"></i> URL</span>
+                    <div class="p-example">Visit <span class="highlight">www.example.com</span> for details.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Periods inside URLs are not boundaries.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-envelope"></i> Email</span>
+                    <div class="p-example">Contact me at <span class="highlight">professor@univ.edu</span>.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">The period in ".edu" is not a boundary.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-font"></i> Initials</span>
+                    <div class="p-example"><span class="highlight">A.</span> Einstein developed the theory.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Initials use periods but don't end sentences.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-flag"></i> Acronym</span>
+                    <div class="p-example">The meeting was held at the <span class="highlight">U.N.</span></div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Periods inside acronyms are not boundaries.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-ellipsis-h"></i> Ellipsis</span>
+                    <div class="p-example"><span class="highlight">Well...</span> I am not sure.</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">Ellipsis has multiple dots but is not a boundary.</div>
+                </div>
+                <div class="problem-item">
+                    <span class="p-label"><i class="fas fa-quote-right"></i> Quoted Sentence</span>
+                    <div class="p-example">She said, <span class="highlight">"I will come tomorrow."</span></div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">The period inside quotes may or may not be the boundary.</div>
+                </div>
+            </div>
+
+            <!-- SVG illustrating ambiguity -->
+            <div class="fade-up" style="display: flex; justify-content: center; margin: 1.5rem 0 2rem;">
+                <svg class="draw-svg" width="520" height="140" viewBox="0 0 520 140" xmlns="http://www.w3.org/2000/svg">
+                    <text x="10" y="30" font-size="13" fill="#0b2a4a" font-weight="600">Same punctuation, different meaning:</text>
+                    <rect x="10" y="50" width="150" height="60" rx="10" fill="rgba(26,74,110,0.06)" stroke="#1a4a6e" stroke-width="2" />
+                    <text x="25" y="78" font-size="12" fill="#0b2a4a">"Dr. Smith"</text>
+                    <text x="25" y="98" font-size="11" fill="#475569">→ Not a boundary</text>
+                    <line x1="170" y1="80" x2="200" y2="80" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="4" />
+                    <rect x="210" y="50" width="150" height="60" rx="10" fill="rgba(11,42,74,0.06)" stroke="#0b2a4a" stroke-width="2" />
+                    <text x="225" y="78" font-size="12" fill="#0b2a4a">"The class ended."</text>
+                    <text x="225" y="98" font-size="11" fill="#475569">→ Is a boundary</text>
+                    <line x1="370" y1="80" x2="400" y2="80" stroke="#1a4a6e" stroke-width="2" stroke-dasharray="4" />
+                    <rect x="410" y="50" width="100" height="60" rx="10" fill="rgba(70,100,140,0.06)" stroke="#2a5a7a" stroke-width="2" />
+                    <text x="425" y="78" font-size="12" fill="#0b2a4a">"98.7%"</text>
+                    <text x="425" y="98" font-size="11" fill="#475569">→ Not a boundary</text>
+                </svg>
+            </div>
+
+            <!-- 4. Improved Rule-Based Systems -->
+            <div class="section-title fade-up">
+                <i class="fas fa-list-check"></i> Improved Rule-Based Systems
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.6rem;">
+                    The simplest way to handle ambiguity is to use an <strong>abbreviation dictionary</strong> (exception list).
+                    Common abbreviations include:
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+                    <span class="badge-pill">Dr.</span>
+                    <span class="badge-pill">Prof.</span>
+                    <span class="badge-pill">Mr.</span>
+                    <span class="badge-pill">Mrs.</span>
+                    <span class="badge-pill">etc.</span>
+                    <span class="badge-pill">e.g.</span>
+                    <span class="badge-pill">i.e.</span>
+                    <span class="badge-pill">Ms.</span>
+                    <span class="badge-pill">Jr.</span>
+                    <span class="badge-pill">Sr.</span>
+                </div>
+            </div>
+
+            <div class="rule-flow fade-up">
+                <span class="step"><i class="fas fa-search"></i> Check token</span>
+                <span class="arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="step"><i class="fas fa-book"></i> In abbreviation list?</span>
+                <span class="arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="decision">Yes → Do NOT split</span>
+                <span style="color: #0b2a4a; font-weight: 300;">or</span>
+                <span class="decision" style="background: #2a5a7a;">No → Split</span>
+            </div>
+
+            <div class="example-box fade-up">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem;">
+                    <i class="fas fa-arrow-right" style="color: #1a4a6e;"></i>
+                    <strong style="font-size: 1rem;">Rule-Based Example</strong>
+                </div>
+                <div class="input-text" style="border-left-color: #2a5a7a;">
+                    <i class="fas fa-file-alt" style="color: #1a4a6e; margin-right: 0.5rem;"></i>
+                    <strong>Input:</strong> Dr. Ahmed teaches NLP. Students enjoy the class.
+                </div>
+                <ul class="output-list">
+                    <li><strong>1.</strong> Dr. Ahmed teaches NLP.</li>
+                    <li><strong>2.</strong> Students enjoy the class.</li>
+                </ul>
+                <p style="font-size: 0.9rem; color: #475569; margin-top: 0.4rem;">
+                    <i class="fas fa-check-circle" style="color: #1a4a6e;"></i>
+                    The rule-based system sees <span class="inline-code">Dr.</span> in its dictionary and skips the split.
+                </p>
+            </div>
+
+            <!-- Pros & Cons -->
+            <div class="comp-grid fade-up">
+                <div class="comp-col" style="border-left: 4px solid #1a4a6e;">
+                    <h3><i class="fas fa-check-circle" style="color: #1a4a6e;"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-wrench"></i> Easy to implement</li>
+                        <li><i class="fas fa-bolt"></i> Fast execution</li>
+                        <li><i class="fas fa-eye"></i> Interpretable & transparent</li>
+                    </ul>
+                </div>
+                <div class="comp-col" style="border-left: 4px solid #b22234;">
+                    <h3><i class="fas fa-times-circle" style="color: #b22234;"></i> Disadvantages</h3>
+                    <ul>
+                        <li><i class="fas fa-language"></i> Language-dependent</li>
+                        <li><i class="fas fa-tools"></i> Manual maintenance required</li>
+                        <li><i class="fas fa-chart-line"></i> Poor scalability</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 5. Machine Learning Approaches -->
+            <div class="section-title fade-up">
+                <i class="fas fa-robot"></i> Machine Learning Approaches
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    ML models treat sentence segmentation as a <strong>binary classification</strong> problem.
+                    For each punctuation mark, the model asks: <em>"Is this a sentence boundary?"</em>
+                </p>
+                <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                    <span style="background: #d4edda; padding: 0.3rem 1.5rem; border-radius: 30px; font-weight: 600; color: #155724;">
+                        <i class="fas fa-check"></i> YES (B)
+                    </span>
+                    <span style="background: #f8d7da; padding: 0.3rem 1.5rem; border-radius: 30px; font-weight: 600; color: #721c24;">
+                        <i class="fas fa-times"></i> NO (NB)
+                    </span>
+                </div>
+            </div>
+
+            <h4 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin: 0.5rem 0 0.8rem;">
+                <i class="fas fa-list-ul"></i> Features Used by ML Models
+            </h4>
+            <div class="problem-grid fade-up" style="margin-bottom: 1.2rem;">
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-arrow-left"></i> Previous Word</span>
+                    <div class="p-example">e.g., "Dr."</div>
+                </div>
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-arrow-right"></i> Next Word</span>
+                    <div class="p-example">e.g., "Ahmed"</div>
+                </div>
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-font"></i> Capitalization</span>
+                    <div class="p-example">Next word starts with uppercase?</div>
+                </div>
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-ruler"></i> Word Length</span>
+                    <div class="p-example">Length of the token</div>
+                </div>
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-book"></i> Abbreviation List</span>
+                    <div class="p-example">Is it in the dictionary?</div>
+                </div>
+                <div class="problem-item" style="background: #f0f6fe; border-color: #d0dce8;">
+                    <span class="p-label"><i class="fas fa-tags"></i> Part-of-Speech</span>
+                    <div class="p-example">POS tag of surrounding words</div>
+                </div>
+            </div>
+
+            <!-- Feature Vector Example -->
+            <div class="fade-up" style="margin-bottom: 1.5rem;">
+                <div style="background: #f8faff; border-radius: 0.75rem; padding: 1rem; border: 1px solid #e9edf2;">
+                    <p style="font-weight: 600; margin-bottom: 0.4rem;"><i class="fas fa-table"></i> Example Feature Vector</p>
+                    <div class="feature-table-wrap">
+                        <table class="feature-table">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Value</th>
+                                    <th>Label</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Current Token</td>
+                                    <td><span class="inline-code">Dr.</span></td>
+                                    <td><span class="label-nb">NB</span></td>
+                                </tr>
+                                <tr>
+                                    <td>In Abbreviation List</td>
+                                    <td><i class="fas fa-check" style="color: #1a4a6e;"></i> Yes</td>
+                                    <td><span class="label-nb">NB</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Next Word Capitalized</td>
+                                    <td><i class="fas fa-check" style="color: #1a4a6e;"></i> Yes</td>
+                                    <td><span class="label-nb">NB</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #475569; text-align: center;">
+                        The model learns that <span class="inline-code">Dr.</span> followed by a capitalized word is <strong>not</strong> a boundary.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 6. Statistical Models -->
+            <div class="section-title fade-up">
+                <i class="fas fa-chart-bar"></i> Statistical Models
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.6rem;">
+                    Before deep learning, researchers used statistical models to learn boundary patterns from
+                    annotated text (corpora). Popular models included:
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.2rem;">
+                    <span class="badge-pill" style="background: #2a5a7a;">Naive Bayes</span>
+                    <span class="badge-pill" style="background: #2a5a7a;">Decision Trees</span>
+                    <span class="badge-pill" style="background: #2a5a7a;">Max Entropy</span>
+                    <span class="badge-pill" style="background: #2a5a7a;">Conditional Random Fields (CRFs)</span>
+                </div>
+                <p>
+                    These models learn from <strong>labeled data</strong> – where humans have already marked
+                    which periods are boundaries and which are not.
+                </p>
+            </div>
+
+            <!-- 7. Neural Network Approaches -->
+            <div class="section-title fade-up">
+                <i class="fas fa-network-wired"></i> Neural Network Approaches
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.8rem;">
+                    Modern NLP uses <strong>neural networks</strong> that can learn complex patterns from raw text.
+                </p>
+            </div>
+
+            <div class="comp-grid fade-up">
+                <div class="comp-col" style="border-left: 4px solid #1a4a6e;">
+                    <h3><i class="fas fa-sync-alt"></i> Recurrent (RNN)</h3>
+                    <p style="font-size: 0.9rem;">Processes text from left to right. Uses surrounding context to decide if a period is a boundary.</p>
+                    <p style="font-size: 0.85rem; color: #475569; margin-top: 0.4rem;">
+                        <i class="fas fa-arrow-right"></i> Input: "Dr. Ahmed arrived."
+                    </p>
+                </div>
+                <div class="comp-col" style="border-left: 4px solid #0b2a4a;">
+                    <h3><i class="fas fa-memory"></i> LSTM</h3>
+                    <p style="font-size: 0.9rem;">Captures <strong>long-range dependencies</strong> – remembers information from many words back.</p>
+                    <p style="font-size: 0.85rem; color: #475569; margin-top: 0.4rem;">
+                        <i class="fas fa-check-circle" style="color: #1a4a6e;"></i> Better context understanding
+                    </p>
+                </div>
+                <div class="comp-col" style="border-left: 4px solid #2a5a7a;">
+                    <h3><i class="fas fa-arrows-left-right"></i> Bidirectional LSTM</h3>
+                    <p style="font-size: 0.9rem;">Reads text <strong>left → right</strong> and <strong>right → left</strong>. Sees the full context.</p>
+                    <p style="font-size: 0.85rem; color: #475569; margin-top: 0.4rem;">
+                        <i class="fas fa-rocket" style="color: #1a4a6e;"></i> Improves boundary detection accuracy
+                    </p>
+                </div>
+            </div>
+
+            <!-- 8. Transformer-Based -->
+            <div class="section-title fade-up">
+                <i class="fas fa-arrows-spin"></i> Transformer-Based Sentence Segmentation
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 0.6rem;">
+                    <strong>Transformers</strong> are the current state-of-the-art. They process all words at once
+                    and understand context better than any previous approach.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1.2rem;">
+                    <span class="badge-pill" style="background: #0b2a4a;">BERT</span>
+                    <span class="badge-pill" style="background: #0b2a4a;">RoBERTa</span>
+                    <span class="badge-pill" style="background: #0b2a4a;">DistilBERT</span>
+                </div>
+                <div class="example-box" style="background: #f0f6fe; border-color: #c0d0e0;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem;">
+                        <i class="fas fa-lightbulb" style="color: #f0a030;"></i>
+                        <strong style="font-size: 1rem;">How Transformers Help</strong>
+                    </div>
+                    <p>
+                        <strong>Input:</strong> "Dr. Ahmed arrived at 9 a.m. The lecture began."
+                    </p>
+                    <p style="font-size: 0.9rem; color: #1e293b;">
+                        The transformer looks at the <strong>full context</strong> around <span class="inline-code">a.m.</span>
+                        and understands it's <em>not</em> the final sentence boundary – because "The lecture began" follows.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 9. Why It Matters Downstream -->
+            <div class="section-title fade-up">
+                <i class="fas fa-sitemap"></i> Why It Matters Downstream
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Sentence boundaries are the <strong>unit of analysis</strong> for almost the entire NLP stack.
+                    A single wrong split can break everything downstream.
+                </p>
+            </div>
+
+            <div class="downstream-grid fade-up">
+                <div class="downstream-item">
+                    <i class="fas fa-code-branch"></i>
+                    <h4>Parsing &amp; POS Tagging</h4>
+                    <p>Parsers are trained on single sentences. Merge two sentences → grammar breaks. Split one in half → tree incomplete.</p>
+                </div>
+                <div class="downstream-item">
+                    <i class="fas fa-language"></i>
+                    <h4>Machine Translation</h4>
+                    <p>MT systems translate sentence-by-sentence. A wrong split scrambles word order and can drop sentences.</p>
+                </div>
+                <div class="downstream-item">
+                    <i class="fas fa-file-alt"></i>
+                    <h4>Summarization &amp; IE</h4>
+                    <p>Extractive summarizers select whole sentences. Relation extraction assumes arguments live inside one sentence.</p>
+                </div>
+                <div class="downstream-item">
+                    <i class="fas fa-microphone"></i>
+                    <h4>Text-to-Speech</h4>
+                    <p>Prosody (pause, intonation) is planned per sentence. Merge two sentences → speech runs on without a breath.</p>
+                </div>
+                <div class="downstream-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <h4>Readability Metrics</h4>
+                    <p>Average sentence length is a key readability feature. Unreliable segmentation makes this metric meaningless.</p>
+                </div>
+            </div>
+
+            <!-- Key Takeaway -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="takeaway-box fade-up">
+                <p>
+                    <i class="fas fa-quote-left" style="color: #1a4a6e; margin-right: 0.4rem;"></i>
+                    Sentence Segmentation is the <strong>unsung hero</strong> of NLP. It's the first step in every pipeline,
+                    and getting it right matters more than you'd think. From simple abbreviation lists to
+                    state-of-the-art transformers – the goal is the same: <strong>teach machines where one sentence ends and the next begins.</strong>
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing animations
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -40px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

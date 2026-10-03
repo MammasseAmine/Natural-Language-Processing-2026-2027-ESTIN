@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 02 – Stop Words</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0f2b3d 0%, #1e4a6a 100%);
+            padding: 2rem 3rem 2.5rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            left: -100px;
+            top: -150px;
+        }
+
+        .hero::after {
+            width: 420px;
+            height: 420px;
+            right: -100px;
+            top: -150px;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 900px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin: 0;
+            line-height: 1.1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero .chapter-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            position: relative;
+            z-index: 1;
+            color: #edf5ff;
+            min-width: 440px;
+            max-width: 100%;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .nav-arrow.left {
+            left: 30px;
+        }
+
+        .nav-arrow.right {
+            right: 30px;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg ellipse,
+        .draw-svg polyline {
+            stroke-dasharray: 1500;
+            stroke-dashoffset: 1500;
+            transition: stroke-dashoffset 1.8s ease-in-out;
+        }
+
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible ellipse,
+        .draw-svg.visible polyline {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .comp-col {
+            flex: 1;
+            min-width: 280px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .comp-col li {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i {
+            color: #1a4a6e;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        /* Info / core-idea callout */
+        .callout {
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0 2rem;
+        }
+        .callout.blue {
+            background: #e6f0fa;
+            border-left: 5px solid #1a4a6e;
+        }
+        .callout.amber {
+            background: #fef9f0;
+            border-left: 5px solid #d99a2b;
+        }
+        .callout h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #0b2a4a;
+            margin-bottom: 0.5rem;
+            font-size: 1.05rem;
+            letter-spacing: 0.3px;
+        }
+        .callout.amber h4 { color: #8a5d0e; }
+
+        /* Sentence demo */
+        .word-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1.2rem 0;
+            justify-content: center;
+        }
+        .word {
+            padding: 0.4rem 0.9rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.5s ease;
+        }
+        .word.keep {
+            background: #dcefe0;
+            color: #14532d;
+            border: 1px solid #b7ddc0;
+        }
+        .word.stop {
+            background: #fde2e2;
+            color: #7f1d1d;
+            border: 1px solid #f3c0c0;
+            text-decoration: line-through;
+            opacity: 0.75;
+        }
+
+        .arrow-down {
+            text-align: center;
+            color: #1a4a6e;
+            font-size: 1.5rem;
+            margin: 0.4rem 0;
+        }
+
+        /* Table */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 2rem;
+            font-size: 0.95rem;
+            border-radius: 0.8rem;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,20,40,0.05);
+        }
+        .styled-table th {
+            background: #1a4a6e;
+            color: #fff;
+            text-align: left;
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+        }
+        .styled-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #eceff5;
+            background: #fff;
+        }
+        .styled-table tr:nth-child(even) td { background: #f8faff; }
+
+        /* Benefit cards */
+        .benefit-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .benefit-card {
+            flex: 1;
+            min-width: 200px;
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.2rem;
+        }
+        .benefit-card i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+        }
+        .benefit-card h4 { margin: 0.5rem 0 0.3rem; }
+        .benefit-card p { font-size: 0.9rem; margin: 0; }
+
+        /* Warning example cards for "don't remove" */
+        .danger-card {
+            background: #fff5f5;
+            border: 1px solid #f3d0d0;
+            border-radius: 1rem;
+            padding: 1.3rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .danger-card h4 {
+            color: #9b2c2c;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .sentence-line { font-size: 1.05rem; margin: 0.3rem 0; }
+        .bad { color: #b91c1c; font-weight: 600; }
+        .good { color: #15803d; font-weight: 600; }
+
+        /* Zipf bars */
+        .zipf-wrap {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.6rem;
+            height: 220px;
+            margin: 1.5rem 0 0.5rem;
+            padding: 0 1rem;
+        }
+        .zipf-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #1a4a6e, #3a6a90);
+            border-radius: 6px 6px 0 0;
+            position: relative;
+            transition: height 1.2s cubic-bezier(0.2,0.8,0.2,1);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .zipf-bar span {
+            position: absolute;
+            top: -1.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #0b2a4a;
+        }
+        .zipf-bar small {
+            color: #fff;
+            font-size: 0.75rem;
+            margin-top: 0.4rem;
+            font-weight: 500;
+        }
+
+        /* Transformer split */
+        .split-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin: 1.5rem 0 2rem;
+        }
+        .split-card {
+            flex: 1;
+            min-width: 260px;
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+        .split-card.remove { background: #eef6f0; border: 1px solid #cfe6d6; }
+        .split-card.keep-tf { background: #eef2fb; border: 1px solid #cfd8ef; }
+        .split-card h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem; }
+        .split-card.remove h3 { color: #15803d; }
+        .split-card.keep-tf h3 { color: #1a4a6e; }
+        .split-card ul { list-style: none; padding: 0; }
+        .split-card li { padding: 0.3rem 0; font-size: 0.92rem; display: flex; gap: 0.5rem; align-items: baseline; }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .zipf-wrap { height: 170px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a href="Sentence Segmentation.html" class="nav-arrow left" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <div class="hero-inner">
+                <h1>Stop Words</h1>
+                <div class="chapter-badge">
+                    Cleaning text so machines can focus on what matters
+                </div>
+            </div>
+
+            <a href="Stemming &amp; Lemmatization.html" class="nav-arrow right" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- 1. What are stop words -->
+            <div class="section-title fade-up">
+                <i class="fas fa-question-circle"></i> What Are Stop Words?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p>
+                    Before a machine can understand text, we must clean and prepare it. One very common step is
+                    <strong>removing stop words</strong>.
+                </p>
+                <p>
+                    <strong>Stop words</strong> are very common words that show up in almost every sentence but often
+                    carry little meaning on their own. They give grammar and structure, not the main idea. Examples:
+                    <em>the, a, an, is, are, in, on, of, and, or, to</em>.
+                </p>
+                <p>
+                    Because they appear so often, they usually don't help a computer tell one document apart from another.
+                </p>
+            </div>
+
+            <!-- Sentence demo -->
+            <div class="fade-up">
+                <p style="text-align:center; color:#475569; font-style:italic;">Example: green = kept, red = removed</p>
+                <div class="word-demo">
+                    <span class="word stop">The</span>
+                    <span class="word keep">students</span>
+                    <span class="word stop">are</span>
+                    <span class="word keep">studying</span>
+                    <span class="word keep">NLP</span>
+                    <span class="word stop">in</span>
+                    <span class="word stop">the</span>
+                    <span class="word keep">laboratory</span>
+                </div>
+                <div class="arrow-down fade-up"><i class="fas fa-arrow-down"></i></div>
+                <div class="word-demo">
+                    <span class="word keep">students</span>
+                    <span class="word keep">studying</span>
+                    <span class="word keep">NLP</span>
+                    <span class="word keep">laboratory</span>
+                </div>
+            </div>
+
+            <!-- Core idea callout -->
+            <div class="callout blue fade-up">
+                <h4><i class="fas fa-lightbulb"></i> CORE IDEA</h4>
+                <p style="margin:0;">
+                    A stop word is <strong>not</strong> meaningless by nature. It is just <em>low-signal for a specific task</em>.
+                    The same word can be a stop word for one task (like sorting topics) but a key clue for another
+                    (like guessing who wrote a text, or detecting emotion). <strong>The list depends on the task.</strong>
+                </p>
+            </div>
+
+            <!-- 2. Common stop words table -->
+            <div class="section-title fade-up">
+                <i class="fas fa-list"></i> Common English Stop Words
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <table class="styled-table">
+                    <thead>
+                        <tr><th>Category</th><th>Examples</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Articles</td><td>a, an, the</td></tr>
+                        <tr><td>Pronouns</td><td>I, you, he, she, they, we</td></tr>
+                        <tr><td>Prepositions</td><td>in, on, at, under, above, between</td></tr>
+                        <tr><td>Conjunctions</td><td>and, but, or, because</td></tr>
+                        <tr><td>Auxiliary verbs</td><td>is, are, was, were, have, has, had</td></tr>
+                        <tr><td>Determiners</td><td>this, that, these, those</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 3. Why remove -->
+            <div class="section-title fade-up">
+                <i class="fas fa-scissors"></i> Why Remove Stop Words?
+                <span class="title-line"></span>
+            </div>
+            <div class="benefit-grid fade-up">
+                <div class="benefit-card">
+                    <i class="fas fa-compress"></i>
+                    <h4>Smaller Data</h4>
+                    <p>Fewer words means less storage and less computing cost.</p>
+                </div>
+                <div class="benefit-card">
+                    <i class="fas fa-gauge-high"></i>
+                    <h4>Faster Speed</h4>
+                    <p>Fewer tokens to analyze, so algorithms run quicker.</p>
+                </div>
+                <div class="benefit-card">
+                    <i class="fas fa-star"></i>
+                    <h4>Clearer Meaning</h4>
+                    <p>Content words stand out once the filler is gone.</p>
+                </div>
+                <div class="benefit-card">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <h4>Better Search</h4>
+                    <p>Search engines focus on the words that actually matter.</p>
+                </div>
+            </div>
+
+            <div class="fade-up">
+                <p style="text-align:center; font-style:italic; color:#475569;">Highlighting the important words:</p>
+                <div class="word-demo">
+                    <span class="word stop">The</span>
+                    <span class="word keep">movie</span>
+                    <span class="word stop">was</span>
+                    <span class="word stop">very</span>
+                    <span class="word keep">interesting</span>
+                    <span class="word stop">and</span>
+                    <span class="word stop">the</span>
+                    <span class="word keep">actors</span>
+                    <span class="word stop">were</span>
+                    <span class="word keep">excellent</span>
+                </div>
+                <div class="arrow-down"><i class="fas fa-arrow-down"></i></div>
+                <div class="word-demo">
+                    <span class="word keep">movie</span>
+                    <span class="word keep">interesting</span>
+                    <span class="word keep">actors</span>
+                    <span class="word keep">excellent</span>
+                </div>
+            </div>
+
+            <!-- 4. When NOT to remove -->
+            <div class="section-title fade-up">
+                <i class="fas fa-triangle-exclamation"></i> When NOT to Remove Them
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">Removing stop words is helpful, but not always. Sometimes it breaks the meaning.</p>
+
+            <div class="fade-up">
+                <div class="danger-card">
+                    <h4><i class="fas fa-face-frown"></i> Sentiment Analysis</h4>
+                    <p class="sentence-line">"I do <span class="bad">not</span> like this product."</p>
+                    <p class="sentence-line">Remove "not" → "I do like this product." <span class="bad">Opposite meaning!</span></p>
+                </div>
+                <div class="danger-card">
+                    <h4><i class="fas fa-circle-question"></i> Question Answering</h4>
+                    <p class="sentence-line">Words like <span class="good">what, who, when, where</span> are essential to the question.</p>
+                </div>
+                <div class="danger-card">
+                    <h4><i class="fas fa-language"></i> Machine Translation</h4>
+                    <p class="sentence-line">Small function words hold the grammar together and must be kept.</p>
+                </div>
+                <div class="danger-card">
+                    <h4><i class="fas fa-file-lines"></i> Text Summarization</h4>
+                    <p class="sentence-line">Dropping them can make sentences awkward and hard to read.</p>
+                </div>
+            </div>
+
+            <!-- Advantages / disadvantages -->
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-up"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Reduces size (fewer dimensions)</li>
+                        <li><i class="fas fa-check"></i> Faster processing</li>
+                        <li><i class="fas fa-check"></i> Uses less memory</li>
+                        <li><i class="fas fa-check"></i> Better keyword extraction</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-down"></i> Disadvantages</h3>
+                    <ul>
+                        <li><i class="fas fa-xmark"></i> May remove useful information</li>
+                        <li><i class="fas fa-xmark"></i> Can hurt sentiment analysis</li>
+                        <li><i class="fas fa-xmark"></i> May distort the meaning</li>
+                        <li><i class="fas fa-xmark"></i> Not right for every task</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Order gotcha -->
+            <div class="callout amber fade-up">
+                <h4><i class="fas fa-triangle-exclamation"></i> ORDER GOTCHA</h4>
+                <p style="margin:0;">
+                    Do stop-word removal <strong>after</strong> tokenization, and be careful with lowercasing.
+                    If you lowercase first, <strong>"US"</strong> (the country) becomes <strong>"us"</strong> (a stop word)
+                    and gets deleted. Case can carry meaning!
+                </p>
+            </div>
+
+            <!-- 5. Zipf's Law -->
+            <div class="section-title fade-up">
+                <i class="fas fa-chart-column"></i> Zipf's Law – The Statistics
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p>
+                    Linguist <strong>George Kingsley Zipf</strong> noticed a pattern: in a large body of text, a word's
+                    frequency is inversely proportional to its rank. The most common word (usually <em>"the"</em>) appears
+                    about twice as often as the second, three times as often as the third, and so on.
+                </p>
+                <p style="text-align:center; font-weight:600; color:#0b2a4a;">rank Ã— frequency â‰ˆ constant</p>
+                <p>
+                    Stop words sit right at the head of this curve. In English, the top 10 words
+                    (<em>the, be, to, of, and, a, in, that, have, I</em>) make up about <strong>25%</strong> of all the words
+                    in typical text. Traditional NLP treated this high-frequency head as "noise."
+                </p>
+            </div>
+
+            <!-- Zipf bar chart -->
+            <div class="fade-up">
+                <div class="zipf-wrap" id="zipfChart">
+                    <div class="zipf-bar" data-h="100%"><span>the</span></div>
+                    <div class="zipf-bar" data-h="50%"><span>of</span></div>
+                    <div class="zipf-bar" data-h="33%"><span>and</span></div>
+                    <div class="zipf-bar" data-h="25%"><span>a</span></div>
+                    <div class="zipf-bar" data-h="20%"><span>in</span></div>
+                    <div class="zipf-bar" data-h="16%"><span>to</span></div>
+                    <div class="zipf-bar" data-h="14%"><span>have</span></div>
+                    <div class="zipf-bar" data-h="12%"><span>it</span></div>
+                </div>
+                <p style="text-align:center; color:#475569; font-style:italic; font-size:0.9rem;">
+                    Frequency drops sharply by rank – a few words dominate everything.
+                </p>
+            </div>
+
+            <!-- 6. Transformers era -->
+            <div class="section-title fade-up">
+                <i class="fas fa-robot"></i> Stop Words in the Age of Transformers
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">
+                Today the role of stop-word removal has shrunk a lot. Modern models like <strong>BERT</strong> and
+                <strong>GPT</strong> are trained on raw text and actually <em>use</em> function words to understand grammar
+                and context. So the rule now depends on what you're building:
+            </p>
+
+            <div class="split-grid fade-up">
+                <div class="split-card keep-tf">
+                    <h3><i class="fas fa-ban"></i> Don't strip them</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-right"></i> Before a transformer (BERT, GPT)</li>
+                        <li><i class="fas fa-arrow-right"></i> Subword tokenizers (WordPiece, BPE) expect natural text</li>
+                        <li><i class="fas fa-arrow-right"></i> Removing them hurts performance and breaks word order</li>
+                    </ul>
+                </div>
+                <div class="split-card remove">
+                    <h3><i class="fas fa-check"></i> Still useful for</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-right"></i> TF-IDF classifiers &amp; search indexes</li>
+                        <li><i class="fas fa-arrow-right"></i> Topic models (LDA)</li>
+                        <li><i class="fas fa-arrow-right"></i> Keyword extraction</li>
+                        <li><i class="fas fa-arrow-right"></i> Lightweight pipelines (far cheaper!)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 7. Methods -->
+            <div class="section-title fade-up">
+                <i class="fas fa-toolbox"></i> Ways to Handle Stop Words
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <table class="styled-table">
+                    <thead>
+                        <tr><th>Method</th><th>What it does</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Manual stop list</td><td>A hand-made list of words you decide to drop.</td></tr>
+                        <tr><td>Library-based list</td><td>Ready-made sets from NLTK, spaCy, or scikit-learn.</td></tr>
+                        <tr><td>Frequency-based</td><td>Words that are extremely common get removed.</td></tr>
+                        <tr><td>TF-IDF filtering</td><td>Down-weight common terms instead of fully deleting them.</td></tr>
+                        <tr><td>Task-specific</td><td>Adjust the list based on error analysis and results.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Key takeaway -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="callout blue fade-up">
+                <p style="font-weight: 500; font-size: 1.05rem; margin:0;">
+                    Stop words are the common, low-signal words of a language. Removing them makes classic NLP faster and
+                    cleaner – but it can also erase meaning, so it depends on the task. In the transformer era we mostly
+                    keep them, while lightweight pipelines still enjoy the speed-up.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Intersection Observer for fade-up and SVG drawing animations
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Animate Zipf bars when the chart scrolls in
+                    if (entry.target.querySelector && entry.target.querySelector('#zipfChart')) {
+                        entry.target.querySelectorAll('.zipf-bar').forEach((bar, i) => {
+                            bar.style.height = '0%';
+                            setTimeout(() => { bar.style.height = bar.dataset.h; }, 100 + i * 120);
+                        });
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
+

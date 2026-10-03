@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 02 – Stemming &amp; Lemmatization</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0f2b3d 0%, #1e4a6a 100%);
+            padding: 2rem 3rem 2.5rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 420px;
+            height: 420px;
+            left: -100px;
+            top: -150px;
+        }
+
+        .hero::after {
+            width: 420px;
+            height: 420px;
+            right: -100px;
+            top: -150px;
+        }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 900px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin: 0;
+            line-height: 1.1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero .chapter-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            padding: 0.7rem 1.5rem;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            position: relative;
+            z-index: 1;
+            color: #edf5ff;
+            min-width: 440px;
+            max-width: 100%;
+        }
+
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            z-index: 2;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .nav-arrow.left {
+            left: 30px;
+        }
+
+        .nav-arrow.right {
+            right: 30px;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content {
+            padding: 2.5rem 3rem 3rem;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+            margin-top: 2.5rem;
+        }
+        .section-title:first-of-type { margin-top: 0; }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        /* ---------- FADE ANIMATION ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* staggered children */
+        .stagger > * {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .stagger.visible > * { opacity: 1; transform: translateY(0); }
+        .stagger.visible > *:nth-child(1) { transition-delay: 0.05s; }
+        .stagger.visible > *:nth-child(2) { transition-delay: 0.15s; }
+        .stagger.visible > *:nth-child(3) { transition-delay: 0.25s; }
+        .stagger.visible > *:nth-child(4) { transition-delay: 0.35s; }
+        .stagger.visible > *:nth-child(5) { transition-delay: 0.45s; }
+
+        /* SVG drawing animation */
+        .draw-svg path,
+        .draw-svg circle,
+        .draw-svg rect,
+        .draw-svg line,
+        .draw-svg polyline,
+        .draw-svg ellipse {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.6s ease-in-out;
+        }
+        .draw-svg.visible path,
+        .draw-svg.visible circle,
+        .draw-svg.visible rect,
+        .draw-svg.visible line,
+        .draw-svg.visible polyline,
+        .draw-svg.visible ellipse {
+            stroke-dashoffset: 0;
+        }
+
+        /* ---------- INTUITION / HERO CONCEPT ---------- */
+        .concept-box {
+            background: linear-gradient(135deg, #f0f6fe 0%, #e6f0fa 100%);
+            border-radius: 1.2rem;
+            padding: 1.8rem 2rem;
+            margin: 1.2rem 0 2rem;
+            border-left: 5px solid #1a4a6e;
+        }
+        .concept-box strong { color: #0b2a4a; }
+
+        /* word morph animation */
+        .morph-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 1.5rem 0;
+        }
+        .word-chip {
+            background: #fff;
+            border: 1px solid #dce5ef;
+            border-radius: 30px;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+            color: #1a4a6e;
+            font-size: 1.05rem;
+            box-shadow: 0 2px 8px rgba(0,20,40,0.04);
+        }
+        .arrow-i { color: #94a3b8; font-size: 1.1rem; }
+        .base-chip {
+            background: #1a4a6e;
+            color: #fff;
+            border: none;
+            font-size: 1.15rem;
+            padding: 0.55rem 1.6rem;
+        }
+
+        /* ---------- CARDS / GRID ---------- */
+        .card-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin: 1.2rem 0 2rem;
+        }
+        .info-card {
+            flex: 1;
+            min-width: 220px;
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.3rem;
+        }
+        .info-card i { color: #1a4a6e; font-size: 1.4rem; }
+        .info-card h4 { margin: 0.5rem 0 0.3rem; color: #0b2a4a; }
+        .info-card p { font-size: 0.9rem; margin: 0; }
+
+        /* ---------- TWO-COLUMN COMPARE ---------- */
+        .comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin: 1.5rem 0 2rem;
+        }
+        .comp-col {
+            flex: 1;
+            min-width: 280px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+        .comp-col.stem-col { border-top: 4px solid #d97706; }
+        .comp-col.lemma-col { border-top: 4px solid #0891b2; }
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.15rem;
+        }
+        .comp-col ul { list-style: none; padding: 0; }
+        .comp-col li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .comp-col li:last-child { border-bottom: none; }
+        .comp-col li i { width: 1.2rem; text-align: center; }
+        .stem-col li i { color: #d97706; }
+        .lemma-col li i { color: #0891b2; }
+
+        /* ---------- TABLE ---------- */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 2rem;
+            font-size: 0.95rem;
+            background: #fff;
+            border-radius: 0.8rem;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,20,40,0.05);
+        }
+        .styled-table th {
+            background: #0b2a4a;
+            color: #fff;
+            text-align: left;
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+        }
+        .styled-table td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .styled-table tr:last-child td { border-bottom: none; }
+        .styled-table tr:nth-child(even) td { background: #f8faff; }
+        .styled-table code {
+            background: #eef4fb;
+            padding: 0.15rem 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #0b2a4a;
+        }
+        .bad { color: #d97706; font-weight: 600; }
+        .good { color: #0891b2; font-weight: 600; }
+
+        /* ---------- STEPS ---------- */
+        .steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin: 1.2rem 0 2rem;
+            align-items: stretch;
+        }
+        .step {
+            flex: 1;
+            min-width: 130px;
+            background: #f8faff;
+            border: 1px solid #e9edf2;
+            border-radius: 0.9rem;
+            padding: 1rem;
+            position: relative;
+            text-align: center;
+        }
+        .step .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            background: #1a4a6e;
+            color: #fff;
+            border-radius: 50%;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .step p { font-size: 0.85rem; margin: 0; }
+
+        /* ---------- CALLOUTS ---------- */
+        .callout {
+            border-radius: 1rem;
+            padding: 1.3rem 1.6rem;
+            margin: 1.2rem 0 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .callout i { font-size: 1.5rem; margin-top: 0.15rem; }
+        .callout p { margin: 0; }
+        .callout .c-title { font-weight: 700; display: block; margin-bottom: 0.2rem; }
+        .callout.warn { background: #fef9f0; border: 1px solid #f0e0c0; }
+        .callout.warn i { color: #d97706; }
+        .callout.warn .c-title { color: #b45309; }
+        .callout.tip { background: #ecfdf5; border: 1px solid #c8ebd9; }
+        .callout.tip i { color: #059669; }
+        .callout.tip .c-title { color: #047857; }
+        .callout.info { background: #eef4fb; border: 1px solid #d5e3f2; }
+        .callout.info i { color: #1a4a6e; }
+        .callout.info .c-title { color: #0b2a4a; }
+
+        /* ---------- SENTENCE DEMO ---------- */
+        .sentence-demo {
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin: 1.2rem 0 2rem;
+            border: 1px solid #e9edf2;
+        }
+        .sent-row { margin-bottom: 1rem; }
+        .sent-row:last-child { margin-bottom: 0; }
+        .sent-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .sent-text { font-size: 1.05rem; }
+        .sent-text.original { color: #1e293b; font-style: italic; }
+        .sent-text.stemmed .h { color: #d97706; font-weight: 600; }
+        .sent-text.lemmatized .h { color: #0891b2; font-weight: 600; }
+
+        /* ---------- BADGE PILLS ---------- */
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin: 1rem 0 2rem;
+        }
+        .pill {
+            background: #eef4fb;
+            border: 1px solid #d5e3f2;
+            border-radius: 30px;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #0b2a4a;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+        .pill i { color: #1a4a6e; }
+
+        /* ---------- KEY TAKEAWAY ---------- */
+        .takeaway {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.5rem 1.8rem;
+            border-left: 5px solid #1a4a6e;
+        }
+        .takeaway p { font-weight: 500; font-size: 1.05rem; margin: 0; }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a href="Stop Words.html" class="nav-arrow left" aria-label="Previous lesson">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+
+            <div class="hero-inner">
+                <h1>Stemming &amp; Lemmatization</h1>
+                <div class="chapter-badge">
+                    Many words, one meaning
+                </div>
+            </div>
+
+            <a href="../Text Representation/Chapter 03.html" class="nav-arrow right" aria-label="Next lesson">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+
+            <!-- 1. THE PROBLEM -->
+            <div class="section-title fade-up">
+                <i class="fas fa-clone"></i> The Problem: One Idea, Many Word Forms
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p>Human language loves variety. The same simple idea can be written in many shapes:</p>
+            </div>
+
+            <div class="morph-wrap fade-up">
+                <span class="word-chip">play</span>
+                <span class="word-chip">plays</span>
+                <span class="word-chip">played</span>
+                <span class="word-chip">playing</span>
+                <i class="fas fa-arrow-right arrow-i"></i>
+                <span class="word-chip base-chip"><i class="fas fa-star" style="margin-right:0.4rem;"></i>play</span>
+            </div>
+
+            <div class="fade-up">
+                <p>To a computer, <code style="background:#eef4fb;padding:0.1rem 0.4rem;border-radius:4px;">connect</code>, <code style="background:#eef4fb;padding:0.1rem 0.4rem;border-radius:4px;">connected</code>, <code style="background:#eef4fb;padding:0.1rem 0.4rem;border-radius:4px;">connecting</code>, and <code style="background:#eef4fb;padding:0.1rem 0.4rem;border-radius:4px;">connection</code> look like four totally different words. To a human, they are clearly the same idea. <strong>Normalization</strong> is the step that squeezes all these forms down to one base form so the machine can see they belong together.</p>
+            </div>
+
+            <div class="callout tip fade-up">
+                <i class="fas fa-gift"></i>
+                <p><span class="c-title">Why bother? The vocabulary payoff.</span>
+                Fewer distinct words means smaller, simpler data for the model. That gives smaller feature vectors, less "empty space" in the data, and models that learn well even from small datasets. If someone searches <strong>"connect"</strong>, they probably also want pages about <strong>"connected"</strong> and <strong>"connections"</strong>.</p>
+            </div>
+
+            <!-- 2. A LITTLE MORPHOLOGY -->
+            <div class="section-title fade-up">
+                <i class="fas fa-puzzle-piece"></i> A Little Word-Building (Morphology)
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p>Before we cut words, let's see how words are built. A <strong>morpheme</strong> is the smallest piece of a word that carries meaning. Most words are a <strong>stem</strong> (the core meaning) plus one or more <strong>affixes</strong> (prefixes and suffixes that add grammar or change the meaning).</p>
+            </div>
+
+            <table class="styled-table fade-up">
+                <thead>
+                    <tr><th>Word</th><th>Stem</th><th>Affix(es)</th><th>Type</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>cats</td><td>cat</td><td><code>-s</code></td><td>inflection (plural)</td></tr>
+                    <tr><td>walked</td><td>walk</td><td><code>-ed</code></td><td>inflection (past)</td></tr>
+                    <tr><td>happily</td><td>happy</td><td><code>-ly</code></td><td>derivation (adj → adv)</td></tr>
+                    <tr><td>unhappiness</td><td>happy</td><td><code>un-</code>, <code>-ness</code></td><td>derivation</td></tr>
+                </tbody>
+            </table>
+
+            <div class="card-grid fade-up stagger">
+                <div class="info-card">
+                    <i class="fas fa-sync-alt"></i>
+                    <h4>Inflection</h4>
+                    <p>Changes grammar but keeps the meaning and word type: <em>run → runs → running → ran</em>. This is what we most want to strip off.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-code-branch"></i>
+                    <h4>Derivation</h4>
+                    <p>Builds a new word, often a new type: <em>organize → organization → organizational</em>. Whether to collapse these depends on the task.</p>
+                </div>
+            </div>
+
+            <div class="callout info fade-up">
+                <i class="fas fa-list-ul"></i>
+                <p><span class="c-title">Three words to keep straight</span>
+                <strong>Root</strong> – the smallest core left after removing every affix (<em>nation</em> in <em>internationalization</em>).<br>
+                <strong>Stem</strong> – what a stemming tool spits out; may not be a real word (<em>studi</em>).<br>
+                <strong>Lemma</strong> – the proper dictionary word; always valid (<em>study</em>, <em>be</em>, <em>good</em>).</p>
+            </div>
+
+            <!-- 3. STEMMING -->
+            <div class="section-title fade-up">
+                <i class="fas fa-scissors"></i> Method 1: Stemming (Fast &amp; Rough)
+                <span class="title-line"></span>
+            </div>
+            <div class="concept-box fade-up">
+                <p style="margin:0;"><strong>Stemming</strong> chops off the ends (and sometimes fronts) of words using simple fixed rules. It's fast, but it doesn't check a dictionary – so the result is often <strong>not a real word</strong>.</p>
+            </div>
+
+            <!-- Scissors SVG -->
+            <div class="fade-up" style="display:flex;justify-content:center;margin:1.5rem 0 2rem;">
+                <svg class="draw-svg" width="440" height="130" viewBox="0 0 440 130" xmlns="http://www.w3.org/2000/svg">
+                    <!-- word box -->
+                    <rect x="20" y="45" width="180" height="45" rx="8" fill="rgba(217,119,6,0.06)" stroke="#d97706" stroke-width="2"/>
+                    <text x="42" y="74" font-size="18" font-weight="700" fill="#0b2a4a">connect</text>
+                    <text x="132" y="74" font-size="18" font-weight="700" fill="#cbb28a">ing</text>
+                    <!-- cut line -->
+                    <line x1="124" y1="38" x2="124" y2="97" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+                    <!-- arrow -->
+                    <line x1="222" y1="67" x2="272" y2="67" stroke="#94a3b8" stroke-width="2"/>
+                    <polyline points="264,60 274,67 264,74" fill="none" stroke="#94a3b8" stroke-width="2"/>
+                    <!-- result -->
+                    <rect x="292" y="45" width="128" height="45" rx="8" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="322" y="74" font-size="18" font-weight="700" fill="#1a4a6e">connect</text>
+                </svg>
+            </div>
+
+            <table class="styled-table fade-up">
+                <thead>
+                    <tr><th>Original Word</th><th>Stem</th><th>Real word?</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>playing</td><td>play</td><td class="good"><i class="fas fa-check"></i> yes</td></tr>
+                    <tr><td>played</td><td>play</td><td class="good"><i class="fas fa-check"></i> yes</td></tr>
+                    <tr><td>studies</td><td>studi</td><td class="bad"><i class="fas fa-times"></i> no</td></tr>
+                    <tr><td>happiness</td><td>happi</td><td class="bad"><i class="fas fa-times"></i> no</td></tr>
+                    <tr><td>connection</td><td>connect</td><td class="good"><i class="fas fa-check"></i> yes</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="fade-up" style="font-weight:600;color:#0b2a4a;margin:1.5rem 0 0.8rem;">
+                <i class="fas fa-cogs" style="color:#1a4a6e;margin-right:0.4rem;"></i>How it works – 4 simple steps
+            </h3>
+            <div class="steps fade-up stagger">
+                <div class="step"><span class="num">1</span><p>Take the input word</p></div>
+                <div class="step"><span class="num">2</span><p>Check for known suffix patterns</p></div>
+                <div class="step"><span class="num">3</span><p>Remove the matching suffix</p></div>
+                <div class="step"><span class="num">4</span><p>Return the stem</p></div>
+            </div>
+
+            <h3 class="fade-up" style="font-weight:600;color:#0b2a4a;margin:1.5rem 0 0.8rem;">
+                <i class="fas fa-trophy" style="color:#1a4a6e;margin-right:0.4rem;"></i>Popular stemmers
+            </h3>
+            <div class="card-grid fade-up stagger">
+                <div class="info-card">
+                    <i class="fas fa-medal"></i>
+                    <h4>Porter Stemmer</h4>
+                    <p>Made by Martin Porter in 1980. The most famous one – rule-based, fast, everywhere. <em>connecting/connection → connect</em>.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-globe"></i>
+                    <h4>Snowball</h4>
+                    <p>An improved Porter that also works for many languages.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-bolt"></i>
+                    <h4>Lancaster</h4>
+                    <p>More aggressive – cuts harder and gives shorter stems. <em>maximum → maxim</em>.</p>
+                </div>
+            </div>
+
+            <div class="callout info fade-up">
+                <i class="fas fa-ruler"></i>
+                <p><span class="c-title">Peek inside Porter (simplified)</span>
+                It counts vowel-consonant patterns, then applies rules in order: <code>-sses → -ss</code> (caresses → caress), <code>-ies → -i</code> (ponies → poni), drop <code>-s</code> (cats → cat), handle <code>-ed</code>/<code>-ing</code> (hopping → hop), <code>-y → -i</code> (happy → happi), then longer suffixes like <code>-ational → -ate</code>.</p>
+            </div>
+
+            <!-- Pros / cons of stemming -->
+            <div class="comparison-grid fade-up">
+                <div class="comp-col lemma-col">
+                    <h3><i class="fas fa-thumbs-up" style="color:#0891b2;"></i> Good things</h3>
+                    <ul>
+                        <li><i class="fas fa-bolt"></i> Very fast and cheap to run</li>
+                        <li><i class="fas fa-compress"></i> Shrinks the vocabulary</li>
+                        <li><i class="fas fa-search"></i> Great for search engines &amp; indexing</li>
+                    </ul>
+                </div>
+                <div class="comp-col stem-col">
+                    <h3><i class="fas fa-thumbs-down" style="color:#d97706;"></i> Weak spots</h3>
+                    <ul>
+                        <li><i class="fas fa-ban"></i> Can make non-words (<em>studi</em>)</li>
+                        <li><i class="fas fa-exclamation"></i> Ignores grammar and context</li>
+                        <li><i class="fas fa-random"></i> Can merge unrelated words</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="callout warn fade-up">
+                <i class="fas fa-triangle-exclamation"></i>
+                <p><span class="c-title">Two classic mistakes</span>
+                <strong>Over-stemming</strong> – two different words get the same stem: <em>universe</em> and <em>university</em> both become <em>univers</em>.<br>
+                <strong>Under-stemming</strong> – two related words <em>don't</em> get merged: <em>data</em> and <em>datum</em> stay separate.</p>
+            </div>
+
+            <!-- 4. LEMMATIZATION -->
+            <div class="section-title fade-up">
+                <i class="fas fa-book"></i> Method 2: Lemmatization (Slow &amp; Smart)
+                <span class="title-line"></span>
+            </div>
+            <div class="concept-box fade-up">
+                <p style="margin:0;"><strong>Lemmatization</strong> reduces a word to its real dictionary form – the <strong>lemma</strong>. Instead of blindly chopping, it uses a dictionary and grammar knowledge, so the result is <strong>always a valid word</strong>.</p>
+            </div>
+
+            <table class="styled-table fade-up">
+                <thead>
+                    <tr><th>Word</th><th>Lemma</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>am / is / are</td><td class="good">be</td></tr>
+                    <tr><td>better</td><td class="good">good</td></tr>
+                    <tr><td>running</td><td class="good">run</td></tr>
+                    <tr><td>meeting <em>(a meeting)</em></td><td class="good">meeting <em>(noun)</em></td></tr>
+                    <tr><td>meeting <em>(meeting them)</em></td><td class="good">meet <em>(verb)</em></td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout warn fade-up">
+                <i class="fas fa-tag"></i>
+                <p><span class="c-title">Why part-of-speech matters</span>
+                Look at the last two rows. The same word <em>meeting</em> becomes a different lemma depending on whether it's a noun or a verb. A lemmatizer with no grammar info just guesses "noun" and gets verbs wrong – the single most common beginner mistake in NLTK.</p>
+            </div>
+
+            <h3 class="fade-up" style="font-weight:600;color:#0b2a4a;margin:1.5rem 0 0.8rem;">
+                <i class="fas fa-list-ol" style="color:#1a4a6e;margin-right:0.4rem;"></i>How it works – step by step
+            </h3>
+            <div class="steps fade-up stagger">
+                <div class="step"><span class="num">1</span><p>Split the sentence into words (tokenize)</p></div>
+                <div class="step"><span class="num">2</span><p>POS-tag each word (noun? verb? adjective?)</p></div>
+                <div class="step"><span class="num">3</span><p>Look up word + tag in the dictionary</p></div>
+                <div class="step"><span class="num">4</span><p>Return the correct lemma</p></div>
+            </div>
+            <div class="fade-up">
+                <p>All this extra checking makes lemmatization <strong>slower and heavier</strong> than stemming – but the results are linguistically correct.</p>
+            </div>
+
+            <!-- 5. HEAD TO HEAD -->
+            <div class="section-title fade-up">
+                <i class="fas fa-balance-scale"></i> Stemming vs Lemmatization
+                <span class="title-line"></span>
+            </div>
+            <table class="styled-table fade-up">
+                <thead>
+                    <tr><th>Feature</th><th><i class="fas fa-scissors" style="margin-right:0.3rem;"></i>Stemming</th><th><i class="fas fa-book" style="margin-right:0.3rem;"></i>Lemmatization</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Method</td><td>Rule-based chopping</td><td>Language analysis</td></tr>
+                    <tr><td>Output</td><td>Stem</td><td>Lemma</td></tr>
+                    <tr><td>Needs a dictionary?</td><td class="bad">No</td><td class="good">Yes</td></tr>
+                    <tr><td>Accuracy</td><td class="bad">Lower</td><td class="good">Higher</td></tr>
+                    <tr><td>Speed</td><td class="good">Faster</td><td class="bad">Slower</td></tr>
+                    <tr><td>Makes real words?</td><td class="bad">Not always</td><td class="good">Usually</td></tr>
+                </tbody>
+            </table>
+
+            <!-- Same sentence demo -->
+            <h3 class="fade-up" style="font-weight:600;color:#0b2a4a;margin:1.5rem 0 0.8rem;">
+                <i class="fas fa-flask" style="color:#1a4a6e;margin-right:0.4rem;"></i>The same sentence, both ways
+            </h3>
+            <div class="sentence-demo fade-up stagger">
+                <div class="sent-row">
+                    <span class="sent-label"><i class="fas fa-quote-left"></i> Original</span>
+                    <span class="sent-text original">The students were studying and writing reports.</span>
+                </div>
+                <div class="sent-row">
+                    <span class="sent-label" style="color:#d97706;"><i class="fas fa-scissors"></i> After Stemming</span>
+                    <span class="sent-text stemmed">the <span class="h">student</span> were <span class="h">studi</span> and <span class="h">write</span> <span class="h">report</span></span>
+                </div>
+                <div class="sent-row">
+                    <span class="sent-label" style="color:#0891b2;"><i class="fas fa-book"></i> After Lemmatization</span>
+                    <span class="sent-text lemmatized">the <span class="h">student</span> <span class="h">be</span> <span class="h">study</span> and <span class="h">write</span> <span class="h">report</span></span>
+                </div>
+            </div>
+            <div class="callout tip fade-up">
+                <i class="fas fa-lightbulb"></i>
+                <p>Notice: stemming gave the non-word <em>studi</em>, while lemmatization kept the real word <em>study</em> and correctly turned <em>were → be</em>. Lemmatization keeps meaningful words, making it better for advanced tasks.</p>
+            </div>
+
+            <!-- 6. WHERE IT'S USED -->
+            <div class="section-title fade-up">
+                <i class="fas fa-rocket"></i> Where This Is Used
+                <span class="title-line"></span>
+            </div>
+            <div class="comparison-grid fade-up">
+                <div class="comp-col stem-col">
+                    <h3><i class="fas fa-scissors" style="color:#d97706;"></i> Stemming shines here</h3>
+                    <p style="font-size:0.9rem;color:#64748b;margin:-0.4rem 0 0.9rem;">Where speed matters more than perfect words</p>
+                    <div class="pill-row" style="margin:0;">
+                        <span class="pill"><i class="fas fa-search"></i> Search Engines</span>
+                        <span class="pill"><i class="fas fa-sitemap"></i> Indexing</span>
+                        <span class="pill"><i class="fas fa-object-group"></i> Document Clustering</span>
+                        <span class="pill"><i class="fas fa-microchip"></i> Edge / IoT Devices</span>
+                    </div>
+                </div>
+                <div class="comp-col lemma-col">
+                    <h3><i class="fas fa-book" style="color:#0891b2;"></i> Lemmatization shines here</h3>
+                    <p style="font-size:0.9rem;color:#64748b;margin:-0.4rem 0 0.9rem;">Where correct, real words matter</p>
+                    <div class="pill-row" style="margin:0;">
+                        <span class="pill"><i class="fas fa-folder-open"></i> Information Retrieval</span>
+                        <span class="pill"><i class="fas fa-tags"></i> Text Classification</span>
+                        <span class="pill"><i class="fas fa-smile"></i> Sentiment Analysis</span>
+                        <span class="pill"><i class="fas fa-language"></i> Machine Translation</span>
+                        <span class="pill"><i class="fas fa-question-circle"></i> Question Answering</span>
+                        <span class="pill"><i class="fas fa-comments"></i> Chatbots</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. MODERN CAVEAT -->
+            <div class="section-title fade-up">
+                <i class="fas fa-microchip"></i> Do We Still Need This in 2026?
+                <span class="title-line"></span>
+            </div>
+            <div class="callout info fade-up">
+                <i class="fas fa-robot"></i>
+                <p><span class="c-title">The big caveat</span>
+                Modern Transformer models (BERT, GPT-family) split text into <strong>subwords</strong> and learn word forms on their own – so they usually <strong>don't need</strong> stemming or lemmatization. But these classic tools are far from dead.</p>
+            </div>
+            <div class="card-grid fade-up stagger">
+                <div class="info-card">
+                    <i class="fas fa-folder-open"></i>
+                    <h4>Classic Search (BM25 / TF-IDF)</h4>
+                    <p>Still leans heavily on lemmatization to find more relevant results.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-globe-africa"></i>
+                    <h4>Low-Resource Languages</h4>
+                    <p>Languages without huge training data still need morphological analyzers and lemmatizers.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-search-plus"></i>
+                    <h4>Interpretability</h4>
+                    <p>Lemmatized features are much easier for humans to read than subword pieces.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-microchip"></i>
+                    <h4>Edge / IoT Devices</h4>
+                    <p>Tiny devices can't run huge LLMs, so lightweight stemmers still do the job.</p>
+                </div>
+            </div>
+
+            <!-- KEY TAKEAWAY -->
+            <div class="section-title fade-up">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="takeaway fade-up">
+                <p>Both stemming and lemmatization collapse many word forms into one, so a computer can see that <em>connect</em>, <em>connected</em>, and <em>connections</em> mean the same thing. <strong>Stemming</strong> is fast but rough and may make non-words. <strong>Lemmatization</strong> is slower but smart and gives real dictionary words. Pick <strong>speed</strong> or <strong>accuracy</strong> based on what your task needs.</p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: "0px 0px -40px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg, .stagger').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
+
