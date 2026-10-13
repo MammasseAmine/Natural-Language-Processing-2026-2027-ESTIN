@@ -981,7 +981,7 @@
                 </div>
                 <div class="op-card">
                     <div class="op-label"><i class="fas fa-smile"></i> Remove Emojis</div>
-                    <div class="op-example"><span class="arrow">→</span> "Hello ðŸ˜Š" → "Hello"</div>
+                    <div class="op-example"><span class="arrow">→</span> "Hello 😊" → "Hello"</div>
                 </div>
                 <div class="op-card">
                     <div class="op-label"><i class="fas fa-arrows-alt-h"></i> Remove Extra Spaces</div>
@@ -1038,15 +1038,15 @@
                 </div>
                 <p style="margin-bottom: 0.5rem;">
                     Translating emojis to text keeps their meaning available to a model that only sees words –
-                    a <strong>smart middle ground</strong> for sentiment with BoW / TFâ€‘IDF.
+                    a <strong>smart middle ground</strong> for sentiment with BoW / TF‑IDF.
                 </p>
                 <div class="rule">
                     <i class="fas fa-rule"></i>
-                    <span><strong>Rule of thumb:</strong> Demojize for sentiment with bagâ€‘ofâ€‘words models. Keep raw emojis for transformers (their tokenizers handle them). Remove only when you are certain they carry nothing for your task.</span>
+                    <span><strong>Rule of thumb:</strong> Demojize for sentiment with bag‑of‑words models. Keep raw emojis for transformers (their tokenizers handle them). Remove only when you are certain they carry nothing for your task.</span>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.8rem; font-size: 0.9rem;">
                     <span style="background:#ffffff; padding:0.2rem 0.8rem; border-radius:30px; border:1px solid #b8d8c8;">
-                        <i class="fas fa-check-circle" style="color:#1a7a4a;"></i> Bagâ€‘ofâ€‘words → demojize
+                        <i class="fas fa-check-circle" style="color:#1a7a4a;"></i> Bag‑of‑words → demojize
                     </span>
                     <span style="background:#ffffff; padding:0.2rem 0.8rem; border-radius:30px; border:1px solid #b8d8c8;">
                         <i class="fas fa-check-circle" style="color:#1a7a4a;"></i> Transformers → keep raw
@@ -1066,7 +1066,7 @@
             <div class="messy-demo fade-up">
                 <div class="raw">
                     <i class="fas fa-file-alt" style="color: #1a4a6e; margin-right: 0.5rem;"></i>
-                    “Hello!!! ðŸ˜Š Visit https://openai.com NOW!!! Contact me at test@gmail.com”
+                    “Hello!!! 😊 Visit https://openai.com NOW!!! Contact me at test@gmail.com”
                 </div>
                 <div class="cleaned">
                     <span class="label"><i class="fas fa-check-circle" style="color: #1a8a4a;"></i> Cleaned</span>
@@ -1232,7 +1232,7 @@
                 <div class="mc-header">Cleaning Step</div>
                 <div class="mc-header">
                     Classical ML
-                    <span class="sub">TFâ€‘IDF, SVM, NB</span>
+                        <span class="sub">TF‑IDF, SVM, NB</span>
                 </div>
                 <div class="mc-header">
                     Deep Learning
