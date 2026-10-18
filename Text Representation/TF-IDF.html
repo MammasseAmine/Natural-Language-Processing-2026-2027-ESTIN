@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 03 – TF-IDF</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+        }
+        .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255,255,255,0.15);
+            margin-top: 0.5rem;
+        }
+        .hero { position: relative; overflow: hidden; }
+        .hero-nav {
+            position: absolute; top: 50%; z-index: 2;
+            display: grid; width: 3.2rem; height: 3.2rem; place-items: center;
+            border: 1px solid rgba(255,255,255,.3); border-radius: 50%;
+            color: #fff; background: rgba(255,255,255,.1);
+            font-size: 1.25rem; text-decoration: none;
+            transform: translateY(-50%);
+            transition: background .2s, transform .2s;
+        }
+        .hero-nav.previous { left: 1.2rem; }
+        .hero-nav.next { right: 1.2rem; }
+        .hero-nav:hover, .hero-nav:focus-visible {
+            background: rgba(255,255,255,.22);
+            transform: translateY(-50%) scale(1.05);
+        }
+        .hero-nav:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+
+        /* ---------- CONTENT ---------- */
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        /* ---------- FADE-IN ---------- */
+        .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse { stroke-dashoffset: 0; }
+
+        /* ---------- SHARED BOXES ---------- */
+        .comparison-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin: 1.5rem 0 2rem; }
+        .comp-col { flex: 1; min-width: 260px; background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2; }
+        .comp-col h3 { font-weight: 700; color: #0b2a4a; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+        .comp-col ul { list-style: none; padding: 0; }
+        .comp-col li { padding: 0.4rem 0; border-bottom: 1px solid #eceff5; display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.95rem; }
+        .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+        .callout {
+            background: #fef9f0;
+            border: 1px solid #f0e0c0;
+            border-radius: 1rem;
+            padding: 1.4rem 1.8rem;
+            margin: 1.5rem 0;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .callout i { color: #b5842a; font-size: 1.3rem; margin-top: 0.15rem; }
+        .callout.danger { background: #fdf0f0; border-color: #f0c8c8; }
+        .callout.danger i { color: #b53a3a; }
+        .callout.info { background: #eef5fc; border-color: #c9dced; }
+        .callout.info i { color: #1a4a6e; }
+
+        .formula-box {
+            background: #0b2a4a;
+            color: #eaf2fb;
+            border-radius: 1rem;
+            padding: 1.4rem 1.8rem;
+            margin: 1.2rem 0;
+            font-size: 1.15rem;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+        .formula-box .label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #7fa8c9;
+            margin-bottom: 0.5rem;
+        }
+
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.92rem; }
+        th, td { padding: 0.55rem 0.8rem; text-align: center; border: 1px solid #e5eaf1; }
+        th { background: #0b2a4a; color: #fff; font-weight: 600; }
+        td:first-child, th:first-child { text-align: left; font-weight: 600; color: #0b2a4a; background: #f8faff; }
+        tr:nth-child(even) td { background: #fbfcfe; }
+
+        .step-track { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0 2rem; counter-reset: step; }
+        .step-card {
+            flex: 1; min-width: 150px;
+            background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem;
+            padding: 1.1rem; text-align: center; position: relative;
+        }
+        .step-card .num {
+            width: 2rem; height: 2rem; border-radius: 50%;
+            background: #1a4a6e; color: #fff; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 0.6rem; font-weight: 700; font-size: 0.9rem;
+        }
+        .step-card h4 { font-size: 0.95rem; color: #0b2a4a; margin-bottom: 0.3rem; }
+        .step-card p { font-size: 0.82rem; color: #5f7d97; }
+
+        /* ---------- ANIMATED BAR CHART ---------- */
+        .bars-wrap { margin: 1.5rem 0 2rem; }
+        .bar-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.7rem; }
+        .bar-label { width: 90px; font-size: 0.85rem; font-weight: 600; color: #0b2a4a; text-align: right; }
+        .bar-track { flex: 1; background: #eef2f8; border-radius: 30px; height: 22px; overflow: hidden; }
+        .bar-fill {
+            height: 100%; border-radius: 30px;
+            width: 0%;
+            background: linear-gradient(90deg, #1a4a6e, #3d7ba8);
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+            color: #fff; font-size: 0.72rem; font-weight: 600;
+            transition: width 1.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .bars-wrap.visible .bar-fill { width: var(--w); }
+
+        /* ---------- COSINE ANGLE ---------- */
+        .cosine-wrap { display: flex; justify-content: center; margin: 1.5rem 0 2rem; }
+
+        /* ---------- WORD CLOUD MINI ---------- */
+        .word-weights { display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; margin: 1.5rem 0 2rem; }
+        .word-chip {
+            padding: 0.5rem 1rem; border-radius: 30px; background: #eaf2fb; color: #0b2a4a;
+            font-weight: 600; opacity: 0; transform: scale(0.6);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .word-weights.visible .word-chip { opacity: 1; transform: scale(1); }
+
+        /* ---------- INTERACTIVE STEPS ---------- */
+        .step-card { cursor: pointer; transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease; }
+        .step-card:hover { transform: translateY(-3px); border-color: #b7cbe0; }
+        .step-card.active { background: #eaf2fb; border-color: #1a4a6e; box-shadow: 0 4px 14px rgba(11,42,74,0.12); }
+        .step-card.active .num { background: #0b2a4a; }
+        .step-card.active h4 { color: #0b2a4a; }
+
+        .step-panel-wrap { margin: 0 0 1.2rem; min-height: 210px; }
+        .step-panel { display: none; opacity: 0; transform: translateY(8px); transition: opacity 0.35s ease, transform 0.35s ease; }
+        .step-panel.active { display: block; opacity: 1; transform: translateY(0); }
+        .panel-heading { color: #0b2a4a; font-size: 1.02rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+        .step-panel table { margin-top: 0.6rem; }
+
+        .step-nav {
+            display: flex; align-items: center; justify-content: center; gap: 1.4rem;
+            margin: 0.5rem 0 2rem;
+        }
+        .step-nav button {
+            font-family: 'Inter', sans-serif;
+            background: #0b2a4a; color: #fff; border: none;
+            padding: 0.55rem 1.2rem; border-radius: 30px; font-size: 0.88rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s ease, opacity 0.2s ease;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .step-nav button:hover { background: #1a4a6e; }
+        .step-nav button:disabled { opacity: 0.35; cursor: not-allowed; background: #0b2a4a; }
+        #stepIndicator { font-size: 0.88rem; font-weight: 600; color: #5f7d97; min-width: 90px; text-align: center; }
+
+        .l2-graph-wrap { display: flex; justify-content: center; margin: 1.5rem 0 0.5rem; }
+
+        /* ---------- CONCEPT EQUATION (TF x IDF) ---------- */
+        .concept-equation { margin: 0.5rem 0 1.8rem; }
+        .concept-row {
+            display: flex; align-items: center; justify-content: center; gap: 1.2rem;
+            flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .concept-card {
+            flex: 1; min-width: 220px; max-width: 320px;
+            background: #0b1c30; border: 1px solid #223449; border-radius: 1rem;
+            padding: 1.3rem 1.5rem; text-align: center;
+        }
+        .concept-card p { color: #cbd5e1; font-size: 0.95rem; }
+        .concept-card p em { color: #eaf2fb; font-style: italic; }
+        .concept-tag {
+            display: inline-block; font-size: 0.78rem; font-weight: 700;
+            letter-spacing: 0.6px; margin-bottom: 0.7rem;
+        }
+        .tf-tag { color: #e0a53c; }
+        .idf-tag { color: #5b9bd8; }
+        .concept-op {
+            font-size: 1.6rem; font-weight: 700; color: #7fa8c9;
+        }
+        .concept-result {
+            display: flex; align-items: center; justify-content: center; gap: 0.8rem;
+            background: #241a08; border: 1px solid #6b4e14; border-radius: 0.8rem;
+            padding: 0.9rem 1.4rem; max-width: 640px; margin: 0 auto;
+            color: #e0a53c; font-weight: 700; font-size: 0.98rem; text-align: center;
+        }
+        .concept-result i { color: #e0a53c; }
+        @media (max-width: 700px) {
+            .concept-row { flex-direction: column; }
+            .concept-op { transform: rotate(90deg); }
+        }
+
+        .footer-note {
+            background: #e6f0fa; border-radius: 1rem; padding: 1.5rem;
+            border-left: 5px solid #1a4a6e; margin-top: 2rem;
+        }
+        .footer-note p { font-weight: 500; font-size: 1.05rem; }
+
+        code.inline { background: #eef2f8; padding: 0.1rem 0.4rem; border-radius: 0.35rem; font-size: 0.9em; color: #0b2a4a; }
+
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .cosine-wrap svg { width: 100%; height: auto; }
+            .hero-nav { width: 2.7rem; height: 2.7rem; }
+            .hero-nav.previous { left: .6rem; }
+            .hero-nav.next { right: .6rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <header class="hero">
+            <a class="hero-nav previous" href="Bag-of-Words.html" aria-label="Previous lesson: Bag-of-Words" title="Previous lesson: Bag-of-Words">
+                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+            </a>
+            <a class="hero-nav next" href="../Word Embeddings/Chapter 04.html" aria-label="Back to Chapter 03" title="Back to Chapter 03">
+                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+            </a>
+            <h1>TF-IDF</h1>
+            <div class="chapter-badge">
+            Weighting Words That Matter
+            </div>
+        </header>
+
+        <div class="content">
+
+            <!-- 1. What is TF-IDF -->
+            <div class="section-title fade-up">
+                <i class="fas fa-question-circle"></i> What is TF-IDF?
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up" style="margin-bottom: 1.2rem;">
+                Computers cannot read words directly. Before any algorithm can work with text, we must turn words into numbers.
+                <strong>TF-IDF</strong> (Term Frequency – Inverse Document Frequency) is a simple and popular way to do this.
+                It gives every word in a document a score that shows how important that word is.
+            </p>
+            <div class="callout info fade-up">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                    <strong>Main idea:</strong> a word gets a high score if it appears often in one document, but a low score if it appears in almost every document. Common words carry little information; rare, specific words carry a lot.
+                </div>
+            </div>
+            <div class="callout fade-up">
+                <i class="fas fa-history"></i>
+                <div>
+                    <strong>A bit of history:</strong> the idea of weighting terms by how specific they are was introduced by Karen Spärck Jones in 1972. Her paper on term specificity became the foundation of modern search engines.
+                </div>
+            </div>
+
+            <!-- 2. Motivation -->
+            <div class="section-title fade-up">
+                <i class="fas fa-search"></i> Why Do We Need It?
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">Look at three short documents:</p>
+            <div class="comparison-grid fade-up" style="margin-bottom: 0.5rem;">
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D1</h3><p style="font-size:0.9rem;">"The cat is sleeping on the sofa."</p></div>
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D2</h3><p style="font-size:0.9rem;">"The dog is sleeping in the garden."</p></div>
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D3</h3><p style="font-size:0.9rem;">"The cat and dog are playing."</p></div>
+            </div>
+            <p class="fade-up">
+                The word <em>"the"</em> shows up in every document. It is frequent, but it tells us nothing special about any single one.
+                The word <em>"cat"</em> appears in only some documents, so it is more useful for telling documents apart.
+                TF-IDF turns this idea into a formula: give common words a low weight, and give distinctive words a high weight.
+            </p>
+
+            <!-- 3. Term Frequency -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-hashtag"></i> Term Frequency (TF)
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">TF measures how often a word appears inside one document.</p>
+            <div class="formula-box fade-up">
+                <span class="label">Normalised TF</span>
+                TF(t, d) = (times word t appears in document d) / (total words in d)
+            </div>
+            <p class="fade-up">Example – the document <code class="inline">"cat cat dog bird cat"</code> has 5 words:</p>
+            <table class="fade-up">
+                <tr><th>Word</th><th>Count</th><th>TF</th></tr>
+                <tr><td>cat</td><td>3</td><td>3/5 = 0.6</td></tr>
+                <tr><td>dog</td><td>1</td><td>1/5 = 0.2</td></tr>
+                <tr><td>bird</td><td>1</td><td>1/5 = 0.2</td></tr>
+            </table>
+
+            <!-- 4. IDF -->
+            <div class="section-title fade-up">
+                <i class="fas fa-filter"></i> Inverse Document Frequency (IDF)
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">IDF measures how rare a word is across the whole collection of documents. A word found in many documents gets a small weight.</p>
+            <div class="formula-box fade-up">
+                <span class="label">IDF</span>
+                IDF(t) = log( N / DF(t) )
+            </div>
+            <p class="fade-up">Here, N is the total number of documents, and DF(t) is how many documents contain the word t.</p>
+
+            <div class="callout info fade-up">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                    <strong>Why a logarithm?</strong> Without it, a word appearing in just 1 document out of a million would get a weight a million times bigger than a word in every document. That gap is unusable in practice. The logarithm compresses the scale – rarity still counts, but the numbers stay reasonable.
+                </div>
+            </div>
+
+            <div class="callout danger fade-up">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>
+                    <strong>Watch out – the zero-division trap:</strong> if a word never appears anywhere in the collection, DF(t) = 0 and the formula breaks. Real systems avoid this with a smoothed version.
+                </div>
+            </div>
+            <div class="formula-box fade-up">
+                <span class="label">Smoothed IDF (used in scikit-learn)</span>
+                IDF(t) = ln( (1+N) / (1+DF(t)) ) + 1
+            </div>
+            <p class="fade-up">Adding 1 to the top and bottom is like assuming one extra "phantom" document that contains every possible word. This guarantees the formula never divides by zero, and every IDF value stays positive.</p>
+
+            <p class="fade-up">Example – corpus of 3 documents:</p>
+            <table class="fade-up">
+                <tr><th>Doc</th><th>Content</th></tr>
+                <tr><td>D1</td><td>cat dog</td></tr>
+                <tr><td>D2</td><td>cat bird</td></tr>
+                <tr><td>D3</td><td>cat fish</td></tr>
+            </table>
+            <p class="fade-up">
+                "cat" appears in all 3 documents → IDF(cat) = log(3/3) = 0 → not informative at all.<br>
+                "dog" appears in only 1 document → IDF(dog) = log(3/1) ≈ 1.098 → clearly more informative than "cat".
+            </p>
+
+            <!-- 5. TF-IDF formula -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-layer-group"></i> Putting It Together: TF-IDF
+                <span class="title-line"></span>
+            </div>
+            <div class="formula-box fade-up">
+                <span class="label">TF-IDF</span>
+                TF-IDF(t, d) = TF(t, d) × IDF(t)
+            </div>
+
+            <div class="concept-equation fade-up">
+                <div class="concept-row">
+                    <div class="concept-card tf">
+                        <span class="concept-tag tf-tag">HIGH TF</span>
+                        <p>Term appears often in <em>this</em> document</p>
+                    </div>
+                    <div class="concept-op">×</div>
+                    <div class="concept-card idf">
+                        <span class="concept-tag idf-tag">HIGH IDF</span>
+                        <p>Term is rare across <em>all</em> documents</p>
+                    </div>
+                </div>
+                <div class="concept-result">
+                    <i class="fas fa-equals"></i>
+                    <span>High TF-IDF score = Highly representative term</span>
+                </div>
+            </div>
+
+            <p class="fade-up">A word scores high when it appears often in one document <strong>and</strong> rarely across the whole corpus.</p>
+
+            <p class="fade-up">Full example – corpus:</p>
+            <div class="comparison-grid fade-up" style="margin-bottom: 0.5rem;">
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D1</h3><p style="font-size:0.9rem;">"cat cat dog"</p></div>
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D2</h3><p style="font-size:0.9rem;">"cat bird"</p></div>
+                <div class="comp-col"><h3><i class="fas fa-file-alt"></i> D3</h3><p style="font-size:0.9rem;">"dog bird"</p></div>
+            </div>
+            <p class="fade-up">Every word here appears in exactly 2 of the 3 documents, so IDF(cat) = IDF(dog) = IDF(bird) = log(3/2) ≈ 0.176.</p>
+            <div class="bars-wrap fade-up">
+                <div class="bar-row"><div class="bar-label">cat, D1</div><div class="bar-track"><div class="bar-fill" style="--w:23%;">0.117</div></div></div>
+                <div class="bar-row"><div class="bar-label">dog, D1</div><div class="bar-track"><div class="bar-fill" style="--w:12%;">0.058</div></div></div>
+            </div>
+
+            <!-- 6. Matrix -->
+            <div class="section-title fade-up">
+                <i class="fas fa-table-cells"></i> The TF-IDF Matrix
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">Once every word has a TF-IDF score, a whole corpus becomes a table: one row per document, one column per word.</p>
+            <table class="fade-up">
+                <tr><th>Doc</th><th>cat</th><th>dog</th><th>bird</th></tr>
+                <tr><td>D1</td><td>0.117</td><td>0.058</td><td>0</td></tr>
+                <tr><td>D2</td><td>0.088</td><td>0</td><td>0.088</td></tr>
+                <tr><td>D3</td><td>0</td><td>0.088</td><td>0.088</td></tr>
+            </table>
+            <div class="word-weights fade-up">
+                <span class="word-chip" style="font-size:1.3rem;">cat</span>
+                <span class="word-chip" style="font-size:1rem;">dog</span>
+                <span class="word-chip" style="font-size:1rem;">bird</span>
+                <span class="word-chip" style="font-size:0.75rem;">the</span>
+                <span class="word-chip" style="font-size:0.7rem;">is</span>
+                <span class="word-chip" style="font-size:0.7rem;">on</span>
+            </div>
+            <p class="fade-up" style="text-align:center; color:#5f7d97; font-style: italic;">Bigger chip = higher TF-IDF weight = more informative word.</p>
+
+            <!-- 7. Vector space -->
+            <div class="section-title fade-up">
+                <i class="fas fa-arrows-to-circle"></i> Vector Space & Cosine Similarity
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">Each row of the matrix is a point (a vector) in space. Comparing two documents becomes a geometry question: how close are their vectors?</p>
+            <div class="formula-box fade-up">
+                <span class="label">Cosine similarity</span>
+                cos(θ) = (d₁ · d₂) / (‖d₁‖ ‖d₂‖)
+            </div>
+            <p class="fade-up">This measures the angle between two vectors, not their length – so document length does not distort the comparison. A value of 1 means the documents point in the same direction (same topic); 0 means they share no vocabulary.</p>
+
+            <div class="cosine-wrap fade-up">
+                <svg width="300" height="220" viewBox="0 0 300 220" class="draw-svg">
+                    <line x1="30" y1="190" x2="280" y2="190" stroke="#cfd9e6" stroke-width="1" stroke-dasharray="0"/>
+                    <line x1="30" y1="190" x2="30" y2="20" stroke="#cfd9e6" stroke-width="1" stroke-dasharray="0"/>
+                    <line x1="30" y1="190" x2="230" y2="50" stroke="#1a4a6e" stroke-width="3"/>
+                    <line x1="30" y1="190" x2="180" y2="40" stroke="#3d7ba8" stroke-width="3"/>
+                    <path d="M 70 190 A 40 40 0 0 0 62 165" fill="none" stroke="#b5842a" stroke-width="2"/>
+                    <text x="55" y="175" font-size="11" fill="#b5842a" font-weight="700">θ</text>
+                    <text x="235" y="48" font-size="12" fill="#0b2a4a" font-weight="600">doc A</text>
+                    <text x="185" y="35" font-size="12" fill="#0b2a4a" font-weight="600">doc B</text>
+                </svg>
+            </div>
+            <p class="fade-up">This is exactly how a search engine works: turn the query into a TF-IDF vector, then rank every document by cosine similarity to that vector. The same idea powers document clustering, duplicate-question detection, and plagiarism checks.</p>
+
+            <!-- L2 -->
+            <div class="section-title fade-up">
+                <i class="fas fa-ruler"></i> L2 Normalisation
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">TF-IDF vectors can have very different lengths. Dividing each vector by its own length (L2 norm) makes cosine similarity as simple as a dot product. This is the default behaviour in scikit-learn.</p>
+            <div class="formula-box fade-up">
+                <span class="label">L2-normalised vector</span>
+                v = tfidf / ‖tfidf‖₂
+            </div>
+
+            <p class="fade-up">Take two documents that talk about the same thing but one is longer. Without normalising, the longer document's vector is simply bigger in every direction – even though it points the same way. Normalising rescales both vectors to length 1, so only <em>direction</em> (topic) is compared, not size.</p>
+
+            <div class="l2-graph-wrap fade-up">
+                <svg width="600" height="280" viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" class="draw-svg">
+                    <text x="140" y="26" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="700">Without L2</text>
+                    <line x1="40" y1="240" x2="260" y2="240" stroke="#cfd9e6" stroke-width="1"/>
+                    <line x1="40" y1="240" x2="40" y2="30" stroke="#cfd9e6" stroke-width="1"/>
+                    <line x1="40" y1="240" x2="100" y2="210" stroke="#3d7ba8" stroke-width="3" marker-end="url(#arrowB)"/>
+                    <text x="105" y="212" font-size="11" fill="#3d7ba8" font-weight="700">A (short doc)</text>
+                    <line x1="40" y1="240" x2="220" y2="90" stroke="#1a4a6e" stroke-width="3" marker-end="url(#arrowA)"/>
+                    <text x="225" y="90" font-size="11" fill="#1a4a6e" font-weight="700">B (long doc)</text>
+                    <text x="60" y="260" font-size="10" fill="#5f7d97">same direction, very different length</text>
+
+                    <text x="440" y="26" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="700">With L2</text>
+                    <line x1="340" y1="240" x2="560" y2="240" stroke="#cfd9e6" stroke-width="1"/>
+                    <line x1="340" y1="240" x2="340" y2="30" stroke="#cfd9e6" stroke-width="1"/>
+                    <circle cx="340" cy="240" r="90" fill="none" stroke="#dce5ef" stroke-width="1.5" stroke-dasharray="4 4"/>
+                    <line x1="340" y1="240" x2="420" y2="150" stroke="#1a4a6e" stroke-width="3" marker-end="url(#arrowA)"/>
+                    <line x1="340" y1="240" x2="417" y2="153" stroke="#3d7ba8" stroke-width="2" stroke-dasharray="2 3" marker-end="url(#arrowB)"/>
+                    <text x="425" y="148" font-size="11" fill="#0b2a4a" font-weight="700">A and B overlap</text>
+                    <text x="360" y="260" font-size="10" fill="#5f7d97">both land on the unit circle</text>
+
+                    <defs>
+                        <marker id="arrowA" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#1a4a6e"/>
+                        </marker>
+                        <marker id="arrowB" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#3d7ba8"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+            <p class="fade-up" style="text-align:center; color:#5f7d97; font-style: italic;">Same topic, different length → far apart without normalising, identical point after normalising.</p>
+
+            <!-- Worked example -->
+            <div class="section-title fade-up">
+                <i class="fas fa-shoe-prints"></i> Worked Example, Step by Step
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up">Corpus: D1 = "the cat sat on the mat", D2 = "the dog sat on the log", D3 = "the cat chased the dog". Click a step below to walk through how D1 becomes a normalised vector.</p>
+
+            <div class="step-track fade-up" id="stepTrack">
+                <div class="step-card active" data-step="1"><div class="num">1</div><h4>Tokenise</h4><p>Split each sentence into words.</p></div>
+                <div class="step-card" data-step="2"><div class="num">2</div><h4>Compute TF</h4><p>Count word frequency per document.</p></div>
+                <div class="step-card" data-step="3"><div class="num">3</div><h4>Compute IDF</h4><p>Count in how many documents each word appears.</p></div>
+                <div class="step-card" data-step="4"><div class="num">4</div><h4>Multiply</h4><p>TF × IDF for every word.</p></div>
+                <div class="step-card" data-step="5"><div class="num">5</div><h4>Normalise</h4><p>Divide by the vector's length.</p></div>
+            </div>
+
+            <div class="step-panel-wrap fade-up">
+                <div class="step-panel active" data-panel="1">
+                    <h4 class="panel-heading"><i class="fas fa-scissors"></i> Step 1 – Tokenise</h4>
+                    <p>Each sentence is split into individual words (tokens):</p>
+                    <table>
+                        <tr><th>Doc</th><th>Tokens</th></tr>
+                        <tr><td>D1</td><td>the, cat, sat, on, the, mat</td></tr>
+                        <tr><td>D2</td><td>the, dog, sat, on, the, log</td></tr>
+                        <tr><td>D3</td><td>the, cat, chased, the, dog</td></tr>
+                    </table>
+                </div>
+
+                <div class="step-panel" data-panel="2">
+                    <h4 class="panel-heading"><i class="fas fa-hashtag"></i> Step 2 – Compute TF (for D1)</h4>
+                    <p>D1 has 6 tokens. Divide each word's count by 6:</p>
+                    <table>
+                        <tr><th>Word</th><th>Count</th><th>TF</th></tr>
+                        <tr><td>the</td><td>2</td><td>2/6 = 0.333</td></tr>
+                        <tr><td>cat</td><td>1</td><td>1/6 = 0.167</td></tr>
+                        <tr><td>sat</td><td>1</td><td>1/6 = 0.167</td></tr>
+                        <tr><td>on</td><td>1</td><td>1/6 = 0.167</td></tr>
+                        <tr><td>mat</td><td>1</td><td>1/6 = 0.167</td></tr>
+                    </table>
+                </div>
+
+                <div class="step-panel" data-panel="3">
+                    <h4 class="panel-heading"><i class="fas fa-filter"></i> Step 3 – Compute IDF</h4>
+                    <p>N = 3 documents. Count how many documents (DF) contain each word, then apply IDF(t) = ln(N / DF(t)):</p>
+                    <table>
+                        <tr><th>Word</th><th>DF</th><th>IDF</th></tr>
+                        <tr><td>the</td><td>3</td><td>ln(3/3) = 0.000</td></tr>
+                        <tr><td>cat</td><td>2</td><td>ln(3/2) = 0.405</td></tr>
+                        <tr><td>sat</td><td>2</td><td>ln(3/2) = 0.405</td></tr>
+                        <tr><td>on</td><td>2</td><td>ln(3/2) = 0.405</td></tr>
+                        <tr><td>mat</td><td>1</td><td>ln(3/1) = 1.099</td></tr>
+                    </table>
+                </div>
+
+                <div class="step-panel" data-panel="4">
+                    <h4 class="panel-heading"><i class="fas fa-layer-group"></i> Step 4 – Multiply (TF × IDF)</h4>
+                    <p>Multiply each word's TF from Step 2 by its IDF from Step 3:</p>
+                    <table>
+                        <tr><th>Word</th><th>TF</th><th>IDF</th><th>TF-IDF</th></tr>
+                        <tr><td>the</td><td>0.333</td><td>0.000</td><td>0.000</td></tr>
+                        <tr><td>cat</td><td>0.167</td><td>0.405</td><td>0.068</td></tr>
+                        <tr><td>sat</td><td>0.167</td><td>0.405</td><td>0.068</td></tr>
+                        <tr><td>on</td><td>0.167</td><td>0.405</td><td>0.068</td></tr>
+                        <tr><td>mat</td><td>0.167</td><td>1.099</td><td>0.183</td></tr>
+                    </table>
+                </div>
+
+                <div class="step-panel" data-panel="5">
+                    <h4 class="panel-heading"><i class="fas fa-ruler"></i> Step 5 – Normalise</h4>
+                    <p>Vector length: √(0² + 0.068² + 0.068² + 0.068² + 0.183²) ≈ 0.214. Divide every value by 0.214:</p>
+                    <table>
+                        <tr><th>Word</th><th>Raw TF-IDF</th><th>Normalised</th></tr>
+                        <tr><td>the</td><td>0.000</td><td>0.000</td></tr>
+                        <tr><td>cat</td><td>0.068</td><td>0.316</td></tr>
+                        <tr><td>sat</td><td>0.068</td><td>0.316</td></tr>
+                        <tr><td>on</td><td>0.068</td><td>0.316</td></tr>
+                        <tr><td>mat</td><td>0.183</td><td>0.854</td></tr>
+                    </table>
+                    <p style="color:#5f7d97; font-style: italic;">Check: 0.316² × 3 + 0.854² ≈ 1.0 – the normalised vector has unit length.</p>
+                </div>
+            </div>
+
+            <div class="step-nav fade-up">
+                <button type="button" id="prevStepBtn"><i class="fas fa-arrow-left"></i> Previous</button>
+                <span id="stepIndicator">Step 1 of 5</span>
+                <button type="button" id="nextStepBtn">Next <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <!-- Strengths/limits -->
+            <div class="section-title fade-up">
+                <i class="fas fa-scale-balanced"></i> Strengths and Limits
+                <span class="title-line"></span>
+            </div>
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-up"></i> Strengths</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Simple to implement</li>
+                        <li><i class="fas fa-check"></i> Fast to compute</li>
+                        <li><i class="fas fa-check"></i> Works well on small and medium datasets</li>
+                        <li><i class="fas fa-check"></i> Easy to interpret</li>
+                        <li><i class="fas fa-check"></i> A strong baseline for many NLP tasks</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-down"></i> Limits</h3>
+                    <ul>
+                        <li><i class="fas fa-times"></i> Ignores meaning</li>
+                        <li><i class="fas fa-times"></i> Ignores context</li>
+                        <li><i class="fas fa-times"></i> Ignores word order</li>
+                        <li><i class="fas fa-times"></i> Produces sparse vectors</li>
+                        <li><i class="fas fa-times"></i> Cannot see that "car" and "automobile" mean the same thing</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Applications -->
+            <div class="section-title fade-up">
+                <i class="fas fa-diagram-project"></i> Where TF-IDF Is Used
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-magnifying-glass" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Search Engines</h4>
+                    <p style="font-size: 0.9rem;">Rank documents against a query using cosine similarity.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-key" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Keyword Extraction</h4>
+                    <p style="font-size: 0.9rem;">The highest-scoring words summarise what a document is about.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-tags" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Text Classification</h4>
+                    <p style="font-size: 0.9rem;">TF-IDF vectors feed strong baselines for spam and topic detection.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-clone" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Clustering & Deduplication</h4>
+                    <p style="font-size: 0.9rem;">Find near-duplicate documents using cosine similarity thresholds.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-thumbs-up" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Recommender Systems</h4>
+                    <p style="font-size: 0.9rem;">Recommend items with similar TF-IDF descriptions.</p>
+                </div>
+            </div>
+
+            <!-- Key takeaway -->
+            <div class="section-title fade-up">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="footer-note fade-up">
+                <p>
+                    TF-IDF answers one question for every word: <em>"What makes this document unique inside the corpus?"</em>
+                    Frequent-everywhere words fade into the background, and rare, specific words rise to the top.
+                    It is simple, fast, and still a strong first step before trying more advanced NLP methods.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const observerOptions = { threshold: 0.2, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-up, .draw-svg, .bars-wrap, .word-weights').forEach(el => {
+            observer.observe(el);
+        });
+
+        // ---------- Interactive worked-example steps ----------
+        const totalSteps = 5;
+        let currentStep = 1;
+        const stepCards = document.querySelectorAll('#stepTrack .step-card');
+        const stepPanels = document.querySelectorAll('.step-panel');
+        const prevBtn = document.getElementById('prevStepBtn');
+        const nextBtn = document.getElementById('nextStepBtn');
+        const indicator = document.getElementById('stepIndicator');
+
+        function goToStep(n) {
+            currentStep = Math.min(Math.max(n, 1), totalSteps);
+            stepCards.forEach(card => card.classList.toggle('active', Number(card.dataset.step) === currentStep));
+            stepPanels.forEach(panel => panel.classList.toggle('active', Number(panel.dataset.panel) === currentStep));
+            indicator.textContent = `Step ${currentStep} of ${totalSteps}`;
+            prevBtn.disabled = currentStep === 1;
+            nextBtn.disabled = currentStep === totalSteps;
+        }
+
+        stepCards.forEach(card => {
+            card.addEventListener('click', () => goToStep(Number(card.dataset.step)));
+        });
+        prevBtn.addEventListener('click', () => goToStep(currentStep - 1));
+        nextBtn.addEventListener('click', () => goToStep(currentStep + 1));
+        goToStep(1);
+    </script>
+</body>
+</html>
+
