@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 04 – Introduction to NLP</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+    <style>
+        :root { --ink:#092d50; --hero:#123e63; --muted:#5c7893; --line:#dce8f3; --pale:#f5f9fd; --blue-pale:#e4f0ff; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:#fff; color:var(--ink); font-family:'Inter',sans-serif; line-height:1.55; }
+        .hero { height:216px; position:relative; overflow:hidden; background:linear-gradient(112deg,var(--hero),#174a73); color:#fff; text-align:center; padding:20px 24px; }
+        .hero::before,.hero::after { content:''; position:absolute; border-radius:50%; background:rgba(126,181,220,.14); }
+        .hero::before { width:265px; height:265px; left:-88px; bottom:-125px; }
+        .hero::after { width:300px; height:300px; right:-80px; top:-172px; }
+        .hero-content { position:relative; z-index:1; max-width:760px; margin:0 auto; }
+        .chapter { display:inline-block; padding:7px 17px; border:1px solid rgba(255,255,255,.18); border-radius:24px; background:rgba(255,255,255,.12); color:#dcebf7; font-size:11px; font-weight:800; letter-spacing:1.5px; }
+        h1 { margin-top:14px; font-size:clamp(2.2rem,4vw,3.2rem); line-height:1.1; letter-spacing:-.055em; font-weight:800; }
+        .hero p { margin:17px auto 0; max-width:650px; color:#d7e7f5; font-size:15px; }
+        main { max-width:1030px; margin:0 auto; padding:47px 28px 70px; }
+        .heading { display:flex; align-items:center; gap:12px; margin-bottom:29px; }
+        .heading i { color:#15527d; font-size:20px; }
+        .heading h2 { white-space:nowrap; font-size:27px; line-height:1; letter-spacing:-.05em; }
+        .heading::after { content:''; height:2px; flex:1; margin-left:2px; background:linear-gradient(90deg,#c8d6e2,transparent); }
+        .course-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:23px; }
+        .course-card { min-height:318px; display:flex; flex-direction:column; padding:20px 18px 17px; border:1px solid #dbe7f1; border-top:4px solid #4c95d2; border-radius:0 0 19px 19px; background:linear-gradient(160deg,#fff 0%,#f7faff 100%); box-shadow:0 9px 24px rgba(25,69,105,.08); }
+        .icon-box { display:flex; align-items:center; justify-content:center; width:52px; height:52px; margin-bottom:16px; border:1px solid #cee2f8; border-radius:14px; background:var(--blue-pale); color:var(--ink); font-size:19px; }
+        .lesson { width:fit-content; padding:5px 10px; border-radius:20px; background:#edf4fa; color:#18517c; font-size:10px; font-weight:800; letter-spacing:.7px; }
+        .course-card h3 { margin-top:11px; font-size:17px; line-height:1.25; letter-spacing:-.035em; }
+        .course-card p { margin-top:7px; color:var(--muted); font-size:13.5px; line-height:1.55; }
+        .open { display:flex; align-items:center; justify-content:center; gap:9px; width:100%; margin-top:auto; padding:13px 10px; border:0; border-radius:10px; background:#12466f; color:#fff; font:700 14px 'Inter',sans-serif; text-decoration:none; box-shadow:0 5px 10px rgba(11,52,83,.14); transition:background .2s ease,transform .2s ease; }
+        .open:hover { background:#092d50; transform:translateY(-2px); }
+        @media (max-width:900px) { .course-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:560px) { .hero { height:auto; min-height:216px; padding:20px 18px 28px; } main { padding:34px 18px 50px; } .heading h2 { font-size:23px; } .course-grid { grid-template-columns:1fr; gap:18px; } .course-card { min-height:300px; } }
+    </style>
+</head>
+<body>
+    <a href="../Program/Programs.html" aria-label="Return to course program" style="position:fixed;top:18px;left:18px;z-index:10;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(255,255,255,.35);border-radius:10px;background:rgba(11,42,74,.88);color:#fff;font:600 13px 'Inter',sans-serif;text-decoration:none;box-shadow:0 5px 14px rgba(0,0,0,.16);"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Program</a>
+    <header class="hero">
+        <div class="hero-content">
+            <div class="chapter">CHAPTER 04</div>
+            <h1>Word Embeddings</h1>
+            <p>Explore how modern NLP systems represent words as meaningful numerical vectors.</p>
+        </div>
+    </header>
+    <main>
+        <div class="heading"><i class="fas fa-book-open"></i><h2>Course Topics</h2></div>
+        <section class="course-grid" aria-label="Course topics">
+            <article class="course-card"><div class="icon-box"><i class="fas fa-vector-square"></i></div><span class="lesson">LESSON 01</span><h3>Distributed Representations</h3><p>Learn how words become dense vectors that capture similarity, meaning, and relationships.</p><a class="open" href="Distributed%20Representations.html"><i class="fas fa-arrow-right"></i> Open Course</a></article>
+            <article class="course-card"><div class="icon-box"><i class="fas fa-project-diagram"></i></div><span class="lesson">LESSON 02</span><h3>Word2Vec</h3><p>Understand how Word2Vec learns word meaning by predicting nearby words in context.</p><a class="open" href="Word2Vec.html"><i class="fas fa-arrow-right"></i> Open Course</a></article>
+            <article class="course-card"><div class="icon-box"><i class="fas fa-globe"></i></div><span class="lesson">LESSON 03</span><h3>GloVe</h3><p>Explore global word representations built from corpus-wide co-occurrence statistics.</p><a class="open" href="GloVe.html"><i class="fas fa-arrow-right"></i> Open Course</a></article>
+            <article class="course-card"><div class="icon-box"><i class="fas fa-puzzle-piece"></i></div><span class="lesson">LESSON 04</span><h3>FastText</h3><p>Discover how subword information helps embeddings handle morphology and rare words.</p><a class="open" href="FastText.html"><i class="fas fa-arrow-right"></i> Open Course</a></article>
+        </section>
+    </main>
+</body>
+</html>
+

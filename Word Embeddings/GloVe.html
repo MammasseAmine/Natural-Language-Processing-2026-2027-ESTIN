@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 04 – GloVe</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+            border-radius: 0;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+
+        .hero-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3.2rem;
+            height: 3.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 1.35rem;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .hero-nav:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.05); }
+        .hero-nav.prev { left: 1.2rem; }
+        .hero-nav.next { right: 1.2rem; }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 0.5rem;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        /* ---------- FADE-IN ANIMATION ---------- */
+        .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse, .draw-svg.visible polyline { stroke-dashoffset: 0; }
+
+        /* ---------- CARDS & BOXES ---------- */
+        .comparison-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin: 1.5rem 0 2rem; }
+
+        .comp-col { flex: 1; min-width: 280px; background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2; }
+        .comp-col h3 { font-weight: 700; color: #0b2a4a; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+        .comp-col ul { list-style: none; padding: 0; }
+        .comp-col li { padding: 0.4rem 0; border-bottom: 1px solid #eceff5; display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.95rem; }
+        .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+        .messy-card { background: #fef9f0; border: 1px solid #f0e0c0; border-radius: 1rem; padding: 1.8rem; margin: 1.5rem 0 2rem; position: relative; }
+        .messy-bubble { background: #ffffff; border-radius: 1.5rem 1.5rem 1.5rem 0.5rem; padding: 1.2rem 1.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); max-width: 500px; margin: 0 auto 1.5rem; font-size: 1.3rem; position: relative; }
+        .annotation { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+        .annotation .tag { background: #fff; border: 1px solid #dce5ef; border-radius: 30px; padding: 0.2rem 1rem; font-size: 0.85rem; font-weight: 500; }
+
+        /* ---------- FORMULA BOX ---------- */
+        .formula-box {
+            background: #0b2a4a;
+            color: #eaf2fb;
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin: 1.2rem 0;
+            font-size: 1.15rem;
+            text-align: center;
+            letter-spacing: 0.3px;
+            overflow-x: auto;
+        }
+        .formula-box .label { display: block; font-size: 0.78rem; color: #9fc0dd; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.6rem; }
+        .var-list { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1rem; justify-content: center; }
+        .var-list span { background: #f8faff; border: 1px solid #e9edf2; border-radius: 8px; padding: 0.4rem 0.9rem; font-size: 0.88rem; color: #0b2a4a; }
+        .var-list b { color: #1a4a6e; }
+
+        /* ---------- TABLE ---------- */
+        table.data-table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 0.92rem; }
+        table.data-table th, table.data-table td {
+            border: 1px solid #e2e8f0; padding: 0.6rem 0.8rem; text-align: center; transition: background 0.2s ease;
+        }
+        table.data-table th { background: #0b2a4a; color: #fff; font-weight: 600; }
+        table.data-table td.rowhead { background: #f0f6fe; font-weight: 700; color: #0b2a4a; }
+        table.data-table td.hi { background: #cfe3f7 !important; }
+        table.data-table th.hi { background: #1a4a6e !important; }
+
+        /* ---------- STEP PIPELINE ---------- */
+        .pipeline { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: center; margin: 1.5rem 0 2rem; }
+        .step-box {
+            background: #f0f6fe; border: 1px solid #dce5ef; border-radius: 0.8rem; padding: 0.9rem 1.1rem;
+            min-width: 140px; text-align: center; font-size: 0.88rem; font-weight: 600; color: #0b2a4a;
+            position: relative;
+        }
+        .step-box .num {
+            display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+            background: #1a4a6e; color: #fff; border-radius: 50%; font-size: 0.75rem; margin-bottom: 0.4rem;
+        }
+        .pipeline i.fa-arrow-right { color: #b9c9db; font-size: 1rem; }
+
+        /* ---------- INTERACTIVE BUTTONS ---------- */
+        .k-buttons { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin: 1rem 0 1.5rem; }
+        .k-btn {
+            background: #fff; border: 2px solid #dce5ef; color: #0b2a4a; padding: 0.5rem 1.2rem;
+            border-radius: 30px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        .k-btn:hover { border-color: #1a4a6e; }
+        .k-btn.active { background: #1a4a6e; color: #fff; border-color: #1a4a6e; }
+
+        .ratio-panel { background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.8rem; margin-bottom: 2rem; }
+        .bars-wrap { display: flex; justify-content: center; align-items: flex-end; gap: 3.5rem; height: 200px; margin: 1.5rem 0 1rem; }
+        .bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .bar { width: 60px; border-radius: 8px 8px 0 0; transition: height 0.6s ease, background 0.4s ease; }
+        .bar-label { margin-top: 0.6rem; font-weight: 600; font-size: 0.85rem; color: #0b2a4a; text-align: center; }
+        .bar-value { font-size: 0.75rem; color: #64748b; margin-top: 0.15rem; }
+        .ratio-readout { text-align: center; margin-top: 0.5rem; }
+        .ratio-readout .big { font-size: 1.6rem; font-weight: 700; }
+        .ratio-readout .tagline { font-size: 0.9rem; color: #64748b; margin-top: 0.2rem; }
+
+        /* ---------- VECTOR PLOT ---------- */
+        .vector-panel { text-align: center; }
+        .vec-btn {
+            background: #1a4a6e; color: #fff; border: none; padding: 0.65rem 1.4rem; border-radius: 30px;
+            font-weight: 600; font-size: 0.9rem; cursor: pointer; margin-top: 1rem; font-family: 'Inter', sans-serif;
+            transition: background 0.2s ease;
+        }
+        .vec-btn:hover { background: #0b2a4a; }
+        .arith-line { opacity: 0; transition: opacity 0.5s ease; }
+        .arith-line.show { opacity: 1; }
+
+        /* ---------- KEY TAKEAWAY ---------- */
+        .key-box { background: #e6f0fa; border-radius: 1rem; padding: 1.5rem; border-left: 5px solid #1a4a6e; }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .bars-wrap { gap: 1.5rem; }
+            .bar { width: 40px; }
+            .hero-nav { width: 2.6rem; height: 2.6rem; font-size: 1.1rem; }
+            .hero-nav.prev { left: 0.65rem; }
+            .hero-nav.next { right: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a class="hero-nav prev" href="Word2Vec.html" aria-label="Previous lesson" title="Previous lesson"><i class="fas fa-chevron-left"></i></a>
+            <a class="hero-nav next" href="FastText.html" aria-label="Next lesson" title="Next lesson"><i class="fas fa-chevron-right"></i></a>
+            <h1>GloVe</h1>
+            <div class="chapter-badge">
+                Global Vectors for Word Representation
+            </div>
+        </header>
+
+        <div class="content">
+
+            <!-- 1. Why GloVe -->
+            <div class="section-title fade-up">
+                <i class="fas fa-question-circle"></i> Why Was GloVe Developed?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    Before GloVe, <strong>Word2Vec</strong> was already popular and gave great results.
+                    But Word2Vec mostly looks at <strong>small, local windows</strong> of text around each word – it never really "sees" the whole corpus at once.
+                </p>
+                <p style="margin-bottom: 1.2rem;">
+                    In 2014, researchers at <strong>Stanford University</strong> asked: what if we combine both worlds?
+                    That idea became <strong>GloVe</strong> – short for <strong>Global Vectors for Word Representation</strong>.
+                </p>
+            </div>
+
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-crosshairs"></i> Word2Vec (local)</h3>
+                    <ul>
+                        <li><i class="fas fa-eye"></i> Looks only at nearby words in a small window</li>
+                        <li><i class="fas fa-forward"></i> Learns by predicting neighbours, one window at a time</li>
+                        <li><i class="fas fa-puzzle-piece"></i> Misses big-picture, corpus-wide patterns</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-globe"></i> GloVe (global + local)</h3>
+                    <ul>
+                        <li><i class="fas fa-chart-bar"></i> Uses statistics counted across the <strong>whole corpus</strong></li>
+                        <li><i class="fas fa-network-wired"></i> Still respects local context, like Word2Vec</li>
+                        <li><i class="fas fa-check-circle"></i> Captures both the forest and the trees</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. Core Idea -->
+            <div class="section-title fade-up">
+                <i class="fas fa-lightbulb"></i> Core Idea of GloVe
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    "You shall know a word by the company it keeps." GloVe learns a vector for every word by studying
+                    how often it <strong>appears together</strong> with every other word in the corpus. Words that show up
+                    in similar company end up with similar vectors.
+                </p>
+            </div>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin: 1rem 0 0.6rem;">
+                <i class="fas fa-table"></i> Example: "The cat sits on the mat"
+            </h3>
+            <p class="fade-up" style="margin-bottom: 0.5rem; color: #475569;">Hover over the table to see how word pairs connect.</p>
+            <table class="data-table fade-up" id="cooc-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th data-col="1">cat</th>
+                        <th data-col="2">sits</th>
+                        <th data-col="3">mat</th>
+                        <th data-col="4">the</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="rowhead" data-row="1">cat</td>
+                        <td data-row="1" data-col="1">0</td>
+                        <td data-row="1" data-col="2">5</td>
+                        <td data-row="1" data-col="3">1</td>
+                        <td data-row="1" data-col="4">10</td>
+                    </tr>
+                    <tr>
+                        <td class="rowhead" data-row="2">sits</td>
+                        <td data-row="2" data-col="1">5</td>
+                        <td data-row="2" data-col="2">0</td>
+                        <td data-row="2" data-col="3">3</td>
+                        <td data-row="2" data-col="4">4</td>
+                    </tr>
+                    <tr>
+                        <td class="rowhead" data-row="3">mat</td>
+                        <td data-row="3" data-col="1">1</td>
+                        <td data-row="3" data-col="2">3</td>
+                        <td data-row="3" data-col="3">0</td>
+                        <td data-row="3" data-col="4">6</td>
+                    </tr>
+                    <tr>
+                        <td class="rowhead" data-row="4">the</td>
+                        <td data-row="4" data-col="1">10</td>
+                        <td data-row="4" data-col="2">4</td>
+                        <td data-row="4" data-col="3">6</td>
+                        <td data-row="4" data-col="4">0</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="fade-up" style="text-align: center; color: #475569; font-style: italic;">
+                Each number says how many times two words appear near each other. This full grid is the
+                <strong>word-word co-occurrence matrix</strong> – the foundation GloVe is built on.
+            </p>
+
+            <!-- 3. Probability ratios -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-balance-scale-right"></i> The Real Trick: Probability Ratios
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1.2rem;">
+                    Instead of using raw counts, GloVe compares <strong>ratios</strong> of probabilities. The classic example
+                    uses two words: <em>ice</em> and <em>steam</em>. We ask: how often does a "probe" word <em>k</em> show up
+                    near <em>ice</em>, compared to near <em>steam</em>?
+                </p>
+                <p style="margin-bottom: 1rem;">Try the probe words below and watch the ratio change:</p>
+            </div>
+
+            <div class="ratio-panel fade-up">
+                <div class="k-buttons">
+                    <button class="k-btn active" data-k="solid" onclick="updateRatio('solid')">k = solid</button>
+                    <button class="k-btn" data-k="gas" onclick="updateRatio('gas')">k = gas</button>
+                    <button class="k-btn" data-k="water" onclick="updateRatio('water')">k = water</button>
+                    <button class="k-btn" data-k="fashion" onclick="updateRatio('fashion')">k = fashion</button>
+                </div>
+                <div class="bars-wrap">
+                    <div class="bar-col">
+                        <div class="bar" id="bar-ice" style="background:#1a4a6e; height:90px;"></div>
+                        <div class="bar-label">P(k | ice)</div>
+                        <div class="bar-value" id="val-ice">1.9 × 10⁻⁴</div>
+                    </div>
+                    <div class="bar-col">
+                        <div class="bar" id="bar-steam" style="background:#2a5a7a; height:25px;"></div>
+                        <div class="bar-label">P(k | steam)</div>
+                        <div class="bar-value" id="val-steam">1.4 × 10⁻⁵</div>
+                    </div>
+                </div>
+                <div class="ratio-readout">
+                    <div class="big" id="ratio-big" style="color:#1a4a6e;">Ratio ≫ 1</div>
+                    <div class="tagline" id="ratio-tag">"solid" is related to ice, not steam – the ratio is large.</div>
+                </div>
+            </div>
+
+            <p class="fade-up" style="text-align: center; color: #475569; font-style: italic; margin-bottom: 2rem;">
+                A big ratio or a tiny ratio tells us a word is <strong>discriminating</strong> (related to one but not the other).
+                A ratio close to 1 tells us the probe word is <strong>uninformative</strong> – related to both, or to neither.
+            </p>
+
+            <!-- 4. Math -->
+            <div class="section-title fade-up">
+                <i class="fas fa-square-root-alt"></i> Mathematical Formulation
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">Let X<sub>ij</sub> be how many times word <em>j</em> appears in the context of word <em>i</em>, and X<sub>i</sub> = Σ<sub>k</sub> X<sub>ik</sub>. Then the co-occurrence probability is:</p>
+            </div>
+            <div class="formula-box fade-up">
+                <span class="label">Co-occurrence Probability</span>
+                P<sub>ij</sub> = X<sub>ij</sub> / X<sub>i</sub>
+            </div>
+            <div class="fade-up">
+                <p style="margin: 1rem 0;">GloVe learns word vectors by minimizing this objective function:</p>
+            </div>
+            <div class="formula-box fade-up">
+                <span class="label">GloVe Objective Function</span>
+                J = Σ<sub>i,j</sub> f(X<sub>ij</sub>) · ( w<sub>i</sub><sup>T</sup> w<sub>j</sub> + b<sub>i</sub> + b<sub>j</sub> − log X<sub>ij</sub> )²
+                <div class="var-list">
+                    <span><b>w<sub>i</sub></b> = vector of target word</span>
+                    <span><b>w<sub>j</sub></b> = vector of context word</span>
+                    <span><b>b<sub>i</sub>, b<sub>j</sub></b> = bias terms</span>
+                    <span><b>X<sub>ij</sub></b> = co-occurrence count</span>
+                    <span><b>f(X<sub>ij</sub>)</b> = weighting function</span>
+                </div>
+            </div>
+            <div class="fade-up">
+                <p style="margin: 1rem 0;">In simple words: GloVe pushes the dot product of two word vectors to match the
+                <strong>logarithm</strong> of how often those words co-occur.</p>
+            </div>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin: 1.5rem 0 0.6rem;">
+                <i class="fas fa-weight-hanging"></i> The Weighting Function
+            </h3>
+            <p class="fade-up" style="margin-bottom: 1rem;">
+                Very rare word pairs shouldn't be trusted too much, and very frequent pairs (like "the") shouldn't be allowed
+                to dominate training. The weighting function keeps both under control:
+            </p>
+            <div class="formula-box fade-up">
+                <span class="label">Weighting Function</span>
+                f(x) = (x / x<sub>max</sub>)<sup>α</sup> &nbsp; if x &lt; x<sub>max</sub> &nbsp;&nbsp;|&nbsp;&nbsp; 1 &nbsp; otherwise
+                <div class="var-list">
+                    <span><b>x<sub>max</sub></b> = 100 (typical)</span>
+                    <span><b>α</b> = 0.75 (typical)</span>
+                </div>
+            </div>
+            <div class="venn-container fade-up" style="display:flex; justify-content:center; margin: 1.5rem 0 2rem;">
+                <svg class="draw-svg" width="420" height="250" viewBox="0 0 420 250" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="40" y1="220" x2="400" y2="220" stroke="#94a3b8" stroke-width="1.5"/>
+                    <line x1="40" y1="220" x2="40" y2="30" stroke="#94a3b8" stroke-width="1.5"/>
+                    <text x="380" y="238" font-size="11" fill="#64748b">x (count)</text>
+                    <text x="8" y="35" font-size="11" fill="#64748b">f(x)</text>
+                    <line x1="267" y1="220" x2="267" y2="40" stroke="#c26b2f" stroke-width="1.5" stroke-dasharray="4,3"/>
+                    <text x="240" y="234" font-size="10" fill="#c26b2f" font-weight="600">xmax=100</text>
+                    <polyline points="40,220 62.7,188 85.3,166 108,147 131,129.5 153,113 176,97 199,82 221,68 244,54 267,40 380,40"
+                        fill="none" stroke="#1a4a6e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <text x="60" y="245" font-size="10" fill="#64748b">0</text>
+                    <text x="255" y="245" font-size="10" fill="#64748b">100</text>
+                    <text x="370" y="245" font-size="10" fill="#64748b">150</text>
+                </svg>
+            </div>
+            <p class="fade-up" style="text-align: center; color: #475569; font-style: italic; margin-bottom: 2rem;">
+                The curve rises steadily, then flattens at 1 once counts pass x<sub>max</sub> – huge counts stop getting extra weight.
+            </p>
+
+            <!-- 5. Training -->
+            <div class="section-title fade-up">
+                <i class="fas fa-cogs"></i> Training Process
+                <span class="title-line"></span>
+            </div>
+            <div class="pipeline fade-up">
+                <div class="step-box"><span class="num">1</span><br>Build vocabulary</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">2</span><br>Create co-occurrence matrix</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">3</span><br>Initialize vectors randomly</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">4</span><br>Compute objective J</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">5</span><br>Apply gradient descent</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">6</span><br>Update embeddings</div>
+                <i class="fas fa-arrow-right"></i>
+                <div class="step-box"><span class="num">7</span><br>Final word vectors</div>
+            </div>
+
+            <!-- 6. Vector space -->
+            <div class="section-title fade-up">
+                <i class="fas fa-vector-square"></i> The Embedding Space
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Once training finishes, similar words land near each other in vector space – and directions between
+                    words start to mean something. A famous example: <em>king − man + woman ≈ queen</em>.
+                </p>
+            </div>
+            <div class="vector-panel fade-up">
+                <svg width="400" height="280" viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg" id="vec-svg">
+                    <line x1="30" y1="250" x2="380" y2="250" stroke="#e2e8f0" stroke-width="1"/>
+                    <line x1="30" y1="250" x2="30" y2="20" stroke="#e2e8f0" stroke-width="1"/>
+                    <circle cx="300" cy="90" r="6" fill="#1a4a6e"/>
+                    <text x="312" y="94" font-size="13" font-weight="600" fill="#0b2a4a">King</text>
+                    <circle cx="280" cy="130" r="6" fill="#c26b2f"/>
+                    <text x="292" y="134" font-size="13" font-weight="600" fill="#c26b2f">Queen</text>
+                    <circle cx="140" cy="220" r="6" fill="#1a4a6e"/>
+                    <text x="100" y="240" font-size="13" font-weight="600" fill="#0b2a4a">Man</text>
+                    <circle cx="120" cy="180" r="6" fill="#c26b2f"/>
+                    <text x="60" y="176" font-size="13" font-weight="600" fill="#c26b2f">Woman</text>
+                    <line x1="140" y1="220" x2="120" y2="180" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <line x1="300" y1="90" x2="280" y2="130" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+                    <g id="arith-arrow" class="arith-line">
+                        <line x1="140" y1="220" x2="280" y2="128" stroke="#e11d48" stroke-width="2.2" marker-end="url(#arrowhead)"/>
+                    </g>
+                    <defs>
+                        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#e11d48"/>
+                        </marker>
+                    </defs>
+                    <text id="arith-label" class="arith-line" x="150" y="170" font-size="11" fill="#e11d48" font-weight="700">King − Man + Woman ≈ Queen</text>
+                </svg>
+                <br>
+                <button class="vec-btn" onclick="toggleArith()">Show vector arithmetic</button>
+            </div>
+
+            <!-- 7. Advantages vs Limitations -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-scale-balanced"></i> Advantages & Limitations
+                <span class="title-line"></span>
+            </div>
+            <div class="comparison-grid fade-up">
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-up"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Uses statistics from the whole corpus</li>
+                        <li><i class="fas fa-check"></i> Captures semantic relationships well</li>
+                        <li><i class="fas fa-check"></i> Supports meaningful vector arithmetic</li>
+                        <li><i class="fas fa-check"></i> Efficient to train</li>
+                        <li><i class="fas fa-check"></i> Strong performance across NLP tasks</li>
+                        <li><i class="fas fa-check"></i> Pretrained models are freely available</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-down"></i> Limitations</h3>
+                    <ul>
+                        <li><i class="fas fa-times"></i> Needs large co-occurrence matrices</li>
+                        <li><i class="fas fa-times"></i> Memory-heavy for huge vocabularies</li>
+                        <li><i class="fas fa-times"></i> Produces <strong>static</strong> embeddings</li>
+                        <li><i class="fas fa-times"></i> Can't represent multiple meanings of a word</li>
+                        <li><i class="fas fa-times"></i> Every occurrence gets the same vector, regardless of context</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 class="fade-up" style="font-weight: 600; color: #0b2a4a; margin: 1rem 0 0.8rem;">
+                <i class="fas fa-university"></i> The Polysemy Problem
+            </h3>
+            <div class="messy-card fade-up">
+                <div class="messy-bubble">
+                    "I deposited money at the <strong>bank</strong>." vs. "We walked along the river <strong>bank</strong>."
+                </div>
+                <div class="annotation">
+                    <span class="tag"><i class="fas fa-coins"></i> bank = financial institution</span>
+                    <span class="tag"><i class="fas fa-water"></i> bank = river bank</span>
+                    <span class="tag"><i class="fas fa-equals"></i> same GloVe vector for both!</span>
+                </div>
+                <p style="text-align: center; margin-top: 1rem; font-style: italic; color: #5f7d97;">
+                    GloVe gives one fixed vector per word – it cannot tell these two meanings apart.
+                </p>
+            </div>
+
+            <!-- 8. Applications -->
+            <div class="section-title fade-up">
+                <i class="fas fa-star"></i> Applications of GloVe
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-tags" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Text Classification</h4>
+                    <p style="font-size: 0.9rem;">Sorting documents into topics or categories.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-face-smile" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Sentiment Analysis</h4>
+                    <p style="font-size: 0.9rem;">Detecting whether text is positive or negative.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-newspaper" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Fake News Detection</h4>
+                    <p style="font-size: 0.9rem;">Spotting misleading or false articles.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-language" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Machine Translation</h4>
+                    <p style="font-size: 0.9rem;">Helping systems translate between languages.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-circle-question" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Question Answering</h4>
+                    <p style="font-size: 0.9rem;">Matching questions to the right answers.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-id-badge" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Named Entity Recognition</h4>
+                    <p style="font-size: 0.9rem;">Finding names of people, places, and organizations.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-magnifying-glass" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Information Retrieval</h4>
+                    <p style="font-size: 0.9rem;">Powering search engines to find relevant text.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem;">
+                    <i class="fas fa-headset" style="color: #1a4a6e; font-size: 1.4rem;"></i>
+                    <h4 style="margin: 0.5rem 0 0.3rem;">Chatbots</h4>
+                    <p style="font-size: 0.9rem;">Helping conversational agents understand user input.</p>
+                </div>
+            </div>
+
+            <!-- Key takeaway -->
+            <div class="section-title fade-up" style="margin-top: 1rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up key-box">
+                <p style="font-weight: 500; font-size: 1.05rem;">
+                    GloVe learns word meaning from <strong>global co-occurrence statistics</strong> across an entire corpus,
+                    not just small local windows. It turns simple word-counting into rich vectors where distance and
+                    direction carry meaning – powerful, but still one fixed vector per word, blind to a word's different senses.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        // Fade-up + SVG drawing animation
+        const observerOptions = { threshold: 0.2, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+        }, observerOptions);
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+        // Co-occurrence table hover highlighting
+        const coocTable = document.getElementById('cooc-table');
+        coocTable.querySelectorAll('td, th').forEach(cell => {
+            cell.addEventListener('mouseenter', () => {
+                const row = cell.dataset.row, col = cell.dataset.col;
+                coocTable.querySelectorAll('[data-row], [data-col]').forEach(c => {
+                    if ((row && c.dataset.row === row) || (col && c.dataset.col === col)) {
+                        c.classList.add(c.tagName === 'TH' ? 'hi' : 'hi');
+                    }
+                });
+            });
+            cell.addEventListener('mouseleave', () => {
+                coocTable.querySelectorAll('.hi').forEach(c => c.classList.remove('hi'));
+            });
+        });
+
+        // Probability ratio explorer
+        const probData = {
+            solid:   { ice: '1.9 × 10⁻⁴', steam: '1.4 × 10⁻⁵', iceBar: 90,  steamBar: 25,  ratio: 'Ratio ≫ 1', tag: '"solid" is related to ice, not steam – the ratio is large.', color: '#1a4a6e' },
+            gas:     { ice: '1.0 × 10⁻⁵', steam: '2.2 × 10⁻⁴', iceBar: 20,  steamBar: 95,  ratio: 'Ratio ≪ 1', tag: '"gas" is related to steam, not ice – the ratio is small.', color: '#c26b2f' },
+            water:   { ice: '3.0 × 10⁻³', steam: '2.9 × 10⁻³', iceBar: 130, steamBar: 128, ratio: 'Ratio ≈ 1', tag: '"water" is related to both – the ratio is uninformative.', color: '#5f7d97' },
+            fashion: { ice: '1.7 × 10⁻⁵', steam: '1.8 × 10⁻⁵', iceBar: 30,  steamBar: 31,  ratio: 'Ratio ≈ 1', tag: '"fashion" is related to neither – the ratio is uninformative.', color: '#5f7d97' }
+        };
+
+        function updateRatio(k) {
+            const d = probData[k];
+            document.getElementById('bar-ice').style.height = d.iceBar + 'px';
+            document.getElementById('bar-steam').style.height = d.steamBar + 'px';
+            document.getElementById('val-ice').textContent = d.ice;
+            document.getElementById('val-steam').textContent = d.steam;
+            const big = document.getElementById('ratio-big');
+            big.textContent = d.ratio;
+            big.style.color = d.color;
+            document.getElementById('ratio-tag').textContent = d.tag;
+            document.querySelectorAll('.k-btn').forEach(b => b.classList.toggle('active', b.dataset.k === k));
+        }
+
+        // Vector arithmetic toggle
+        let arithShown = false;
+        function toggleArith() {
+            arithShown = !arithShown;
+            document.querySelectorAll('.arith-line').forEach(el => el.classList.toggle('show', arithShown));
+            document.querySelector('.vec-btn').textContent = arithShown ? 'Hide vector arithmetic' : 'Show vector arithmetic';
+        }
+    </script>
+</body>
+</html>

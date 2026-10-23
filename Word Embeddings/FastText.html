@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 04 – FastText</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.4rem;
+        }
+
+        .hero-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3.2rem;
+            height: 3.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 1.35rem;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .hero-nav:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.05); }
+        .hero-nav.prev { left: 1.2rem; }
+        .hero-nav.next { right: 1.2rem; }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 0.5rem;
+        }
+
+        .hero .subtitle {
+            margin-top: 0.8rem;
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+
+        .section-title i {
+            color: #1a4a6e;
+            font-size: 1.4rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .title-line {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #dce5ef, transparent);
+            margin-left: 0.5rem;
+        }
+
+        /* ---------- ANIMATIONS ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect,
+        .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse, .draw-svg.visible polyline {
+            stroke-dashoffset: 0;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-up { opacity: 1; transform: none; transition: none; }
+            .draw-svg path, .draw-svg circle, .draw-svg rect,
+            .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+                stroke-dasharray: none; stroke-dashoffset: 0; transition: none;
+            }
+        }
+
+        /* ---------- SHARED CARDS ---------- */
+        .comparison-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin: 1.5rem 0 2rem; }
+
+        .comp-col {
+            flex: 1;
+            min-width: 280px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e9edf2;
+        }
+
+        .comp-col h3 {
+            font-weight: 700;
+            color: #0b2a4a;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .comp-col ul { list-style: none; padding: 0; }
+
+        .comp-col li {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #eceff5;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+        .info-card {
+            flex: 1;
+            min-width: 200px;
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.2rem;
+        }
+        .info-card i { color: #1a4a6e; font-size: 1.4rem; }
+        .info-card h4 { margin: 0.5rem 0 0.3rem; }
+        .info-card p { font-size: 0.9rem; }
+
+        .takeaway {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border-left: 5px solid #1a4a6e;
+        }
+
+        .formula-box {
+            background: #0b2a4a;
+            color: #e8f0fa;
+            border-radius: 1rem;
+            padding: 1.3rem 1.8rem;
+            text-align: center;
+            font-size: 1.25rem;
+            margin: 1.2rem 0;
+            letter-spacing: 0.03em;
+        }
+        .formula-box .fl { font-size: 0.85rem; color: #9fc0dd; margin-top: 0.4rem; letter-spacing: normal; }
+
+        /* ---------- INTERACTIVE: N-GRAM LAB ---------- */
+        .lab {
+            background: #f8faff;
+            border: 1px solid #dce5ef;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .lab-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .lab-controls label { font-weight: 600; color: #0b2a4a; font-size: 0.9rem; }
+
+        .lab input[type="text"] {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            padding: 0.55rem 1rem;
+            border: 2px solid #dce5ef;
+            border-radius: 0.6rem;
+            outline: none;
+            width: 180px;
+            transition: border-color 0.2s;
+        }
+        .lab input[type="text"]:focus { border-color: #1a4a6e; }
+
+        .nbtns { display: flex; gap: 0.4rem; }
+
+        .nbtn {
+            font-family: 'Inter', sans-serif;
+            border: 2px solid #dce5ef;
+            background: #fff;
+            color: #0b2a4a;
+            font-weight: 600;
+            border-radius: 0.6rem;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nbtn:hover { border-color: #1a4a6e; }
+        .nbtn.active { background: #1a4a6e; color: #fff; border-color: #1a4a6e; }
+
+        .boundary-word {
+            font-size: 1.6rem;
+            text-align: center;
+            font-weight: 600;
+            color: #0b2a4a;
+            margin-bottom: 1rem;
+            letter-spacing: 0.15em;
+        }
+        .boundary-word .bnd { color: #c58a2d; }
+
+        .gram-area { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; min-height: 2.5rem; }
+
+        .gram-chip {
+            background: #fff;
+            border: 1px solid #b9cde0;
+            color: #0b2a4a;
+            border-radius: 30px;
+            padding: 0.25rem 0.9rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: default;
+            opacity: 0;
+            transform: scale(0.7);
+            animation: pop 0.35s ease forwards;
+            transition: background 0.2s, color 0.2s;
+        }
+        .gram-chip:hover { background: #1a4a6e; color: #fff; }
+        .gram-chip.word-chip { background: #e6f0fa; border-color: #1a4a6e; }
+        .gram-chip.word-chip:hover { background: #0b2a4a; color: #fff; }
+
+        @keyframes pop { to { opacity: 1; transform: scale(1); } }
+
+        .gram-count { text-align: center; margin-top: 0.9rem; font-size: 0.85rem; color: #5f7d97; font-style: italic; }
+
+        /* ---------- INTERACTIVE: OOV DEMO ---------- */
+        .oov-demo { text-align: center; }
+
+        .btn-main {
+            font-family: 'Inter', sans-serif;
+            background: #1a4a6e;
+            color: #fff;
+            border: none;
+            border-radius: 0.7rem;
+            padding: 0.7rem 1.6rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .btn-main:hover { background: #0b2a4a; transform: translateY(-1px); }
+
+        .oov-stage {
+            margin-top: 1.3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            align-items: center;
+        }
+
+        .oov-step {
+            background: #fff;
+            border: 1px solid #dce5ef;
+            border-radius: 0.8rem;
+            padding: 0.8rem 1.4rem;
+            max-width: 560px;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            font-size: 0.95rem;
+        }
+        .oov-step.shown { opacity: 1; transform: translateY(0); }
+        .oov-step strong { color: #0b2a4a; }
+        .oov-step .hit { background: #e2f3e6; border-radius: 5px; padding: 0 0.3rem; font-weight: 600; color: #1c6b3a; }
+
+        /* ---------- FLIP CARDS (advantages / limits) ---------- */
+        .flip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .flip-card { perspective: 800px; height: 150px; cursor: pointer; }
+
+        .flip-inner {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+
+        .flip-face {
+            position: absolute; inset: 0;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .flip-front {
+            background: #f0f6fe;
+            border: 1px solid #dce5ef;
+            font-weight: 700;
+            color: #0b2a4a;
+            gap: 0.5rem;
+        }
+        .flip-front i { font-size: 1.5rem; color: #1a4a6e; }
+        .flip-front .hint { font-size: 0.7rem; font-weight: 500; color: #7d94ab; }
+
+        .flip-back {
+            background: #0b2a4a;
+            color: #eaf2fb;
+            transform: rotateY(180deg);
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+
+        /* ---------- QUIZ ---------- */
+        .quiz-card {
+            background: #f8faff;
+            border: 1px solid #dce5ef;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.2rem;
+        }
+        .quiz-card .q { font-weight: 600; color: #0b2a4a; margin-bottom: 0.9rem; }
+
+        .quiz-opts { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+
+        .quiz-opt {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            border: 2px solid #dce5ef;
+            border-radius: 0.7rem;
+            padding: 0.55rem 1.2rem;
+            font-size: 0.92rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1e293b;
+        }
+        .quiz-opt:hover:not(:disabled) { border-color: #1a4a6e; }
+        .quiz-opt.correct { background: #e2f3e6; border-color: #2e9e55; color: #1c6b3a; }
+        .quiz-opt.wrong { background: #fdecec; border-color: #d66; color: #a33; }
+        .quiz-opt:disabled { cursor: default; }
+
+        .quiz-fb {
+            margin-top: 0.8rem;
+            font-size: 0.88rem;
+            color: #475569;
+            min-height: 1.2rem;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .quiz-fb.shown { opacity: 1; }
+
+        /* ---------- TABLES ---------- */
+        .nice-table { width: 100%; border-collapse: collapse; margin: 1.2rem 0 2rem; font-size: 0.93rem; }
+        .nice-table th {
+            background: #0b2a4a; color: #fff; text-align: left;
+            padding: 0.7rem 1rem; font-weight: 600;
+        }
+        .nice-table td { padding: 0.65rem 1rem; border-bottom: 1px solid #eceff5; }
+        .nice-table tr:hover td { background: #f0f6fe; }
+        .nice-table .yes { color: #1c6b3a; font-weight: 600; }
+        .nice-table .no { color: #a33; font-weight: 600; }
+
+        /* ---------- PIPELINE ---------- */
+        .pipeline { display: flex; justify-content: center; margin: 1.5rem 0 2rem; overflow-x: auto; }
+
+        /* ---------- APP TAGS ---------- */
+        .app-tags { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 2rem; justify-content: center; }
+        .app-tag {
+            background: #fff;
+            border: 1px solid #dce5ef;
+            border-radius: 30px;
+            padding: 0.35rem 1.1rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: flex; align-items: center; gap: 0.45rem;
+            transition: all 0.2s;
+            cursor: default;
+        }
+        .app-tag i { color: #1a4a6e; }
+        .app-tag:hover { background: #1a4a6e; color: #fff; transform: translateY(-2px); }
+        .app-tag:hover i { color: #fff; }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .hero-nav { width: 2.6rem; height: 2.6rem; font-size: 1.1rem; }
+            .hero-nav.prev { left: 0.65rem; }
+            .hero-nav.next { right: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <!-- Header -->
+        <header class="hero">
+            <a class="hero-nav prev" href="GloVe.html" aria-label="Previous lesson" title="Previous lesson"><i class="fas fa-chevron-left"></i></a>
+            <a class="hero-nav next" href="../Sequence%20Labeling/Chapter%2005.html" aria-label="Course index" title="Course index"><i class="fas fa-chevron-right"></i></a>
+            <h1>FastText</h1>
+            <div class="chapter-badge">
+                Word Embeddings with Subwords
+            </div>
+        </header>
+
+        <div class="content">
+
+            <!-- 1. INTRODUCTION -->
+            <div class="section-title fade-up">
+                <i class="fas fa-book-open"></i> Introduction
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    <strong>FastText</strong> is a word representation and text classification technique developed by
+                    <strong>Facebook AI Research (FAIR)</strong> in <strong>2016</strong>. It was designed to improve
+                    traditional word embeddings by incorporating information from <strong>subwords</strong>
+                    (character n-grams).
+                </p>
+                <p style="margin-bottom: 1rem;">
+                    Unlike traditional approaches that learn <strong>one vector for each word</strong>, FastText
+                    represents a word as a <strong>collection of character sequences</strong>. This enables the model
+                    to capture morphological information and handle rare or unseen words effectively.
+                </p>
+                <div class="takeaway" style="margin-bottom: 0.5rem;">
+                    <p style="font-weight: 500;">
+                        <i class="fas fa-lightbulb" style="color:#1a4a6e;"></i>&nbsp;
+                        <strong>Key Idea:</strong> A word is not treated as a single unit. Instead, it is represented
+                        using multiple character n-grams.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. MOTIVATION -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-seedling"></i> Motivation – Why Subwords?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Many languages contain <strong>rich morphology</strong>: the same word appears in many forms
+                    because of prefixes, suffixes, or inflections. For example:
+                </p>
+                <div style="display:flex; flex-wrap:wrap; gap:0.6rem; justify-content:center; margin-bottom:1rem;">
+                    <span class="gram-chip word-chip" style="opacity:1; transform:none; animation:none;">play</span>
+                    <span class="gram-chip word-chip" style="opacity:1; transform:none; animation:none;">playing</span>
+                    <span class="gram-chip word-chip" style="opacity:1; transform:none; animation:none;">played</span>
+                    <span class="gram-chip word-chip" style="opacity:1; transform:none; animation:none;">player</span>
+                </div>
+                <p style="margin-bottom: 1rem;">
+                    Traditional embeddings learn a <strong>different vector for each form</strong>, so these related
+                    words may not share enough information. FastText fixes this by learning representations for
+                    <strong>subword units</strong>:
+                </p>
+                <p style="text-align:center; font-size:1.15rem; font-weight:600; color:#0b2a4a; margin-bottom:0.5rem;">
+                    playing &nbsp;=&nbsp; <span style="color:#1a4a6e;">play</span> + <span style="color:#c58a2d;">ing</span>
+                </p>
+                <p style="text-align:center; color:#475569; font-style:italic;">
+                    The model learns both the root and the suffix, so similar words automatically share knowledge.
+                </p>
+            </div>
+
+            <!-- 3. N-GRAM LAB (interactive) -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-flask"></i> What is a Character N-Gram? – Try It Yourself
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up" style="margin-bottom: 0.4rem;">
+                An <strong>n-gram</strong> is a sequence of <em>n</em> consecutive characters.
+                FastText first wraps the word in boundary symbols <strong style="color:#c58a2d;">&lt;</strong> and
+                <strong style="color:#c58a2d;">&gt;</strong>, then slides a window of size <em>n</em> across it.
+                Type any word and change <em>n</em> to see the pieces appear:
+            </p>
+            <div class="lab fade-up">
+                <div class="lab-controls">
+                    <label for="labWord">Word:</label>
+                    <input type="text" id="labWord" value="where" maxlength="15" />
+                    <label>n =</label>
+                    <div class="nbtns" id="nbtns">
+                        <button class="nbtn active" data-n="3">3</button>
+                        <button class="nbtn" data-n="4">4</button>
+                        <button class="nbtn" data-n="5">5</button>
+                        <button class="nbtn" data-n="6">6</button>
+                    </div>
+                </div>
+                <div class="boundary-word" id="boundaryWord"></div>
+                <div class="gram-area" id="gramArea"></div>
+                <div class="gram-count" id="gramCount"></div>
+                <p style="margin-top: 1rem; font-size: 0.85rem; color: #5f7d97; text-align: center;">
+                    <i class="fas fa-info-circle"></i> Careful detail: the piece <strong>her</strong> inside
+                    <em>where</em> is <u>not</u> the same unit as the whole word <strong>&lt;her&gt;</strong> ,
+                    the boundary symbols keep them apart. In real FastText, all sizes from 3 to 6 are used together.
+                </p>
+            </div>
+
+            <!-- 4. CORE CONCEPT: THE FORMULA -->
+            <div class="section-title fade-up">
+                <i class="fas fa-square-root-alt"></i> Core Concept – From Pieces to a Vector
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Instead of assigning one vector to one word, FastText assigns vectors to the
+                    <strong>character n-grams</strong>. The final word vector is simply obtained by
+                    <strong>adding all subword vectors together</strong>. Let <em>w</em> be the word,
+                    <em>G(w)</em> the set of its n-grams (including the full word itself), and
+                    <em>z<sub>g</sub></em> the vector of n-gram <em>g</em>:
+                </p>
+                <div class="formula-box">
+                    v(w) &nbsp;=&nbsp; Σ<sub>g ∈ G(w)</sub> z<sub>g</sub>
+                    <div class="fl">word vector = sum of the vectors of its character n-grams (in practice the implementation averages, same geometry, just rescaled)</div>
+                </div>
+            </div>
+            <div class="section-title fade-up">
+                <i class="fas fa-cogs"></i> FastText Architecture – Training Pipeline
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.8rem; margin-bottom:1.4rem;">
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">1</span>
+                    <span style="font-size:0.92rem;">Collect a large text corpus.</span>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">2</span>
+                    <span style="font-size:0.92rem;">Split words into character n-grams.</span>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">3</span>
+                    <span style="font-size:0.92rem;">Initialize the n-gram vectors.</span>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">4</span>
+                    <span style="font-size:0.92rem;">Train with a Skip-Gram or CBOW objective.</span>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">5</span>
+                    <span style="font-size:0.92rem;">Update the subword vectors through backpropagation.</span>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem; display:flex; gap:0.7rem; align-items:baseline;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; min-width:1.6rem; height:1.6rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">6</span>
+                    <span style="font-size:0.92rem;">Generate the final word embeddings.</span>
+                </div>
+            </div>
+            <p class="fade-up">
+                Training follows the same idea as <strong>Skip-Gram</strong>: given a target word, predict
+                the words around it. Example, in <em>"The cat sits on the mat"</em>, the target
+                <em>cat</em> should predict <em>The</em> and <em>sits</em>. The only difference:
+                the score now comes from the <strong>sum of subword vectors</strong>, and backpropagation
+                updates the <strong>pieces</strong>, not the whole word.
+            </p>
+            <div class="pipeline fade-up">
+                <svg class="draw-svg" width="720" height="110" viewBox="0 0 720 110" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="30" width="130" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="75" y="60" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">Big text corpus</text>
+                    <line x1="140" y1="55" x2="180" y2="55" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M180 55 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="185" y="30" width="140" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="255" y="53" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">Cut words into</text>
+                    <text x="255" y="68" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">n-grams (3–6)</text>
+                    <line x1="325" y1="55" x2="365" y2="55" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M365 55 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="370" y="30" width="150" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="445" y="53" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">Train (Skip-Gram)</text>
+                    <text x="445" y="68" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">update piece vectors</text>
+                    <line x1="520" y1="55" x2="560" y2="55" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M560 55 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="565" y="30" width="140" height="50" rx="12" fill="rgba(11,42,74,0.12)" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="635" y="60" font-size="12" fill="#0b2a4a" font-weight="700" text-anchor="middle">Word vectors ✓</text>
+                </svg>
+            </div>
+
+            <div class="fade-up" style="background:#fef9f0; border:1px solid #f0e0c0; border-radius:1rem; padding:1.2rem 1.5rem; margin-bottom:2rem;">
+                <p style="font-size:0.93rem;">
+                    <i class="fas fa-memory" style="color:#c58a2d;"></i>
+                    <strong>The memory trick (hashing):</strong> a big corpus produces tens of millions of different
+                    n-grams – too many to store one vector each. FastText <strong>hashes</strong> every n-gram into one of
+                    about <strong>2 million buckets</strong> (FNV-1a hash). Pieces that land in the same bucket share a vector.
+                    A few collisions happen, but quality barely drops, a smart memory-for-accuracy trade.
+                </p>
+            </div>
+
+            <div class="fade-up" style="background:#f0f6fe; border-radius:1rem; padding:1.2rem 1.5rem; margin-bottom:2rem;">
+                <p style="font-size:0.93rem;">
+                    <i class="fas fa-ruler" style="color:#1a4a6e;"></i>
+                    <strong>Why 3 to 6?</strong> Pieces shorter than 3 (like <em>re</em>, <em>he</em>) appear everywhere
+                    and carry almost no meaning. Six characters is long enough for most real morphemes:
+                    <em>-ation</em> (6), <em>-ment</em> (4), <em>pre-</em> (3). Languages with longer morphemes can extend the range.
+                    Bonus: even <em>before</em> training, related words already overlap in pieces, so the model starts
+                    from a better position and converges faster.
+                </p>
+            </div>
+
+            <!-- 4. OOV DEMO (interactive) -->
+            <div class="section-title fade-up">
+                <i class="fas fa-magic"></i> The Superpower: Unseen Words (OOV)
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up" style="margin-bottom: 1rem;">
+                Word2Vec fails on a word it never saw during training, it returns nothing.
+                FastText simply <strong>rebuilds the word from its pieces</strong>. Watch it happen:
+            </p>
+            <div class="lab oov-demo fade-up">
+                <button class="btn-main" id="oovBtn"><i class="fas fa-play"></i> Run demo: "bioinformatics" (never seen)</button>
+                <div class="oov-stage" id="oovStage">
+                    <div class="oov-step"><strong>1.</strong> The model was trained on Wikipedia. It saw
+                        <em>biology</em>, <em>informatics</em>, <em>information</em>… but <strong>never</strong> <em>bioinformatics</em>.</div>
+                    <div class="oov-step"><strong>2.</strong> Cut the new word into pieces:
+                        <span class="hit">bio</span> <span class="hit">inf</span> <span class="hit">info</span>
+                        <span class="hit">form</span> <span class="hit">mati</span> <span class="hit">atics</span> …
+                        – almost all of them <strong>were seen</strong> during training!</div>
+                    <div class="oov-step"><strong>3.</strong> Add the piece vectors: <strong>u = Σ z<sub>g</sub></strong>.
+                        A brand-new vector exists, for free.</div>
+                    <div class="oov-step"><strong>4.</strong> Its nearest neighbours? <em>biology</em> and
+                        <em>informatics</em>, exactly what makes sense. ✅
+                        The same trick fixes <strong>typos</strong>: <em>gouvernment</em> lands right next to
+                        <em>government</em>, which is gold for social-media text.</div>
+                </div>
+            </div>
+
+            <!-- 5b. WHAT IF THE N-GRAM ITSELF IS UNSEEN? -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-question-circle"></i> But Wait… What if a Subword Itself is Unseen?
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up">
+                <p style="margin-bottom: 1rem;">
+                    Good question: we said an OOV <em>word</em> is rebuilt from its n-grams… but what if one of those
+                    <strong>n-grams was never seen during training</strong> either? The answer is elegant:
+                    <strong>in FastText, an n-gram can never be "out of vocabulary"</strong> , because n-gram vectors
+                    are not stored in a vocabulary at all. They are stored in a <strong>hash table</strong>.
+                </p>
+                <p style="margin-bottom: 1rem;">
+                    Every possible n-gram , seen or unseen , is passed through the <strong>FNV-1a hash function</strong>,
+                    which maps it to one of the ~2 million buckets. The bucket index <em>is</em> the address of its vector.
+                    So looking up a never-seen n-gram never fails: it simply lands in some bucket and returns the vector
+                    stored there.
+                </p>
+            </div>
+
+            <!-- Hash lookup SVG -->
+            <div class="pipeline fade-up">
+                <svg class="draw-svg" width="720" height="150" viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="15" y="50" width="130" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="80" y="72" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">any n-gram</text>
+                    <text x="80" y="88" font-size="11" fill="#5f7d97" text-anchor="middle">seen or unseen</text>
+                    <line x1="145" y1="75" x2="195" y2="75" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M195 75 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="200" y="50" width="140" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="270" y="72" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">FNV-1a hash</text>
+                    <text x="270" y="88" font-size="11" fill="#5f7d97" text-anchor="middle">always succeeds</text>
+                    <line x1="340" y1="75" x2="390" y2="75" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M390 75 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="395" y="50" width="150" height="50" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="470" y="72" font-size="12" fill="#0b2a4a" font-weight="600" text-anchor="middle">bucket index</text>
+                    <text x="470" y="88" font-size="11" fill="#5f7d97" text-anchor="middle">mod B (≈ 2M)</text>
+                    <line x1="545" y1="75" x2="595" y2="75" stroke="#1a4a6e" stroke-width="2"/>
+                    <path d="M595 75 l-8 -5 v10 z" fill="#1a4a6e" stroke="#1a4a6e"/>
+
+                    <rect x="600" y="50" width="110" height="50" rx="12" fill="rgba(11,42,74,0.12)" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="655" y="80" font-size="12" fill="#0b2a4a" font-weight="700" text-anchor="middle">vector z_g ✓</text>
+
+                    <text x="360" y="135" font-size="11" fill="#7d94ab" text-anchor="middle" font-style="italic">The lookup is by hash address, not by dictionary – so it can never return "not found".</text>
+                </svg>
+            </div>
+
+            <!-- Three cases -->
+            <div class="fade-up" style="display:flex; flex-wrap:wrap; gap:1.5rem; margin: 1rem 0 1.5rem;">
+                <div class="info-card">
+                    <i class="fas fa-check-circle" style="color:#2e9e55;"></i>
+                    <h4>Case 1 – Seen n-gram</h4>
+                    <p>Its bucket vector was updated many times during training. The vector is meaningful and high-quality. This is the normal case.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-random"></i>
+                    <h4>Case 2 – Unseen n-gram</h4>
+                    <p>It hashes to a bucket that was probably trained by <em>other</em> colliding n-grams. The returned vector is a bit noisy – but since the word vector averages <strong>many</strong> n-grams, this noise mostly cancels out.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-exclamation-triangle" style="color:#c58a2d;"></i>
+                    <h4>Case 3 – Totally foreign word</h4>
+                    <p>A Chinese word in an English model: <em>all</em> its n-grams are unseen, so all buckets return unrelated vectors. FastText still outputs a vector – but it's essentially meaningless noise. A vector always exists; a <em>useful</em> vector needs at least some shared n-grams.</p>
+                </div>
+            </div>
+
+            <div class="fade-up takeaway" style="margin-bottom: 0.5rem;">
+                <p style="font-weight: 500; font-size: 0.98rem;">
+                    <i class="fas fa-key" style="color:#1a4a6e;"></i>&nbsp;
+                    <strong>In short:</strong> there is no such thing as an OOV n-gram in FastText. The hashing trick
+                    guarantees every character sequence maps to <em>some</em> vector. The real question is not
+                    "does a vector exist?" (always yes) but "was that bucket trained on related data?" ,
+                    and the more n-grams a word shares with the training corpus, the better its final vector.
+                </p>
+            </div>
+
+            <!-- 5. MORPHOLOGY-RICH LANGUAGES -->
+            <div class="section-title fade-up" style="margin-top: 2.5rem;">
+                <i class="fas fa-language"></i> Best Friend of Rich-Morphology Languages
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up" style="display:flex; flex-wrap:wrap; gap:1.5rem; margin-bottom:1.5rem;">
+                <div class="info-card">
+                    <i class="fas fa-globe-africa"></i>
+                    <h4>Arabic example</h4>
+                    <p dir="rtl" style="font-size:1.2rem; margin-bottom:0.4rem;">كتب · كاتب · مكتبة · مكتوب</p>
+                    <p>All built on the root <strong>ك-ت-ب</strong> (writing). Shared character patterns → shared meaning, learned automatically.</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-list"></i>
+                    <h4>Where it shines</h4>
+                    <p>Arabic, Turkish, German, Finnish, Russian, Tamazight… any language where words carry many prefixes, suffixes and inflections. Rare forms inherit quality from frequent relatives (<em>finissons</em> ↔ <em>finissaient</em>).</p>
+                </div>
+                <div class="info-card">
+                    <i class="fas fa-ban"></i>
+                    <h4>No linguistics inside!</h4>
+                    <p>FastText uses <strong>no stemmer and no dictionary</strong>. Cutting into n-grams is purely mechanical, that's exactly why it works on any language, out of the box.</p>
+                </div>
+            </div>
+
+            <!-- 6. TEXT CLASSIFICATION -->
+            <div class="section-title fade-up">
+                <i class="fas fa-tags"></i> FastText as a Text Classifier
+                <span class="title-line"></span>
+            </div>
+            <p class="fade-up" style="margin-bottom: 1rem;">
+                FastText is not only an embedding tool, it's also a very fast and accurate
+                <strong>classifier</strong> (spam / not spam, fake / real news, topic labels, sentiment…).
+                The architecture is a <strong>tiny neural network with a single hidden layer</strong>,
+                designed for extreme speed on very large datasets. It works in 4 steps:
+            </p>
+
+            <!-- 4 steps -->
+            <div class="fade-up" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.8rem; margin-bottom:1.6rem;">
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; display:inline-flex; min-width:1.6rem; height:1.6rem; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">1</span>
+                    <p style="font-size:0.9rem;"><strong>Input representation.</strong> The document becomes a <em>bag of n-grams</em>, both word n-grams and character n-grams.</p>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; display:inline-flex; min-width:1.6rem; height:1.6rem; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">2</span>
+                    <p style="font-size:0.9rem;"><strong>Embedding lookup.</strong> Each n-gram is mapped to its dense vector.</p>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; display:inline-flex; min-width:1.6rem; height:1.6rem; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">3</span>
+                    <p style="font-size:0.9rem;"><strong>Averaging.</strong> All vectors are averaged into <em>one fixed-size document vector</em>, this is the hidden layer.</p>
+                </div>
+                <div style="background:#f8faff; border:1px solid #dce5ef; border-radius:0.8rem; padding:0.9rem 1.1rem;">
+                    <span style="background:#1a4a6e; color:#fff; border-radius:50%; display:inline-flex; min-width:1.6rem; height:1.6rem; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; margin-bottom:0.4rem;">4</span>
+                    <p style="font-size:0.9rem;"><strong>Linear classification.</strong> The document vector is multiplied by a weight matrix, then <em>softmax</em> gives class probabilities.</p>
+                </div>
+            </div>
+
+            <!-- Detailed architecture SVG with a concrete example -->
+            <p class="fade-up" style="margin-bottom:0.4rem;">
+                Follow a real sentence through the network, <em>"This movie is great"</em> classified as
+                positive or negative:
+            </p>
+            <div class="pipeline fade-up" style="margin-top:0.5rem;">
+                <svg class="draw-svg" width="740" height="330" viewBox="0 0 740 330" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Column labels -->
+                    <text x="70" y="22" font-size="11" fill="#7d94ab" font-weight="600" text-anchor="middle">INPUT</text>
+                    <text x="250" y="22" font-size="11" fill="#7d94ab" font-weight="600" text-anchor="middle">N-GRAMS → VECTORS</text>
+                    <text x="455" y="22" font-size="11" fill="#7d94ab" font-weight="600" text-anchor="middle">HIDDEN LAYER</text>
+                    <text x="650" y="22" font-size="11" fill="#7d94ab" font-weight="600" text-anchor="middle">OUTPUT</text>
+
+                    <!-- Input document -->
+                    <rect x="15" y="120" width="110" height="80" rx="12" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="70" y="152" font-size="11" fill="#0b2a4a" font-weight="600" text-anchor="middle">"This movie</text>
+                    <text x="70" y="168" font-size="11" fill="#0b2a4a" font-weight="600" text-anchor="middle">is great"</text>
+
+                    <!-- n-gram tokens -->
+                    <rect x="190" y="45" width="120" height="30" rx="15" fill="#ffffff" stroke="#b9cde0" stroke-width="2"/>
+                    <text x="250" y="65" font-size="10" fill="#0b2a4a" font-weight="600" text-anchor="middle">this · movie · is</text>
+                    <rect x="190" y="85" width="120" height="30" rx="15" fill="#ffffff" stroke="#b9cde0" stroke-width="2"/>
+                    <text x="250" y="105" font-size="10" fill="#0b2a4a" font-weight="600" text-anchor="middle">great · this-movie</text>
+                    <rect x="190" y="125" width="120" height="30" rx="15" fill="#ffffff" stroke="#b9cde0" stroke-width="2"/>
+                    <text x="250" y="145" font-size="10" fill="#0b2a4a" font-weight="600" text-anchor="middle">⟨gr · gre · rea</text>
+                    <rect x="190" y="165" width="120" height="30" rx="15" fill="#ffffff" stroke="#b9cde0" stroke-width="2"/>
+                    <text x="250" y="185" font-size="10" fill="#0b2a4a" font-weight="600" text-anchor="middle">eat · at⟩ · ⟨mov…</text>
+                    <rect x="190" y="205" width="120" height="30" rx="15" fill="#eef4fb" stroke="#b9cde0" stroke-width="2"/>
+                    <text x="250" y="225" font-size="10" fill="#5f7d97" font-weight="600" text-anchor="middle">… each → vector z_g</text>
+
+                    <!-- arrows input -> ngrams -->
+                    <line x1="125" y1="145" x2="185" y2="60" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="125" y1="152" x2="185" y2="100" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="125" y1="160" x2="185" y2="140" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="125" y1="168" x2="185" y2="180" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="125" y1="175" x2="185" y2="220" stroke="#1a4a6e" stroke-width="1.5"/>
+
+                    <!-- average node -->
+                    <circle cx="455" cy="160" r="42" fill="rgba(26,74,110,0.1)" stroke="#1a4a6e" stroke-width="2.5"/>
+                    <text x="455" y="152" font-size="12" fill="#0b2a4a" font-weight="700" text-anchor="middle">AVERAGE</text>
+                    <text x="455" y="170" font-size="11" fill="#0b2a4a" text-anchor="middle">h = (1/N) Σ z_g</text>
+                    <text x="455" y="220" font-size="10" fill="#7d94ab" text-anchor="middle" font-style="italic">one document vector</text>
+
+                    <!-- arrows ngrams -> average -->
+                    <line x1="310" y1="60" x2="415" y2="145" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="310" y1="100" x2="413" y2="152" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="310" y1="140" x2="412" y2="160" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="310" y1="180" x2="413" y2="168" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <line x1="310" y1="220" x2="415" y2="176" stroke="#1a4a6e" stroke-width="1.5"/>
+
+                    <!-- softmax output -->
+                    <line x1="497" y1="160" x2="575" y2="160" stroke="#0b2a4a" stroke-width="2"/>
+                    <path d="M575 160 l-9 -5 v10 z" fill="#0b2a4a" stroke="#0b2a4a"/>
+                    <text x="536" y="150" font-size="10" fill="#5f7d97" text-anchor="middle">W · h → softmax</text>
+
+                    <rect x="580" y="105" width="145" height="34" rx="10" fill="rgba(46,158,85,0.12)" stroke="#2e9e55" stroke-width="2"/>
+                    <text x="600" y="127" font-size="11" fill="#1c6b3a" font-weight="700">Positive</text>
+                    <rect x="660" y="113" width="52" height="18" rx="4" fill="#2e9e55"/>
+                    <text x="686" y="126" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">0.93</text>
+
+                    <rect x="580" y="180" width="145" height="34" rx="10" fill="rgba(176,85,63,0.10)" stroke="#b0553f" stroke-width="2"/>
+                    <text x="600" y="202" font-size="11" fill="#8f3f2d" font-weight="700">Negative</text>
+                    <rect x="660" y="188" width="14" height="18" rx="4" fill="#b0553f"/>
+                    <text x="700" y="201" font-size="10" fill="#8f3f2d" font-weight="700" text-anchor="middle">0.07</text>
+
+                    <line x1="575" y1="150" x2="580" y2="128" stroke="#0b2a4a" stroke-width="1.5"/>
+                    <line x1="575" y1="170" x2="580" y2="192" stroke="#0b2a4a" stroke-width="1.5"/>
+
+                    <text x="370" y="315" font-size="11" fill="#7d94ab" text-anchor="middle" font-style="italic">Document → bag of n-grams → embedding lookup → average → linear layer + softmax → predicted class</text>
+                </svg>
+            </div>
+
+            <!-- Interactive classifier demo -->
+            <p class="fade-up" style="margin: 1.4rem 0 0.4rem;">
+                <strong>Mini demo:</strong> pick a sentence and watch the softmax output react
+                (simulated, for intuition):
+            </p>
+            <div class="lab fade-up" style="text-align:center;">
+                <div style="display:flex; flex-wrap:wrap; gap:0.6rem; justify-content:center; margin-bottom:1.2rem;">
+                    <button class="nbtn clf-btn active" data-pos="93">"This movie is great"</button>
+                    <button class="nbtn clf-btn" data-pos="6">"Worst film I have ever seen"</button>
+                    <button class="nbtn clf-btn" data-pos="55">"The movie was long"</button>
+                    <button class="nbtn clf-btn" data-pos="88">"Amazng actng, luv it!" <span style="font-weight:400; font-size:0.75rem;">(typos!)</span></button>
+                </div>
+                <div style="max-width:480px; margin:0 auto; text-align:left;">
+                    <div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:0.7rem;">
+                        <span style="min-width:70px; font-weight:600; font-size:0.9rem; color:#1c6b3a;">Positive</span>
+                        <div style="flex:1; background:#e9edf2; border-radius:20px; height:22px; overflow:hidden;">
+                            <div id="barPos" style="height:100%; width:93%; background:linear-gradient(90deg,#2e9e55,#57c47e); border-radius:20px; transition: width 0.8s cubic-bezier(.4,0,.2,1);"></div>
+                        </div>
+                        <span id="valPos" style="min-width:44px; font-weight:700; font-size:0.9rem; color:#1c6b3a;">0.93</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.8rem;">
+                        <span style="min-width:70px; font-weight:600; font-size:0.9rem; color:#8f3f2d;">Negative</span>
+                        <div style="flex:1; background:#e9edf2; border-radius:20px; height:22px; overflow:hidden;">
+                            <div id="barNeg" style="height:100%; width:7%; background:linear-gradient(90deg,#b0553f,#d4826d); border-radius:20px; transition: width 0.8s cubic-bezier(.4,0,.2,1);"></div>
+                        </div>
+                        <span id="valNeg" style="min-width:44px; font-weight:700; font-size:0.9rem; color:#8f3f2d;">0.07</span>
+                    </div>
+                </div>
+                <p id="clfNote" style="margin-top:1rem; font-size:0.85rem; color:#5f7d97; font-style:italic; min-height:1.3rem;"></p>
+            </div>
+
+            <!-- Efficiency table -->
+            <h3 class="fade-up" style="font-weight:600; color:#0b2a4a; margin:1.8rem 0 0.3rem;">
+                <i class="fas fa-tachometer-alt"></i> Why is it so efficient?
+            </h3>
+            <p class="fade-up" style="font-size:0.95rem; margin-bottom:0.3rem;">
+                No deep layers, no convolutions, no attention: just a lookup, an average and one matrix
+                multiplication. That's why FastText trains and predicts in <strong>milliseconds</strong>,
+                even on millions of documents.
+            </p>
+            <table class="nice-table fade-up">
+                <tr><th>Aspect</th><th>FastText</th></tr>
+                <tr><td>Training speed</td><td class="yes">Very fast</td></tr>
+                <tr><td>Memory usage</td><td>Moderate (hashing trick)</td></tr>
+                <tr><td>OOV handling</td><td class="yes">Excellent</td></tr>
+                <tr><td>Morphology awareness</td><td class="yes">Excellent</td></tr>
+            </table>
+
+            <p class="fade-up" style="margin-bottom:0.6rem;"><strong>Typical applications:</strong></p>
+            <div class="app-tags fade-up">
+                <span class="app-tag"><i class="fas fa-newspaper"></i> Fake news detection</span>
+                <span class="app-tag"><i class="fas fa-smile"></i> Sentiment analysis</span>
+                <span class="app-tag"><i class="fas fa-folder-open"></i> Document categorization</span>
+                <span class="app-tag"><i class="fas fa-search"></i> Search &amp; retrieval</span>
+                <span class="app-tag"><i class="fas fa-thumbs-up"></i> Recommendations</span>
+                <span class="app-tag"><i class="fas fa-user-tag"></i> NER support</span>
+                <span class="app-tag"><i class="fas fa-globe"></i> Multilingual NLP</span>
+            </div>
+
+            <!-- 7. STRENGTHS & LIMITS (flip cards) -->
+            <div class="section-title fade-up">
+                <i class="fas fa-balance-scale-right"></i> Strengths &amp; Limits – Click the Cards
+                <span class="title-line"></span>
+            </div>
+            <div class="flip-grid fade-up">
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-plus-circle"></i> Unseen words
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">Any word gets a vector from its pieces – even typos and brand-new words. Word2Vec would return nothing.</div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-plus-circle"></i> Speed &amp; size
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">Trains and predicts in milliseconds, with moderate memory. Perfect for mobile, edge devices and huge datasets.</div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-plus-circle"></i> Low-resource languages
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">With little data, sharing pieces between words squeezes maximum value out of every example.</div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-minus-circle" style="color:#b0553f;"></i> One vector per word
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">"bank" (money) and "bank" (river) get the <em>same</em> vector. Words with several meanings stay a problem.</div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-minus-circle" style="color:#b0553f;"></i> No context
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">The vector never changes with the sentence. Transformers (BERT…) read the whole context and win here.</div>
+                    </div>
+                </div>
+                <div class="flip-card">
+                    <div class="flip-inner">
+                        <div class="flip-face flip-front"><i class="fas fa-minus-circle" style="color:#b0553f;"></i> Short-sighted
+                            <span class="hint">click to flip</span></div>
+                        <div class="flip-face flip-back">Relations between far-apart words in a text (long-range dependencies) are not modeled at all.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. WHEN TO USE -->
+            <div class="section-title fade-up">
+                <i class="fas fa-compass"></i> When Should You Use It?
+                <span class="title-line"></span>
+            </div>
+            <table class="nice-table fade-up">
+                <tr><th>Situation</th><th>Verdict</th></tr>
+                <tr><td>Rich-morphology language (Arabic, Turkish, Finnish…)</td><td class="yes"><i class="fas fa-check"></i> Use FastText</td></tr>
+                <tr><td>Noisy text: social media, typos, slang</td><td class="yes"><i class="fas fa-check"></i> Use FastText</td></tr>
+                <tr><td>Mobile / edge / low-resource hardware</td><td class="yes"><i class="fas fa-check"></i> Use FastText</td></tr>
+                <tr><td>Massive, high-speed text classification</td><td class="yes"><i class="fas fa-check"></i> Use FastText</td></tr>
+                <tr><td>Word-sense disambiguation needed</td><td class="no"><i class="fas fa-times"></i> Use contextual embeddings</td></tr>
+                <tr><td>State-of-the-art benchmarks (GLUE, SQuAD)</td><td class="no"><i class="fas fa-times"></i> Use transformers (BERT…)</td></tr>
+            </table>
+
+            <!-- KEY TAKEAWAY -->
+            <div class="section-title fade-up" style="margin-top: 2rem;">
+                <i class="fas fa-key"></i> Key Takeaway
+                <span class="title-line"></span>
+            </div>
+            <div class="fade-up takeaway">
+                <p style="font-weight: 500; font-size: 1.05rem;">
+                    FastText's whole magic fits in one sentence: <strong>a word = the sum of its character pieces</strong>.
+                    That one idea gives free vectors for unseen words, robustness to typos, automatic morphology
+                    sharing across languages, and blazing-fast classification – all with a simple, cheap model.
+                    Its price: one fixed vector per word, blind to context. When context matters, hand over to transformers.
+                </p>
+            </div>
+
+        </div> <!-- /content -->
+    </div> <!-- /presentation-card -->
+
+    <script>
+        /* ---------- Scroll animations ---------- */
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.2, rootMargin: "0px 0px -50px 0px" });
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+        /* ---------- N-Gram Lab ---------- */
+        const labWord = document.getElementById('labWord');
+        const gramArea = document.getElementById('gramArea');
+        const gramCount = document.getElementById('gramCount');
+        const boundaryWord = document.getElementById('boundaryWord');
+        let currentN = 3;
+
+        function renderGrams() {
+            const raw = labWord.value.trim().toLowerCase().replace(/[^a-zà-ÿ\u0600-\u06FF]/g, '');
+            gramArea.innerHTML = '';
+            if (!raw) {
+                boundaryWord.innerHTML = '';
+                gramCount.textContent = 'Type a word above…';
+                return;
+            }
+            const wrapped = '<' + raw + '>';
+            boundaryWord.innerHTML =
+                '<span class="bnd">&lt;</span>' + raw + '<span class="bnd">&gt;</span>';
+
+            const grams = [];
+            for (let i = 0; i + currentN <= wrapped.length; i++) {
+                grams.push(wrapped.slice(i, i + currentN));
+            }
+            grams.forEach((g, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'gram-chip';
+                chip.style.animationDelay = (idx * 0.07) + 's';
+                chip.textContent = g.replace('<', '\u27E8').replace('>', '\u27E9');
+                gramArea.appendChild(chip);
+            });
+            // full word as an extra unit
+            const wordChip = document.createElement('span');
+            wordChip.className = 'gram-chip word-chip';
+            wordChip.style.animationDelay = (grams.length * 0.07) + 's';
+            wordChip.textContent = '\u27E8' + raw + '\u27E9 (full word)';
+            gramArea.appendChild(wordChip);
+
+            gramCount.textContent = grams.length + ' n-grams of size ' + currentN +
+                ' + 1 full-word unit → the word vector is the sum of all these piece vectors.';
+        }
+
+        labWord.addEventListener('input', renderGrams);
+        document.querySelectorAll('.nbtn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nbtn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentN = parseInt(btn.dataset.n);
+                renderGrams();
+            });
+        });
+        renderGrams();
+
+        /* ---------- OOV demo ---------- */
+        const oovBtn = document.getElementById('oovBtn');
+        const oovSteps = document.querySelectorAll('#oovStage .oov-step');
+        let oovRunning = false;
+        oovBtn.addEventListener('click', () => {
+            if (oovRunning) return;
+            oovRunning = true;
+            oovSteps.forEach(s => s.classList.remove('shown'));
+            oovSteps.forEach((s, i) => {
+                setTimeout(() => {
+                    s.classList.add('shown');
+                    if (i === oovSteps.length - 1) oovRunning = false;
+                }, 400 + i * 1100);
+            });
+            oovBtn.innerHTML = '<i class="fas fa-redo"></i> Replay demo';
+        });
+
+        /* ---------- Classifier demo ---------- */
+        const clfNotes = {
+            "93": "Strong positive words (great) → high positive score.",
+            "6":  "\"Worst\" pushes the document vector into the negative zone.",
+            "55": "Neutral sentence → the model hesitates, probabilities stay close.",
+            "88": "Typos? No problem – character n-grams of \"Amazng\" overlap with \"Amazing\". This is FastText's OOV power in action."
+        };
+        document.querySelectorAll('.clf-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.clf-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const pos = parseInt(btn.dataset.pos);
+                const neg = 100 - pos;
+                document.getElementById('barPos').style.width = pos + '%';
+                document.getElementById('barNeg').style.width = neg + '%';
+                document.getElementById('valPos').textContent = (pos / 100).toFixed(2);
+                document.getElementById('valNeg').textContent = (neg / 100).toFixed(2);
+                document.getElementById('clfNote').textContent = clfNotes[btn.dataset.pos] || '';
+            });
+        });
+        document.getElementById('clfNote').textContent = clfNotes["93"];
+
+        /* ---------- Flip cards ---------- */
+        document.querySelectorAll('.flip-card').forEach(card => {
+            card.addEventListener('click', () => card.classList.toggle('flipped'));
+        });
+
+    </script>
+</body>
+</html>

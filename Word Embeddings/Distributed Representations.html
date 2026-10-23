@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 04 – Distributed Representations</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+        }
+        .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255,255,255,0.15);
+            margin-top: 0.5rem;
+        }
+        .hero p.sub { margin-top: 0.8rem; font-size: 0.95rem; color: #cfe0f0; }
+        .hero-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3.2rem;
+            height: 3.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 1.35rem;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .hero-nav:hover { background: rgba(255,255,255,0.2); transform: translateY(-50%) scale(1.05); }
+        .hero-nav.prev { left: 1.2rem; }
+        .hero-nav.next { right: 1.2rem; }
+
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+            scroll-margin-top: 1rem;
+        }
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        section { margin-top: 2.6rem; }
+        section:first-of-type { margin-top: 0; }
+
+        .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+            stroke-dasharray: 1000; stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse, .draw-svg.visible polyline { stroke-dashoffset: 0; }
+
+        .diagram-container { display: flex; justify-content: center; margin: 1.5rem 0 2rem; flex-wrap: wrap; gap: 1.5rem; }
+
+        .comparison-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin: 1.5rem 0 2rem; }
+        .comp-col { flex: 1; min-width: 280px; background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2; }
+        .comp-col h3 { font-weight: 700; color: #0b2a4a; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+        .comp-col ul { list-style: none; padding: 0; }
+        .comp-col li { padding: 0.4rem 0; border-bottom: 1px solid #eceff5; display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.95rem; }
+        .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+        .card-row { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .info-card { flex: 1; min-width: 220px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem; }
+        .info-card i { color: #1a4a6e; font-size: 1.4rem; }
+        .info-card h4 { margin: 0.5rem 0 0.3rem; color: #0b2a4a; }
+        .info-card p { font-size: 0.9rem; }
+
+        .quote-box {
+            background: #fef9f0; border-left: 5px solid #d99a1b; border-radius: 0.6rem;
+            padding: 1.2rem 1.6rem; margin: 1.5rem 0; font-style: italic; color: #6a4e12;
+        }
+
+        .key-box {
+            background: #e6f0fa; border-radius: 0 1rem 1rem 1rem; padding: 1.5rem;
+            border-left: 5px solid #1a4a6e; margin-top: 1rem;
+        }
+        .key-box p { font-weight: 500; font-size: 1.05rem; }
+
+        table.data-table { width: 100%; border-collapse: collapse; margin: 1.2rem 0 1.8rem; font-size: 0.9rem; }
+        table.data-table th, table.data-table td { border: 1px solid #e2e8f0; padding: 0.55rem 0.8rem; text-align: center; }
+        table.data-table th { background: #0b2a4a; color: #fff; font-weight: 600; }
+        table.data-table tr:nth-child(even) td { background: #f8faff; }
+        table.data-table td:first-child, table.data-table th:first-child { text-align: left; font-weight: 600; color: #0b2a4a; }
+
+        .tag-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0; }
+        .tag { background: #fff; border: 1px solid #dce5ef; border-radius: 30px; padding: 0.25rem 1rem; font-size: 0.85rem; font-weight: 500; color: #1a4a6e; }
+
+        .steps { counter-reset: step; list-style: none; margin: 1.2rem 0; padding: 0; }
+        .steps li {
+            position: relative; padding: 0.8rem 0 0.8rem 3rem; margin-bottom: 0.6rem;
+            background: #f8faff; border-radius: 0.7rem; border: 1px solid #e9edf2;
+        }
+        .steps li::before {
+            counter-increment: step; content: counter(step);
+            position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
+            width: 1.6rem; height: 1.6rem; background: #1a4a6e; color: #fff;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 700;
+        }
+
+        .tradeoff-grid { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 1.2rem 0 1.8rem; }
+        .tradeoff-card { flex: 1; min-width: 240px; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e9edf2; }
+        .tradeoff-card.low { background: #fdf1f1; border-color: #f3d4d4; }
+        .tradeoff-card.mid { background: #f0faf3; border-color: #c9ecd4; }
+        .tradeoff-card.high { background: #fdf6ec; border-color: #f3e0c0; }
+        .tradeoff-card h4 { margin-bottom: 0.5rem; color: #0b2a4a; }
+        .tradeoff-card p { font-size: 0.88rem; }
+
+        .pipeline { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem; margin: 1.5rem 0; }
+        .pipe-step {
+            background: #0b2a4a; color: #fff; padding: 0.6rem 1.1rem; border-radius: 0.6rem;
+            font-size: 0.85rem; font-weight: 600; text-align: center;
+        }
+        .pipe-arrow { color: #1a4a6e; font-size: 1.1rem; }
+
+        .app-grid { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 1rem 0 1.8rem; }
+        .app-pill {
+            background: #fff; border: 1px solid #dce5ef; padding: 0.5rem 1rem; border-radius: 0.6rem;
+            font-size: 0.87rem; display: flex; align-items: center; gap: 0.5rem; color: #0b2a4a; font-weight: 500;
+        }
+        .app-pill i { color: #1a4a6e; }
+
+        code.inline { background: #eef3fa; padding: 0.1rem 0.4rem; border-radius: 0.3rem; font-size: 0.9em; color: #0b2a4a; }
+
+        /* Shift: From IDs to Meanings comparison cards */
+        .shift-grid { display: flex; flex-wrap: wrap; gap: 1.6rem; margin: 0.5rem 0 1.8rem; }
+        .shift-card {
+            flex: 1; min-width: 280px; background: #f8faff; border-radius: 0.9rem;
+            border: 1px solid #e9edf2; border-top: 4px solid; padding: 1.5rem;
+        }
+        .shift-old { border-top-color: #d94f4f; }
+        .shift-new { border-top-color: #2fa86a; }
+        .shift-card h3 { display: flex; align-items: center; gap: 0.6rem; color: #0b2a4a; font-size: 1.05rem; margin-bottom: 0.6rem; }
+        .shift-dot {
+            width: 1.6rem; height: 1.6rem; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: #fff; font-size: 0.8rem; flex-shrink: 0;
+        }
+        .shift-dot.bad { background: #d94f4f; }
+        .shift-dot.good { background: #2fa86a; }
+        .shift-desc { font-size: 0.92rem; color: #475569; margin-bottom: 1rem; }
+        .shift-code {
+            font-family: monospace; font-size: 0.92rem; font-weight: 700; color: #0b2a4a;
+            border-radius: 0.6rem; padding: 1rem 1.1rem; margin-bottom: 1.1rem; line-height: 1.7;
+        }
+        .bad-code { background: #fbe4e2; }
+        .good-code { background: #d9f2e3; }
+        .shift-point { display: flex; align-items: flex-start; gap: 0.7rem; font-size: 0.9rem; padding: 0.6rem 0; border-top: 1px solid #eceff5; color: #334155; }
+        .shift-point:first-of-type { border-top: none; }
+        .shift-point i { color: #1a4a6e; margin-top: 0.2rem; width: 1.1rem; text-align: center; }
+
+        /* Interactive cosine similarity widget */
+        .cosine-widget {
+            background: #0b2a4a;
+            border-radius: 1rem;
+            padding: 1.4rem 1.6rem 1.6rem;
+            margin: 1.5rem 0 1.8rem;
+            color: #cfe0f0;
+        }
+        .cosine-widget-label {
+            font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+            color: #6fd3ea; font-weight: 700; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .cosine-widget-body {
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1.5rem;
+        }
+        .cosine-controls { flex: 1; min-width: 220px; max-width: 320px; }
+        .cosine-controls label { display: block; font-size: 0.85rem; margin-bottom: 0.6rem; color: #cfe0f0; }
+        .cosine-controls input[type="range"] {
+            width: 100%; accent-color: #d99a1b; cursor: pointer; margin-bottom: 1rem;
+        }
+        .cosine-readout {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 0.6rem; padding: 0.8rem 1rem; display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        #cosValue { font-family: monospace; font-size: 1rem; color: #d99a1b; font-weight: 700; }
+        .cosine-tag {
+            display: inline-block; font-size: 0.8rem; font-weight: 600; color: #fff;
+            background: #1a4a6e; padding: 0.2rem 0.7rem; border-radius: 30px; width: fit-content;
+        }
+        .eq {
+            text-align: center; font-size: 1.15rem; font-weight: 600; color: #0b2a4a;
+            background: #f8faff; border-radius: 0.7rem; padding: 1rem; margin: 1.2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.5rem; }
+            .hero-nav { width: 2.6rem; height: 2.6rem; font-size: 1.1rem; }
+            .hero-nav.prev { left: 0.65rem; }
+            .hero-nav.next { right: 0.65rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-card">
+
+        <header class="hero">
+            <a class="hero-nav prev" href="Chapter%2004.html" aria-label="Previous lesson" title="Previous lesson"><i class="fas fa-chevron-left"></i></a>
+            <a class="hero-nav next" href="Word2Vec.html" aria-label="Next lesson" title="Next lesson"><i class="fas fa-chevron-right"></i></a>
+            <h1>Distributed Representations</h1>
+            <div class="chapter-badge">From symbols to vectors: how machines learn the meaning of words</div>
+        </header>
+
+        <div class="content">
+
+            <!-- 1 -->
+            <section id="sec1">
+                <div class="section-title fade-up"><i class="fas fa-exchange-alt"></i> 1. The Shift: From IDs to Meanings<span class="title-line"></span></div>
+                <div class="fade-up">
+                    <p style="margin-bottom:1.4rem;">In early Natural Language Processing (NLP), computers treated words as simple, isolated symbols. Today, we use <strong>Distributed Representations</strong> (also called Word Embeddings) to give computers a real sense of what words mean.</p>
+                </div>
+
+                <div class="shift-grid fade-up">
+                    <div class="shift-card shift-old">
+                        <h3><span class="shift-dot bad"><i class="fas fa-times"></i></span> The Old Way: One-Hot Encoding</h3>
+                        <p class="shift-desc">Every word is just a unique ID, surrounded by zeros.</p>
+                        <div class="shift-code bad-code">Cat = [1, 0, 0, 0]&nbsp;&nbsp;&nbsp;Dog = [0, 1, 0, 0]</div>
+                        <div class="shift-point"><i class="fas fa-database"></i><div><strong>Huge & Empty:</strong> Wastes memory (mostly zeros).</div></div>
+                        <div class="shift-point"><i class="fas fa-user-slash"></i><div><strong>No Meaning:</strong> The computer cannot see that "Cat" and "Dog" are related animals.</div></div>
+                    </div>
+                    <div class="shift-card shift-new">
+                        <h3><span class="shift-dot good"><i class="fas fa-check"></i></span> The New Way: Distributed Vectors</h3>
+                        <p class="shift-desc">Words are dense lists of numbers representing features.</p>
+                        <div class="shift-code good-code">Cat = [0.34, -0.12, 0.89]&nbsp;&nbsp;&nbsp;Dog = [0.31, -0.10, 0.85]</div>
+                        <div class="shift-point"><i class="fas fa-compress-arrows-alt"></i><div><strong>Compact:</strong> Much smaller, dense lists of numbers.</div></div>
+                        <div class="shift-point"><i class="fas fa-lightbulb"></i><div><strong>Smart:</strong> Similar numbers mean the words have similar meanings!</div></div>
+                    </div>
+                </div>
+
+                <div class="eq fade-up">cat = [0.34, -0.12, 0.89, 0.55, ...]</div>
+                <div class="fade-up">
+                    <p style="margin-bottom:1rem;">No single number in that list "means" anything on its own. Meaning only shows up when all the numbers work together – that is why it's called <em>distributed</em>: the meaning is spread out, not stored in one place.</p>
+                </div>
+                <div class="card-row fade-up">
+                    <div class="info-card"><i class="fas fa-layer-group"></i><h4>Dense</h4><p>Almost every number in the vector is non-zero.</p></div>
+                    <div class="info-card"><i class="fas fa-compress-arrows-alt"></i><h4>Low-Dimensional</h4><p>Usually 50 to 1000 numbers, far fewer than the vocabulary size.</p></div>
+                    <div class="info-card"><i class="fas fa-project-diagram"></i><h4>Similarity-Aware</h4><p>Words with close meanings get close vectors.</p></div>
+                    <div class="info-card"><i class="fas fa-graduation-cap"></i><h4>Learned</h4><p>The numbers are discovered automatically from data, not written by hand.</p></div>
+                </div>
+            </section>
+
+            <!-- 2 -->
+            <section id="sec2">
+                <div class="section-title fade-up"><i class="fas fa-balance-scale"></i> 2. One-Hot Encoding vs Distributed Representation<span class="title-line"></span></div>
+                <div class="fade-up">
+                    <p style="margin-bottom:1rem;">A one-hot vector puts a single "1" in one spot and "0" everywhere else. For the vocabulary {cat, dog, car, house}:</p>
+                </div>
+                <div class="tag-row fade-up">
+                    <span class="tag">cat = [1,0,0,0]</span>
+                    <span class="tag">dog = [0,1,0,0]</span>
+                    <span class="tag">car = [0,0,1,0]</span>
+                    <span class="tag">house = [0,0,0,1]</span>
+                </div>
+                <div class="fade-up">
+                    <p style="margin-bottom:1rem;">Every pair of one-hot vectors is exactly the same distance apart. The model cannot tell that "cat" is closer to "dog" than to "car".</p>
+                </div>
+                <table class="data-table fade-up">
+                    <tr><th>Feature</th><th>One-Hot Encoding</th><th>Distributed Representation</th></tr>
+                    <tr><td>Dimension</td><td>Vocabulary size</td><td>Typically 50–1000</td></tr>
+                    <tr><td>Sparsity</td><td>Very sparse</td><td>Dense</td></tr>
+                    <tr><td>Semantic similarity</td><td>No</td><td>Yes</td></tr>
+                    <tr><td>Memory usage</td><td>High</td><td>Lower</td></tr>
+                    <tr><td>Generalization</td><td>Poor</td><td>Strong</td></tr>
+                </table>
+            </section>
+
+            <!-- 4 -->
+            <section id="sec4">
+                <div class="section-title fade-up"><i class="fas fa-people-arrows"></i> 3. The Distributional Hypothesis<span class="title-line"></span></div>
+                <div class="quote-box fade-up">"You shall know a word by the company it keeps." – J.R. Firth</div>
+                <div class="fade-up">
+                    <p style="margin-bottom:1rem;">The idea is simple: words that show up in similar sentences tend to mean similar things.</p>
+                </div>
+                <div class="tag-row fade-up">
+                    <span class="tag">The cat is sleeping.</span>
+                    <span class="tag">The dog is sleeping.</span>
+                </div>
+                <div class="fade-up">
+                    <p>Because "cat" and "dog" appear in the same kind of sentence, their vectors end up close together. Every method in this chapter is really just a different way of turning this one idea into numbers.</p>
+                </div>
+            </section>
+
+            <!-- 5 -->
+            <section id="sec5">
+                <div class="section-title fade-up"><i class="fas fa-map-marked-alt"></i> 4. The Vector Space Model<span class="title-line"></span></div>
+                <div class="fade-up"><p>Each word becomes a point in space. Words close together on the map are close in meaning:</p></div>
+                <div class="diagram-container fade-up">
+                    <svg class="draw-svg" width="380" height="260" viewBox="0 0 380 260" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="40" y1="220" x2="360" y2="220" stroke="#94a3b8" stroke-width="1.5"/>
+                        <line x1="40" y1="220" x2="40" y2="20" stroke="#94a3b8" stroke-width="1.5"/>
+                        <circle cx="90" cy="150" r="6" fill="#1a4a6e"/>
+                        <text x="100" y="150" font-size="12" fill="#0b2a4a">cat (2,3)</text>
+                        <circle cx="97" cy="145" r="6" fill="#2a5a7a"/>
+                        <text x="100" y="130" font-size="12" fill="#0b2a4a">dog (2.2,3.1)</text>
+                        <circle cx="280" cy="190" r="6" fill="#d99a1b"/>
+                        <text x="255" y="210" font-size="12" fill="#8a5c10">car (8,1)</text>
+                        <circle cx="290" cy="185" r="6" fill="#c98a15"/>
+                        <text x="290" y="165" font-size="12" fill="#8a5c10">truck (8.5,1.3)</text>
+                    </svg>
+                </div>
+                <div class="fade-up"><p>Notice how "cat" and "dog" sit almost on top of each other, far from "car" and "truck" – which form their own neighborhood. Nearby points always mean related words.</p></div>
+            </section>
+
+            <!-- 6 -->
+            <section id="sec6">
+                <div class="section-title fade-up"><i class="fas fa-th"></i> 5. Counting Context: Windows & Co-occurrence<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">To use the distributional hypothesis, we need to define "context" with numbers. A <strong>context window</strong> of size k takes the k words to the left and right of a target word.</p></div>
+                <div class="diagram-container fade-up">
+                    <svg class="draw-svg" width="520" height="90" viewBox="0 0 520 90" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="25" font-size="13" fill="#334155">the</text>
+                        <text x="45" y="25" font-size="13" fill="#334155">quick</text>
+                        <rect x="95" y="8" width="55" height="24" rx="6" fill="rgba(26,74,110,0.12)" stroke="#1a4a6e"/>
+                        <text x="105" y="25" font-size="13" fill="#0b2a4a" font-weight="700">brown</text>
+                        <rect x="160" y="8" width="35" height="24" rx="6" fill="#1a4a6e"/>
+                        <text x="167" y="25" font-size="13" fill="#fff" font-weight="700">fox</text>
+                        <rect x="205" y="8" width="60" height="24" rx="6" fill="rgba(26,74,110,0.12)" stroke="#1a4a6e"/>
+                        <text x="212" y="25" font-size="13" fill="#0b2a4a" font-weight="700">jumps</text>
+                        <text x="280" y="25" font-size="13" fill="#334155">over</text>
+                        <text x="325" y="25" font-size="13" fill="#334155">the</text>
+                        <text x="360" y="25" font-size="13" fill="#334155">lazy</text>
+                        <text x="405" y="25" font-size="13" fill="#334155">dog</text>
+                        <text x="0" y="65" font-size="12" fill="#5f7d97" font-style="italic">window k = 1 around "fox" → context = {brown, jumps}</text>
+                    </svg>
+                </div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Sliding this window across a whole corpus and counting how often each word pair appears together builds a <strong>co-occurrence matrix</strong>. Each row becomes a first, raw vector for a word – built only from usage, with no manual labeling.</p></div>
+                <table class="data-table fade-up">
+                    <tr><th></th><th>DRINKS</th><th>MORNING</th><th>REPORT</th><th>MEETING</th></tr>
+                    <tr><td>coffee</td><td>18</td><td>22</td><td>6</td><td>14</td></tr>
+                    <tr><td>espresso</td><td>15</td><td>19</td><td>2</td><td>11</td></tr>
+                    <tr><td>tea</td><td>12</td><td>17</td><td>3</td><td>9</td></tr>
+                    <tr><td>bank (finance)</td><td>0</td><td>1</td><td>21</td><td>17</td></tr>
+                    <tr><td>bank (river)</td><td>0</td><td>3</td><td>0</td><td>1</td></tr>
+                </table>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Even in this toy example, coffee, espresso, and tea already look alike, while the two "bank" rows look nothing like them – a first sign that counting context works.</p></div>
+                <div class="quote-box fade-up" style="border-left-color:#c0392b; color:#7a2d20; background:#fdf1f0;">
+                    <strong>A first sign of trouble:</strong> this matrix is still huge – |V| × |V| – and mostly zeros, just like one-hot vectors. It's a step forward, not the final destination.
+                </div>
+            </section>
+
+            <!-- 7 -->
+            <section id="sec7">
+                <div class="section-title fade-up"><i class="fas fa-compress"></i> 6. From Counts to Dense Vectors: PMI & SVD<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Raw counts are dominated by very common words like "the" or "a," which appear everywhere and drown out the meaningful pairs (like espresso ↔ machine).</p></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Pointwise Mutual Information (PMI)</h3>
+                <div class="fade-up"><p style="margin-bottom:0.6rem;">PMI re-weights each count by how much more often two words appear together than random chance would predict:</p></div>
+                <div class="eq fade-up">PMI(w, c) = log₂ [ P(w, c) / (P(w) · P(c)) ]</div>
+                <div class="fade-up"><p style="margin-bottom:1.2rem;">Because PMI misbehaves for pairs that never co-occur, in practice we clip negative values to zero – this is called <strong>Positive PMI (PPMI)</strong>: <code class="inline">PPMI = max(PMI, 0)</code>.</p></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Dimensionality Reduction (SVD)</h3>
+                <div class="fade-up"><p style="margin-bottom:1rem;">The PPMI matrix is re-weighted but still huge and sparse. <strong>Truncated Singular Value Decomposition (SVD)</strong> factorizes it into small, dense vectors. This full pipeline – count → PPMI → SVD – is known as <strong>Latent Semantic Analysis (LSA)</strong>.</p></div>
+                <div class="eq fade-up">M ≈ U · Σ · Vᵀ &nbsp;→&nbsp; keep the top d values → each word gets a dense vector of size d</div>
+
+                <div class="comparison-grid fade-up">
+                    <div class="comp-col">
+                        <h3><i class="fas fa-th-large"></i> Before Reduction</h3>
+                        <ul>
+                            <li><i class="fas fa-minus"></i> Sparse, huge (|V| ≈ 10⁴–10⁶)</li>
+                            <li><i class="fas fa-minus"></i> One axis per context word</li>
+                            <li><i class="fas fa-minus"></i> Mostly zeros</li>
+                            <li><i class="fas fa-minus"></i> Common words dominate distances</li>
+                        </ul>
+                    </div>
+                    <div class="comp-col">
+                        <h3><i class="fas fa-compress-alt"></i> After Reduction</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Dense, small (d ≈ 50–300)</li>
+                            <li><i class="fas fa-check"></i> Axes have no single label (latent)</li>
+                            <li><i class="fas fa-check"></i> Almost every entry non-zero</li>
+                            <li><i class="fas fa-check"></i> Captures patterns compactly</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="quote-box fade-up">This "count, re-weight, factorize" pipeline was the <em>first</em> successful route to distributed word vectors – long before the newer, prediction-based neural methods.</div>
+            </section>
+
+            <!-- 8 -->
+            <section id="sec8">
+                <div class="section-title fade-up"><i class="fas fa-th-list"></i> 7. Word Embeddings<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">A <strong>word embedding</strong> is the most popular kind of distributed representation: a learned dense vector for each word, stored as one row of an <strong>embedding matrix</strong>.</p></div>
+                <div class="card-row fade-up">
+                    <div class="info-card"><i class="fas fa-list-ol"></i><h4>Vocabulary size</h4><p>e.g. 10,000 words</p></div>
+                    <div class="info-card"><i class="fas fa-ruler-horizontal"></i><h4>Embedding dimension</h4><p>e.g. 300 numbers per word</p></div>
+                    <div class="info-card"><i class="fas fa-table"></i><h4>Matrix shape</h4><p>10,000 × 300 – each row is one word's vector</p></div>
+                </div>
+                <div class="fade-up"><p style="margin-bottom:0.8rem;">Well-known, production-grade tools that produce this kind of vector include:</p></div>
+                <div class="tag-row fade-up">
+                    <span class="tag"><i class="fas fa-cube"></i> Word2Vec</span>
+                    <span class="tag"><i class="fas fa-cube"></i> GloVe</span>
+                    <span class="tag"><i class="fas fa-cube"></i> FastText</span>
+                </div>
+                <div class="fade-up"><p style="margin:1rem 0;">Their internal training recipes are covered in a dedicated course – what matters here is that all three output the same kind of object: <em>one dense vector per word, placed so that geometric distance mirrors semantic distance.</em></p></div>
+
+                <h3 style="color:#0b2a4a; margin: 1.2rem 0 0.6rem;" class="fade-up">Semantic Relationships Emerge Automatically</h3>
+                <div class="fade-up"><p style="margin-bottom:0.8rem;">One striking way to test an embedding space is the <strong>analogy task</strong>: given "A is to B as C is to ___", vector arithmetic fills in the blank.</p></div>
+                <div class="eq fade-up">King − Man + Woman ≈ Queen</div>
+                <div class="eq fade-up">Paris − France + Germany ≈ Berlin</div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Nobody programs these relationships by hand – they appear naturally once the vectors are trained on enough text, and the analogy task simply reveals that they were learned.</p></div>
+
+                <h3 style="color:#0b2a4a; margin: 1.2rem 0 0.6rem;" class="fade-up">The Ambiguity Problem</h3>
+                <div class="fade-up"><p>A traditional embedding gives one fixed vector per word, even when the word has several meanings – for example "bank" (financial institution) and "bank" (river side) share the same vector, blending both senses into one blurry average. This is exactly the gap that <strong>contextual embeddings</strong> are built to close: models like ELMo, BERT, RoBERTa, GPT, and LLaMA compute a fresh vector for each word based on the sentence around it, so the same word can mean different things in different places.</p></div>
+            </section>
+
+            <!-- 9 -->
+            <section id="sec9">
+                <div class="section-title fade-up"><i class="fas fa-drafting-compass"></i> 8. The Geometry of Meaning<span class="title-line"></span></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Cosine Similarity</h3>
+                <div class="fade-up"><p style="margin-bottom:0.8rem;">Raw distance is misleading because it is dominated by vector length, which mostly reflects word frequency. Instead, we measure the <strong>angle</strong> between two vectors:</p></div>
+                <div class="eq fade-up">cos(u, v) = (u · v) / (‖u‖ ‖v‖)</div>
+
+                <div class="cosine-widget fade-up">
+                    <div class="cosine-widget-label"><i class="fas fa-arrows-alt-h"></i> Interactive – drag the slider to rotate v</div>
+                    <div class="cosine-widget-body">
+                        <svg id="cosineSvg" width="340" height="240" viewBox="0 0 340 240" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="20" y1="200" x2="320" y2="200" stroke="#94a3b8" stroke-width="1"/>
+                            <line x1="170" y1="200" x2="170" y2="20" stroke="#94a3b8" stroke-width="1"/>
+                            <path id="cosArc" d="" fill="none" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="3"/>
+                            <line x1="170" y1="200" x2="310" y2="200" stroke="#2ba6c9" stroke-width="3.5"/>
+                            <polygon points="310,200 296,193 296,207" fill="#2ba6c9"/>
+                            <text x="304" y="192" font-size="13" fill="#0b2a4a" font-weight="700">u</text>
+                            <line id="vLine" x1="170" y1="200" x2="310" y2="200" stroke="#d99a1b" stroke-width="3.5"/>
+                            <polygon id="vArrow" points="310,200 296,193 296,207" fill="#d99a1b"/>
+                            <text id="vLabel" x="304" y="192" font-size="13" fill="#8a5c10" font-weight="700">v</text>
+                        </svg>
+                        <div class="cosine-controls">
+                            <label for="angleSlider">Angle θ between vectors: <span id="angleValue">0°</span></label>
+                            <input type="range" id="angleSlider" min="0" max="180" value="0" step="1" />
+                            <div class="cosine-readout">
+                                <span id="cosValue">cos(θ) = 1.000</span>
+                                <span id="cosLabel" class="cosine-tag">identical direction</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fade-up">
+                    <ul style="padding-left:1.4rem; margin-bottom:1.2rem;">
+                        <li><strong>cos = 1</strong> → same direction, highly similar</li>
+                        <li><strong>cos = 0</strong> → unrelated (orthogonal), as with one-hot vectors</li>
+                        <li><strong>cos = -1</strong> → opposite meaning (rare for real word vectors)</li>
+                    </ul>
+                </div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Semantic Clustering</h3>
+                <div class="fade-up"><p style="margin-bottom:1.2rem;">When projected down to 2D or 3D for visualization (with PCA or t-SNE – the real vectors actually live in 50–300 dimensions), related words form visible neighborhoods: fruits together, countries together, professions together.</p></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Linear Analogy Structure</h3>
+                <div class="fade-up"><p style="margin-bottom:1rem;">The most celebrated property: relationships between words become simple straight-line offsets in vector space.</p></div>
+                <div class="diagram-container fade-up">
+                    <svg class="draw-svg" width="340" height="220" viewBox="0 0 340 220" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="80" cy="60" r="6" fill="#2ba6c9"/><text x="55" y="45" font-size="12" fill="#0b2a4a">king</text>
+                        <circle cx="80" cy="160" r="6" fill="#2ba6c9"/><text x="60" y="185" font-size="12" fill="#0b2a4a">man</text>
+                        <circle cx="260" cy="60" r="6" fill="#d99a1b"/><text x="270" y="45" font-size="12" fill="#8a5c10">queen</text>
+                        <circle cx="260" cy="160" r="6" fill="#d99a1b"/><text x="270" y="185" font-size="12" fill="#8a5c10">woman</text>
+                        <line x1="80" y1="60" x2="80" y2="160" stroke="#c0392b" stroke-width="2"/>
+                        <line x1="260" y1="60" x2="260" y2="160" stroke="#c0392b" stroke-width="2" stroke-dasharray="5"/>
+                        <line x1="80" y1="160" x2="260" y2="160" stroke="#94a3b8" stroke-width="1"/>
+                        <text x="90" y="215" font-size="11" fill="#5f7d97" font-style="italic">same "royalty" offset in both pairs</text>
+                    </svg>
+                </div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">These directions encode real relations – gender, verb tense, capital-of, plural-of – which downstream models can reuse and combine.</p></div>
+
+                <div class="key-box fade-up">
+                    <p><i class="fas fa-key" style="color:#1a4a6e; margin-right:0.5rem;"></i><strong>Key Takeaway:</strong> Geometry is what turns vectors into meaning. Angle (cosine similarity) tells us how alike two words are, nearby points cluster into semantic neighborhoods, and straight-line offsets between points capture real relationships like gender or capital-of. This geometric structure – not any single number – is what makes distributed representations useful.</p>
+                </div>
+            </section>
+
+            <!-- 10 -->
+            <section id="sec10">
+                <div class="section-title fade-up"><i class="fas fa-clone"></i> 9. Static vs Contextual Embeddings<span class="title-line"></span></div>
+
+                <div class="comparison-grid fade-up">
+                    <div class="comp-col">
+                        <h3><i class="fas fa-table"></i> 9.1 Static Embeddings</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> One fixed vector per word, no matter the sentence</li>
+                            <li><i class="fas fa-check"></i> Simple lookup: φ(w) = row of matrix E</li>
+                            <li><i class="fas fa-check"></i> Examples: Word2Vec, GloVe, FastText</li>
+                            <li><i class="fas fa-times"></i> "bank" gets the same vector in every sentence</li>
+                        </ul>
+                    </div>
+                    <div class="comp-col">
+                        <h3><i class="fas fa-brain"></i> 9.2 Contextual Embeddings</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Vector is computed from the whole sentence</li>
+                            <li><i class="fas fa-check"></i> φ(word, context) = output of a neural network</li>
+                            <li><i class="fas fa-check"></i> Examples: ELMo (bi-LSTM), BERT, RoBERTa, GPT (Transformer)</li>
+                            <li><i class="fas fa-check"></i> Same word gets a different vector per sentence</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="diagram-container fade-up">
+                    <svg class="draw-svg" width="620" height="230" viewBox="0 0 620 230" xmlns="http://www.w3.org/2000/svg">
+                        <text x="60" y="30" font-size="12" fill="#94a3b8" font-weight="600" letter-spacing="1">STATIC – ONE VECTOR</text>
+                        <circle cx="110" cy="115" r="58" fill="rgba(192,57,43,0.05)" stroke="#c0392b" stroke-width="2.5"/>
+                        <text x="110" y="112" font-size="15" fill="#c0392b" font-weight="700" text-anchor="middle">bank</text>
+                        <text x="110" y="130" font-size="10.5" fill="#c0392b" text-anchor="middle">1 static vector</text>
+                        <text x="30" y="45" font-size="10.5" fill="#8a5c10" font-style="italic">"river bank"</text>
+                        <text x="30" y="200" font-size="10.5" fill="#8a5c10" font-style="italic">"bank loan"</text>
+
+                        <path d="M 185 115 L 250 115" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                        <defs>
+                            <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8"/>
+                            </marker>
+                        </defs>
+
+                        <text x="345" y="30" font-size="12" fill="#94a3b8" font-weight="600" letter-spacing="1">CONTEXTUAL – ONE PER OCCURRENCE</text>
+                        <circle cx="380" cy="80" r="52" fill="none" stroke="#2ba6c9" stroke-width="2.5"/>
+                        <text x="380" y="76" font-size="13.5" fill="#2ba6c9" font-weight="700" text-anchor="middle">bank</text>
+                        <text x="380" y="93" font-size="11" fill="#2ba6c9" text-anchor="middle">(river)</text>
+                        <circle cx="500" cy="165" r="52" fill="none" stroke="#d99a1b" stroke-width="2.5"/>
+                        <text x="500" y="161" font-size="13.5" fill="#8a5c10" font-weight="700" text-anchor="middle">bank</text>
+                        <text x="500" y="178" font-size="11" fill="#8a5c10" text-anchor="middle">(finance)</text>
+                    </svg>
+                </div>
+                <div class="fade-up"><p style="margin-bottom:1rem; font-style:italic; color:#5f7d97; text-align:center;">static: one fixed vector for every sense – contextual: a fresh, separate vector for each occurrence</p></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Limitations of Static Embeddings</h3>
+                <div class="card-row fade-up">
+                    <div class="info-card"><i class="fas fa-copy"></i><h4>Polysemy</h4><p>One vector must awkwardly average all senses of a word – the senses blur together.</p></div>
+                    <div class="info-card"><i class="fas fa-question"></i><h4>Out-of-vocabulary</h4><p>Typos, new words, and rare technical terms get no vector at all.</p></div>
+                    <div class="info-card"><i class="fas fa-balance-scale-left"></i><h4>Encoded bias</h4><p>Vectors inherit and can amplify the biases already present in the training text.</p></div>
+                </div>
+                <div class="quote-box fade-up">These limits are exactly what motivate contextual representations, built by deep, sequence-aware models such as ELMo and BERT – the subject of the next course.</div>
+            </section>
+
+            <!-- 11 -->
+            <section id="sec11">
+                <div class="section-title fade-up"><i class="fas fa-sliders-h"></i> 10. Choosing the Right Size d<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">The embedding dimension d is a key design choice, with a real tradeoff:</p></div>
+                <div class="tradeoff-grid fade-up">
+                    <div class="tradeoff-card low">
+                        <h4><i class="fas fa-compress"></i> Too Low</h4>
+                        <p>Not enough room to capture the real complexity of relationships. Different words are squeezed into the same region – like compressing an image too much.</p>
+                    </div>
+                    <div class="tradeoff-card mid">
+                        <h4><i class="fas fa-bullseye"></i> Just Right</h4>
+                        <p>Enough capacity to encode the true structure of the data, without memorizing noise. The best value depends on vocabulary size, task complexity, and how much training data is available.</p>
+                    </div>
+                    <div class="tradeoff-card high">
+                        <h4><i class="fas fa-expand"></i> Too High</h4>
+                        <p>The model starts memorizing instead of generalizing. Many dimensions become redundant, computation grows, and overfitting risk increases.</p>
+                    </div>
+                </div>
+                <div class="fade-up"><p style="margin-bottom:0.6rem;">A simple information-theoretic lower bound: to give N words unique IDs we need at least</p></div>
+                <div class="eq fade-up">d ≥ log₂(N) / log₂(b) &nbsp; (b = distinguishable states per dimension)</div>
+                <div class="fade-up"><p>In practice d is set much higher than this bound, because we want the space to encode relationships between words, not just tell them apart.</p></div>
+            </section>
+
+            <!-- 12 -->
+            <section id="sec12">
+                <div class="section-title fade-up"><i class="fas fa-cogs"></i> 11. How Are They Learned?<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Embeddings are learned automatically from huge amounts of plain text, with no manual labeling, using a "fake" or proxy task that is later thrown away.</p></div>
+                <ol class="steps fade-up">
+                    <li><strong>Initialization</strong> – every word starts with a random vector.</li>
+                    <li><strong>Prediction</strong> – a model slides across the text and tries to predict a word from its context (or the context from a word).</li>
+                    <li><strong>Update</strong> – backpropagation nudges the vectors so predictions get slightly better each time.</li>
+                    <li><strong>Result</strong> – after millions of updates, words that share contexts are pulled closer together. The prediction task is discarded; only the learned vectors are kept.</li>
+                </ol>
+            </section>
+
+            <!-- 13 -->
+            <section id="sec13">
+                <div class="section-title fade-up"><i class="fas fa-microchip"></i> 12. Distributed Representations Inside Transformers<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Modern transformer models (BERT, GPT, and similar) begin every forward pass by turning tokens into vectors:</p></div>
+                <div class="pipeline fade-up">
+                    <div class="pipe-step">Text</div><span class="pipe-arrow">→</span>
+                    <div class="pipe-step">Tokenization</div><span class="pipe-arrow">→</span>
+                    <div class="pipe-step">Embedding Layer</div><span class="pipe-arrow">→</span>
+                    <div class="pipe-step">Positional Encoding</div><span class="pipe-arrow">→</span>
+                    <div class="pipe-step">Transformer Layers</div><span class="pipe-arrow">→</span>
+                    <div class="pipe-step">Contextual Representations</div>
+                </div>
+                <div class="fade-up"><p>Each transformer layer uses self-attention to refine every token's vector using the rest of the sentence – this is what finally makes the representation truly contextual.</p></div>
+            </section>
+
+            <!-- 14 -->
+            <section id="sec14">
+                <div class="section-title fade-up"><i class="fas fa-toolbox"></i> 13. Uses, Advantages & Limitations<span class="title-line"></span></div>
+
+                <h3 style="color:#0b2a4a; margin-bottom:0.6rem;" class="fade-up">Applications</h3>
+                <div class="app-grid fade-up">
+                    <span class="app-pill"><i class="fas fa-language"></i>Machine Translation</span>
+                    <span class="app-pill"><i class="fas fa-smile"></i>Sentiment Analysis</span>
+                    <span class="app-pill"><i class="fas fa-question-circle"></i>Question Answering</span>
+                    <span class="app-pill"><i class="fas fa-search"></i>Information Retrieval</span>
+                    <span class="app-pill"><i class="fas fa-newspaper"></i>Fake News Detection</span>
+                    <span class="app-pill"><i class="fas fa-robot"></i>Chatbots</span>
+                    <span class="app-pill"><i class="fas fa-tags"></i>Text Classification</span>
+                    <span class="app-pill"><i class="fas fa-user-tag"></i>Named Entity Recognition</span>
+                    <span class="app-pill"><i class="fas fa-align-left"></i>Summarization</span>
+                </div>
+
+                <div class="comparison-grid fade-up">
+                    <div class="comp-col">
+                        <h3><i class="fas fa-plus-circle"></i> Advantages</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Capture semantic similarity</li>
+                            <li><i class="fas fa-check"></i> Reduce dimensionality</li>
+                            <li><i class="fas fa-check"></i> Improve generalization</li>
+                            <li><i class="fas fa-check"></i> Support transfer learning</li>
+                            <li><i class="fas fa-check"></i> Efficient storage</li>
+                            <li><i class="fas fa-check"></i> Foundation of modern NLP</li>
+                        </ul>
+                    </div>
+                    <div class="comp-col">
+                        <h3><i class="fas fa-minus-circle"></i> Limitations</h3>
+                        <ul>
+                            <li><i class="fas fa-times"></i> Inherit bias from training data</li>
+                            <li><i class="fas fa-times"></i> Hard to interpret individual dimensions</li>
+                            <li><i class="fas fa-times"></i> Need very large corpora</li>
+                            <li><i class="fas fa-times"></i> Static embeddings ignore context</li>
+                            <li><i class="fas fa-times"></i> Large models cost a lot to compute</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 15 -->
+            <section id="sec15">
+                <div class="section-title fade-up"><i class="fas fa-shield-alt"></i> 14. Bias, Fairness & Ethics<span class="title-line"></span></div>
+                <div class="fade-up"><p style="margin-bottom:1rem;">Because distributed representations learn from human-written text, they inherit – and can amplify – the biases already present in that text: gender, racial, and cultural stereotypes. For example, embedding spaces have been shown to place "doctor" closer to "he" than "she," and to link "programmer" more with male terms.</p></div>
+                <div class="fade-up"><p>Researchers work on <strong>debiasing</strong> – for example, subtracting a learned "gender direction" from the vectors, or training the model adversarially to remove sensitive information. Complete debiasing remains an open challenge, so responsible use requires ongoing auditing, transparent reporting, and attention to the wider impact on society.</p></div>
+            </section>
+
+            <!-- Final Key Takeaway -->
+            <section id="final-takeaway">
+                <div class="section-title fade-up"><i class="fas fa-key"></i> Key Takeaway<span class="title-line"></span></div>
+                <div class="key-box fade-up">
+                    <p>Distributed representations turned words from empty symbols into points in a rich geometric space, where distance and direction carry real meaning. That single shift – from IDs to vectors – is the foundation everything in modern NLP is built on, from search engines to today's large language models.</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script>
+        const observerOptions = { threshold: 0.15, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, observerOptions);
+        document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+        // Interactive cosine similarity widget
+        (function() {
+            const slider = document.getElementById('angleSlider');
+            const angleValue = document.getElementById('angleValue');
+            const cosValue = document.getElementById('cosValue');
+            const cosLabel = document.getElementById('cosLabel');
+            const vLine = document.getElementById('vLine');
+            const vArrow = document.getElementById('vArrow');
+            const vLabel = document.getElementById('vLabel');
+            const cosArc = document.getElementById('cosArc');
+            if (!slider) return;
+
+            const cx = 170, cy = 200, len = 140;
+
+            function update() {
+                const deg = parseInt(slider.value, 10);
+                const rad = deg * Math.PI / 180;
+                const x2 = cx + len * Math.cos(rad);
+                const y2 = cy - len * Math.sin(rad);
+
+                vLine.setAttribute('x2', x2);
+                vLine.setAttribute('y2', y2);
+
+                const backRad = Math.atan2(cy - y2, x2 - cx);
+                const ax = x2 - 14 * Math.cos(backRad);
+                const ay = y2 + 14 * Math.sin(backRad);
+                const perp = backRad + Math.PI / 2;
+                const p1x = ax + 7 * Math.cos(perp), p1y = ay - 7 * Math.sin(perp);
+                const p2x = ax - 7 * Math.cos(perp), p2y = ay + 7 * Math.sin(perp);
+                vArrow.setAttribute('points', `${x2},${y2} ${p1x},${p1y} ${p2x},${p2y}`);
+
+                vLabel.setAttribute('x', x2 + (x2 >= cx ? 10 : -24));
+                vLabel.setAttribute('y', y2 + (y2 < cy ? 4 : -4));
+
+                const arcR = 34;
+                const arcStartX = cx + arcR;
+                const arcStartY = cy;
+                const arcEndX = cx + arcR * Math.cos(rad);
+                const arcEndY = cy - arcR * Math.sin(rad);
+                const largeArc = deg > 180 ? 1 : 0;
+                cosArc.setAttribute('d', `M ${arcStartX} ${arcStartY} A ${arcR} ${arcR} 0 ${largeArc} 0 ${arcEndX} ${arcEndY}`);
+
+                const cos = Math.cos(rad);
+                angleValue.textContent = deg + '°';
+                cosValue.textContent = 'cos(θ) = ' + cos.toFixed(3);
+
+                let label;
+                if (cos > 0.85) label = 'nearly identical direction';
+                else if (cos > 0.4) label = 'high similarity';
+                else if (cos > 0.05) label = 'moderate similarity';
+                else if (cos > -0.05) label = 'unrelated (orthogonal)';
+                else if (cos > -0.6) label = 'dissimilar';
+                else label = 'opposite direction';
+                cosLabel.textContent = label;
+            }
+
+            slider.addEventListener('input', update);
+            update();
+        })();
+    </script>
+</body>
+</html>
