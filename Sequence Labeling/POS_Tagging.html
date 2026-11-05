@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 05 – Part-of-Speech</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            position: relative;
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        .page-nav {
+            position: absolute;
+            top: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(42px, 3.2vw, 52px);
+            height: clamp(42px, 3.2vw, 52px);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: clamp(1rem, 1.3vw, 1.3rem);
+            text-decoration: none;
+            transform: translateY(-50%);
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+            z-index: 2;
+        }
+        .page-nav:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.7);
+            transform: translateY(-50%) scale(1.04);
+        }
+        .page-nav:focus-visible { outline: 3px solid #a8c6e0; outline-offset: 3px; }
+        .page-nav.prev { left: clamp(0.6rem, 1.25vw, 1.25rem); }
+        .page-nav.next { right: clamp(0.6rem, 1.25vw, 1.25rem); }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.4rem;
+        }
+
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 0.5rem;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin: 2.2rem 0 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+        .section-title:first-child { margin-top: 0; }
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        /* ---------- ANIMATIONS ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse { stroke-dashoffset: 0; }
+
+        @keyframes popIn {
+            0% { transform: scale(0.4); opacity: 0; }
+            70% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop { animation: popIn 0.4s ease forwards; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-up, .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line { transition: none; }
+            .pop { animation: none; }
+        }
+
+        /* ---------- INTERACTIVE SENTENCE TAGGER ---------- */
+        .tagger-box {
+            background: #f8faff;
+            border: 1px solid #e9edf2;
+            border-radius: 1rem;
+            padding: 1.8rem;
+            margin: 1.2rem 0 2rem;
+            text-align: center;
+        }
+        .tagger-hint { font-size: 0.9rem; color: #5f7d97; margin-bottom: 1.2rem; }
+        .tagger-hint i { color: #1a4a6e; margin-right: 0.3rem; }
+        .sentence-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; margin-bottom: 1.2rem; }
+
+        .word-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .word-chip .word {
+            background: #ffffff;
+            border: 2px solid #dce5ef;
+            border-radius: 0.7rem;
+            padding: 0.4rem 1rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            transition: border-color 0.25s, transform 0.15s, box-shadow 0.25s;
+        }
+        .word-chip:hover .word { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(11,42,74,0.12); }
+        .word-chip .pos-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 0.15rem 0.7rem;
+            border-radius: 30px;
+            color: #fff;
+            visibility: hidden;
+        }
+        .word-chip.revealed .pos-tag { visibility: visible; }
+        .word-chip.revealed .word { border-color: currentColor; }
+
+        /* tag colours */
+        .t-DET { background: #1a4a6e; }  .c-DET { color: #1a4a6e; }
+        .t-NOUN { background: #157a5b; } .c-NOUN { color: #157a5b; }
+        .t-VERB { background: #b3452c; } .c-VERB { color: #b3452c; }
+        .t-ADP { background: #6b4fa1; }  .c-ADP { color: #6b4fa1; }
+        .t-ADV { background: #a6741b; }  .c-ADV { color: #a6741b; }
+        .t-PROPN { background: #0b2a4a; } .c-PROPN { color: #0b2a4a; }
+
+        .tagger-controls { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+        .btn {
+            background: #1a4a6e;
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 0.45rem 1.3rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.25s, transform 0.15s;
+        }
+        .btn:hover { background: #0b2a4a; transform: translateY(-2px); }
+        .btn.ghost { background: #fff; color: #1a4a6e; border: 1.5px solid #1a4a6e; }
+        .btn.ghost:hover { background: #eef4fa; }
+        .btn:focus-visible { outline: 3px solid #a8c6e0; outline-offset: 2px; }
+
+        /* ---------- AMBIGUITY FLIP ---------- */
+        .ambiguity-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.2rem 0 1.5rem; }
+        .amb-card {
+            flex: 1;
+            min-width: 260px;
+            background: #fef9f0;
+            border: 1px solid #f0e0c0;
+            border-radius: 1rem;
+            padding: 1.4rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .amb-card:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.07); }
+        .amb-card .amb-sentence { font-size: 1.1rem; margin-bottom: 0.6rem; }
+        .amb-card .amb-answer {
+            font-weight: 700;
+            border-radius: 30px;
+            display: inline-block;
+            padding: 0.15rem 0.9rem;
+            color: #fff;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .amb-card.open .amb-answer { opacity: 1; }
+        .amb-card .amb-cta { font-size: 0.8rem; color: #a6741b; margin-top: 0.4rem; }
+        .amb-card.open .amb-cta { display: none; }
+
+        /* ---------- APPLICATION CARDS ---------- */
+        .app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin: 1.2rem 0 1.5rem; }
+        .app-card {
+            background: #f0f6fe;
+            border-radius: 1rem;
+            padding: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(11,42,74,0.1); }
+        .app-card i { color: #1a4a6e; font-size: 1.3rem; }
+        .app-card h4 { margin: 0.45rem 0 0.2rem; font-size: 0.95rem; }
+        .app-card p { font-size: 0.83rem; color: #46617a; }
+
+        /* ---------- TABS (tag sets) ---------- */
+        .tabs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0; }
+        .tab-btn {
+            background: #eef2f8;
+            border: 1px solid #dce5ef;
+            border-bottom: none;
+            border-radius: 0.8rem 0.8rem 0 0;
+            padding: 0.6rem 1.4rem;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #5f7d97;
+            cursor: pointer;
+            transition: background 0.25s, color 0.25s;
+        }
+        .tab-btn.active { background: #f8faff; color: #0b2a4a; border-color: #c9d6e6; position: relative; top: 1px; }
+        .tab-panel {
+            display: none;
+            background: #f8faff;
+            border: 1px solid #c9d6e6;
+            border-radius: 0 1rem 1rem 1rem;
+            padding: 1.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .tab-panel.active { display: block; }
+
+        table.neat {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            margin: 0.8rem 0;
+            background: #fff;
+            border-radius: 0.6rem;
+            overflow: hidden;
+        }
+        table.neat th { background: #1a4a6e; color: #fff; text-align: left; padding: 0.5rem 0.9rem; font-weight: 600; }
+        table.neat td { padding: 0.45rem 0.9rem; border-bottom: 1px solid #eceff5; }
+        table.neat tr:last-child td { border-bottom: none; }
+        table.neat tr:hover td { background: #f0f6fe; }
+
+        .comparison-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.2rem 0 1.5rem; }
+        .comp-col {
+            flex: 1;
+            min-width: 260px;
+            background: #f8faff;
+            border-radius: 1rem;
+            padding: 1.4rem;
+            border: 1px solid #e9edf2;
+        }
+        .comp-col h3 { font-weight: 700; color: #0b2a4a; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.4rem; font-size: 1.02rem; }
+        .comp-col ul { list-style: none; padding: 0; }
+        .comp-col li { padding: 0.35rem 0; border-bottom: 1px solid #eceff5; display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.92rem; }
+        .comp-col li:last-child { border-bottom: none; }
+        .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+        /* ---------- ERA TIMELINE ---------- */
+        .era-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 1.2rem 0 0; }
+        .era-btn {
+            background: #fff;
+            border: 2px solid #dce5ef;
+            border-radius: 1rem;
+            padding: 0.9rem 0.7rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: center;
+            transition: border-color 0.25s, transform 0.2s, box-shadow 0.2s;
+        }
+        .era-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(11,42,74,0.08); }
+        .era-btn.active { border-color: #1a4a6e; background: #eef4fa; }
+        .era-btn .era-num { font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: #a6741b; }
+        .era-btn .era-name { font-weight: 700; color: #0b2a4a; font-size: 0.95rem; }
+        .era-btn .era-ex { font-size: 0.75rem; color: #5f7d97; }
+        .era-btn i { color: #1a4a6e; font-size: 1.15rem; margin-bottom: 0.25rem; }
+
+        .era-panel {
+            display: none;
+            background: #f8faff;
+            border: 1px solid #c9d6e6;
+            border-radius: 1rem;
+            padding: 1.6rem;
+            margin: 1rem 0 1.5rem;
+        }
+        .era-panel.active { display: block; animation: popIn 0.35s ease; }
+        .era-panel h3 { color: #0b2a4a; margin-bottom: 0.6rem; font-size: 1.1rem; }
+        .era-panel h4 { color: #1a4a6e; margin: 1rem 0 0.4rem; font-size: 0.95rem; }
+
+        .prob-pill {
+            display: inline-block;
+            background: #e6f0fa;
+            border: 1px solid #c9d6e6;
+            border-radius: 0.6rem;
+            padding: 0.35rem 0.9rem;
+            font-weight: 600;
+            color: #0b2a4a;
+            margin: 0.2rem 0.3rem 0.2rem 0;
+            font-size: 0.92rem;
+        }
+
+        /* ---------- VITERBI STEPPER ---------- */
+        .viterbi-box {
+            background: #fff;
+            border: 1px solid #dce5ef;
+            border-radius: 1rem;
+            padding: 1.3rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .viterbi-words { display: flex; justify-content: center; gap: 1.2rem; flex-wrap: wrap; margin: 0.8rem 0 1rem; }
+        .v-col { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+        .v-word { font-weight: 600; color: #0b2a4a; }
+        .v-tag {
+            min-width: 3.4rem;
+            padding: 0.25rem 0.7rem;
+            border-radius: 0.6rem;
+            border: 2px dashed #c9d6e6;
+            color: #b6c4d4;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .v-tag.done { border-style: solid; color: #fff; }
+        .v-note { font-size: 0.85rem; color: #5f7d97; min-height: 2.4em; margin-bottom: 0.6rem; }
+
+        /* ---------- QUIZ ---------- */
+        .quiz-box {
+            background: #f8faff;
+            border: 1px solid #e9edf2;
+            border-radius: 1rem;
+            padding: 1.6rem;
+            margin: 1.2rem 0 1.5rem;
+            text-align: center;
+        }
+        .quiz-q { font-size: 1.1rem; margin-bottom: 1rem; }
+        .quiz-q .target { font-weight: 700; color: #b3452c; }
+        .quiz-opts { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+        .quiz-opt {
+            background: #fff;
+            border: 2px solid #dce5ef;
+            border-radius: 30px;
+            padding: 0.4rem 1.3rem;
+            font-family: inherit;
+            font-weight: 600;
+            color: #0b2a4a;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quiz-opt:hover { border-color: #1a4a6e; }
+        .quiz-opt.correct { background: #157a5b; border-color: #157a5b; color: #fff; }
+        .quiz-opt.wrong { background: #b3452c; border-color: #b3452c; color: #fff; }
+        .quiz-feedback { min-height: 1.6em; font-weight: 600; font-size: 0.95rem; }
+        .quiz-progress { font-size: 0.8rem; color: #5f7d97; margin-top: 0.4rem; }
+
+        /* ---------- KEY TAKEAWAY ---------- */
+        .takeaway {
+            background: #e6f0fa;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border-left: 5px solid #1a4a6e;
+        }
+
+        details.tagtable { margin: 0.6rem 0; }
+        details.tagtable summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #1a4a6e;
+            padding: 0.4rem 0;
+        }
+
+
+        /* ---------- EXAMPLE MODAL ---------- */
+        .example-cta { text-align: center; margin-top: 1.4rem; }
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(11,42,74,0.55);
+            display: none; align-items: center; justify-content: center;
+            z-index: 100; padding: 1rem;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: #fff; border-radius: 1.2rem;
+            max-width: 660px; width: 100%; max-height: 90vh;
+            overflow-y: auto; padding: 1.8rem; position: relative;
+            animation: popIn 0.3s ease;
+        }
+        .modal-close {
+            position: absolute; top: 0.7rem; right: 1rem;
+            background: none; border: none; font-size: 1.7rem;
+            color: #5f7d97; cursor: pointer; line-height: 1;
+        }
+        .modal-close:hover { color: #0b2a4a; }
+        .modal-era { font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: #a6741b; }
+        .modal h3 { color: #0b2a4a; margin: 0.2rem 0 0.9rem; font-size: 1.15rem; }
+        .modal-body p { font-size: 0.95rem; margin-bottom: 0.7rem; }
+        .modal-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.2rem; gap: 0.8rem; }
+        .modal-dots { display: flex; gap: 0.4rem; }
+        .modal-dots span { width: 9px; height: 9px; border-radius: 50%; background: #dce5ef; transition: background 0.25s; }
+        .modal-dots span.on { background: #1a4a6e; }
+        .btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+        /* schema helpers used inside modals */
+        .schema-row { display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; margin: 1rem 0; }
+        .schema-word { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+        .schema-word .w { font-weight: 700; color: #0b2a4a; background: #f0f6fe; border-radius: 0.6rem; padding: 0.3rem 0.8rem; }
+        .cand { font-size: 0.72rem; font-weight: 700; color: #fff; border-radius: 20px; padding: 0.1rem 0.55rem; }
+        .cand.cut { opacity: 0.4; text-decoration: line-through; }
+        .rule-note { background: #fef9f0; border: 1px solid #f0e0c0; border-radius: 0.8rem; padding: 0.6rem 1rem; font-size: 0.87rem; margin: 0.5rem 0; }
+        .feat-chip {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            background: #e6f0fa; border: 1px solid #c9d6e6; border-radius: 30px;
+            padding: 0.2rem 0.8rem; font-size: 0.82rem; font-weight: 600; color: #0b2a4a;
+            margin: 0.2rem;
+        }
+        .feat-chip i { color: #157a5b; }
+        .modal-svg-wrap { display: flex; justify-content: center; margin: 0.8rem 0; }
+        .modal-svg-wrap svg { max-width: 100%; height: auto; }
+
+        /* ---------- RESPONSIVE ---------- */
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="presentation-card">
+
+    <!-- Header -->
+    <header class="hero">
+        <a class="page-nav prev" href="Chapter 05.html" aria-label="Previous page" title="Previous page">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <h1>Part-of-Speech (POS) Tagging</h1>
+        <div class="chapter-badge">
+            Tag Every Word, Understand Every Sentence.
+        </div>
+        <a class="page-nav next" href="Named Entity Recognition (NER).html" aria-label="Next lesson" title="Next lesson">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <div class="content">
+
+        <!-- 1. What is POS tagging -->
+        <div class="section-title fade-up">
+            <i class="fas fa-question-circle"></i> What is POS Tagging?
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem;">
+            <strong>Part-of-Speech (POS) Tagging</strong> means giving every word in a sentence its grammatical label:
+            noun, verb, adjective, adverb, and so on. A <em>part of speech</em> is simply the job a word does in the sentence.
+            Humans do this without thinking while reading. A computer, however, needs linguistic knowledge and
+            algorithms to find the role of each word, and that is what this chapter is about.
+        </p>
+
+        <!-- Interactive tagger -->
+        <div class="tagger-box fade-up">
+            <div class="tagger-hint"><i class="fas fa-hand-pointer"></i> Click each word to reveal its tag, or let the computer do it.</div>
+            <div class="sentence-row" id="sentenceRow"></div>
+            <div class="tagger-controls">
+                <button class="btn" id="autoTagBtn"><i class="fas fa-robot"></i>&nbsp; Tag it for me</button>
+                <button class="btn ghost" id="switchBtn"><i class="fas fa-exchange-alt"></i>&nbsp; Try another sentence</button>
+                <button class="btn ghost" id="resetBtn"><i class="fas fa-undo"></i>&nbsp; Reset</button>
+            </div>
+        </div>
+
+        <!-- 2. Ambiguity -->
+        <div class="section-title fade-up">
+            <i class="fas fa-random"></i> One Word, Many Jobs: POS Ambiguity
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up">
+            Many words can belong to <strong>more than one category</strong>. This is called <strong>POS ambiguity</strong>,
+            and it is the main difficulty of tagging. The correct tag depends on the <em>context</em>, the words around it.
+            Click each sentence to see the answer:
+        </p>
+        <div class="ambiguity-grid fade-up">
+            <div class="amb-card" data-tagclass="t-VERB">
+                <div class="amb-sentence">"<strong>Book</strong> a flight."</div>
+                <span class="amb-answer t-VERB">book = VERB</span>
+                <div class="amb-cta"><i class="fas fa-hand-pointer"></i> click to reveal</div>
+            </div>
+            <div class="amb-card" data-tagclass="t-NOUN">
+                <div class="amb-sentence">"The <strong>book</strong> is interesting."</div>
+                <span class="amb-answer t-NOUN">book = NOUN</span>
+                <div class="amb-cta"><i class="fas fa-hand-pointer"></i> click to reveal</div>
+            </div>
+            <div class="amb-card" data-tagclass="t-VERB">
+                <div class="amb-sentence">"I <strong>can</strong> swim."</div>
+                <span class="amb-answer t-VERB">can = MODAL VERB</span>
+                <div class="amb-cta"><i class="fas fa-hand-pointer"></i> click to reveal</div>
+            </div>
+            <div class="amb-card" data-tagclass="t-NOUN">
+                <div class="amb-sentence">"I bought a <strong>can</strong> of juice."</div>
+                <span class="amb-answer t-NOUN">can = NOUN</span>
+                <div class="amb-cta"><i class="fas fa-hand-pointer"></i> click to reveal</div>
+            </div>
+        </div>
+        <div class="comparison-grid fade-up">
+            <div class="comp-col">
+                <h3><i class="fas fa-book"></i> Lexical information</h3>
+                <ul>
+                    <li><i class="fas fa-info-circle"></i> What the word usually is, on its own</li>
+                    <li><i class="fas fa-check"></i> "run" is most often a verb</li>
+                    <li><i class="fas fa-lock"></i> Some words never change: "the" is always a determiner</li>
+                </ul>
+            </div>
+            <div class="comp-col">
+                <h3><i class="fas fa-sitemap"></i> Contextual information</h3>
+                <ul>
+                    <li><i class="fas fa-info-circle"></i> The job the word does in <em>this</em> sentence</li>
+                    <li><i class="fas fa-check"></i> "a run in my stockings" → here "run" is a noun</li>
+                    <li><i class="fas fa-balance-scale"></i> A good tagger balances both kinds of information</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 3. Why it matters -->
+        <div class="section-title fade-up">
+            <i class="fas fa-star"></i> Why is POS Tagging Important?
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up">
+            POS tags describe the <strong>structure</strong> of a sentence. That structural information is the
+            foundation of many NLP applications:
+        </p>
+        <div class="app-grid fade-up">
+            <div class="app-card"><i class="fas fa-language"></i><h4>Machine Translation</h4><p>Knowing word roles helps translate correctly.</p></div>
+            <div class="app-card"><i class="fas fa-microphone"></i><h4>Speech Recognition</h4><p>Grammar helps pick the right word among similar sounds.</p></div>
+            <div class="app-card"><i class="fas fa-smile"></i><h4>Sentiment Analysis</h4><p>Adjectives and adverbs often carry the emotion.</p></div>
+            <div class="app-card"><i class="fas fa-user-tag"></i><h4>Named Entity Recognition</h4><p>Proper nouns point to people, places, and companies.</p></div>
+            <div class="app-card"><i class="fas fa-project-diagram"></i><h4>Dependency Parsing</h4><p>Tags are the first step to a full sentence structure.</p></div>
+            <div class="app-card"><i class="fas fa-comments"></i><h4>Chatbots &amp; QA Systems</h4><p>Understanding questions needs word roles ("Book a flight!").</p></div>
+            <div class="app-card"><i class="fas fa-search"></i><h4>Information Retrieval</h4><p>Better search by knowing what words mean grammatically.</p></div>
+            <div class="app-card"><i class="fas fa-file-alt"></i><h4>Text Classification &amp; Summarization</h4><p>Structure helps find what matters in a text.</p></div>
+        </div>
+
+        <!-- 4. Tag sets -->
+        <div class="section-title fade-up">
+            <i class="fas fa-tags"></i> Tag Sets: Which Labels Do We Use?
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem;">
+            Before tagging, we must agree on the <strong>list of possible tags</strong>. Two standards dominate:
+        </p>
+        <div class="fade-up">
+            <div class="tabs" role="tablist">
+                <button class="tab-btn active" data-tab="ptb"><i class="fas fa-flag-usa"></i> Penn Treebank (45 tags)</button>
+                <button class="tab-btn" data-tab="ud"><i class="fas fa-globe"></i> Universal Dependencies (17 tags)</button>
+                <button class="tab-btn" data-tab="choose"><i class="fas fa-balance-scale"></i> Which one to choose?</button>
+            </div>
+
+            <div class="tab-panel active" id="tab-ptb">
+                <p>
+                    The <strong>Penn Treebank</strong> tagset is the historical standard for English. It was used to
+                    annotate the <em>Wall Street Journal</em> corpus (about <strong>1 million words</strong>).
+                    Its 45 tags split categories by <strong>inflection</strong>, a design that fits English morphology well.
+                    For example, English verbs get <strong>six different tags</strong>:
+                </p>
+                <table class="neat">
+                    <tr><th>Tag</th><th>Meaning</th><th>Example</th></tr>
+                    <tr><td>VB</td><td>Verb, base form</td><td><em>go</em></td></tr>
+                    <tr><td>VBD</td><td>Verb, past tense</td><td><em>went</em></td></tr>
+                    <tr><td>VBG</td><td>Verb, gerund / -ing</td><td><em>going</em></td></tr>
+                    <tr><td>VBN</td><td>Verb, past participle</td><td><em>gone</em></td></tr>
+                    <tr><td>VBP</td><td>Verb, present (not 3rd person)</td><td><em>go</em> (they go)</td></tr>
+                    <tr><td>VBZ</td><td>Verb, present 3rd person</td><td><em>goes</em></td></tr>
+                </table>
+                <p style="font-size: 0.9rem; color: #46617a;">
+                    Other frequent tags: <span class="prob-pill">DT (determiner)</span>
+                    <span class="prob-pill">NN / NNS (noun sing. / plur.)</span>
+                    <span class="prob-pill">NNP (proper noun)</span>
+                    <span class="prob-pill">JJ (adjective)</span>
+                    <span class="prob-pill">RB (adverb)</span>
+                    <span class="prob-pill">PRP (pronoun)</span>
+                </p>
+            </div>
+
+            <div class="tab-panel" id="tab-ud">
+                <p>
+                    The <strong>Universal Dependencies (UD)</strong> project created a <strong>cross-linguistic</strong> tag
+                    set of only <strong>17 UPOS tags</strong>, designed to work the same way in every language. It now covers
+                    <strong>200+ treebanks in more than 100 languages</strong>. All six Penn verb tags merge into one
+                    <strong>VERB</strong> tag; details like tense are stored as separate morphological features instead.
+                </p>
+                <details class="tagtable" open>
+                    <summary><i class="fas fa-table"></i> Show the 17 UPOS tags</summary>
+                    <table class="neat">
+                        <tr><th>Tag</th><th>Description</th><th>Tag</th><th>Description</th></tr>
+                        <tr><td>ADJ</td><td>Adjective</td><td>NUM</td><td>Numeral</td></tr>
+                        <tr><td>ADP</td><td>Adposition (pre/postposition)</td><td>PART</td><td>Particle</td></tr>
+                        <tr><td>ADV</td><td>Adverb</td><td>PRON</td><td>Pronoun</td></tr>
+                        <tr><td>AUX</td><td>Auxiliary verb</td><td>PROPN</td><td>Proper noun</td></tr>
+                        <tr><td>CCONJ</td><td>Coordinating conjunction</td><td>PUNCT</td><td>Punctuation</td></tr>
+                        <tr><td>DET</td><td>Determiner</td><td>SCONJ</td><td>Subordinating conjunction</td></tr>
+                        <tr><td>INTJ</td><td>Interjection</td><td>SYM</td><td>Symbol</td></tr>
+                        <tr><td>NOUN</td><td>Common noun</td><td>VERB</td><td>Verb</td></tr>
+                        <tr><td>X</td><td>Other (unclassifiable)</td><td></td><td></td></tr>
+                    </table>
+                </details>
+            </div>
+
+            <div class="tab-panel" id="tab-choose">
+                <div class="comparison-grid" style="margin-top: 0;">
+                    <div class="comp-col">
+                        <h3><i class="fas fa-flag-usa"></i> Choose Penn Treebank when…</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> You work on English only</li>
+                            <li><i class="fas fa-check"></i> You use existing English tools (NLTK, spaCy English)</li>
+                            <li><i class="fas fa-check"></i> Your task needs fine verb distinctions (tense, person)</li>
+                            <li><i class="fas fa-check"></i> You need compatibility with older resources</li>
+                        </ul>
+                    </div>
+                    <div class="comp-col">
+                        <h3><i class="fas fa-globe"></i> Choose Universal Dependencies when…</h3>
+                        <ul>
+                            <li><i class="fas fa-check"></i> You build multilingual systems</li>
+                            <li><i class="fas fa-check"></i> You work with non-English languages</li>
+                            <li><i class="fas fa-check"></i> Cross-language consistency is the priority</li>
+                            <li><i class="fas fa-check"></i> You use UD treebanks for parsing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Four generations -->
+        <div class="section-title fade-up">
+            <i class="fas fa-history"></i> How Do We Tag Automatically? Four Generations
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up">
+            Tagging techniques evolved from hand-written rules to deep neural networks.
+            Click each generation to explore it:
+        </p>
+        <div class="era-strip fade-up">
+            <button class="era-btn active" data-era="1">
+                <i class="fas fa-pen-ruler"></i>
+                <div class="era-num">GENERATION 1</div>
+                <div class="era-name">Rule-Based</div>
+                <div class="era-ex">Handwritten grammar rules</div>
+            </button>
+            <button class="era-btn" data-era="2">
+                <i class="fas fa-dice"></i>
+                <div class="era-num">GENERATION 2</div>
+                <div class="era-name">Statistical</div>
+                <div class="era-ex">HMM · Maximum Entropy</div>
+            </button>
+            <button class="era-btn" data-era="3">
+                <i class="fas fa-cogs"></i>
+                <div class="era-num">GENERATION 3</div>
+                <div class="era-name">Machine Learning</div>
+                <div class="era-ex">CRF · SVM</div>
+            </button>
+            <button class="era-btn" data-era="4">
+                <i class="fas fa-brain"></i>
+                <div class="era-num">GENERATION 4</div>
+                <div class="era-name">Deep Learning</div>
+                <div class="era-ex">BiLSTM · Transformers</div>
+            </button>
+        </div>
+
+        <!-- Era 1 -->
+        <div class="era-panel active" id="era-1">
+            <h3><i class="fas fa-pen-ruler"></i> Rule-Based Taggers</h3>
+            <p>
+                The earliest systems use <strong>rules written by hand</strong> by language experts, so they do not learn
+                from data. A dictionary first lists all possible tags for a word; then rules
+                (the <em>Constraint Grammar</em> approach) remove the wrong ones using context.
+                Example rule: <em>"if the previous word is an article like 'the', remove the verb tag."</em>
+            </p>
+            <h4>Example rules</h4>
+            <table class="neat">
+                <tr><th>Rule</th><th>Assigned tag</th></tr>
+                <tr><td>Word ends with "-ly"</td><td>Adverb (RB)</td></tr>
+                <tr><td>Word ends with "-ing"</td><td>Verb gerund (VBG)</td></tr>
+                <tr><td>Word starts with a capital letter</td><td>Proper noun (NNP)</td></tr>
+                <tr><td>Word comes after "the"</td><td>Probably a noun</td></tr>
+            </table>
+            <p style="font-size: 0.95rem;">
+                "The boy is <strong>running quickly</strong>" → <em>running</em> ends with "-ing" → <strong>VBG</strong>;
+                <em>quickly</em> ends with "-ly" → <strong>RB</strong>.
+            </p>
+            <div class="comparison-grid">
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-up"></i> Advantages</h3>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Easy to understand</li>
+                        <li><i class="fas fa-check"></i> No training data needed</li>
+                        <li><i class="fas fa-check"></i> Every decision is transparent</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-thumbs-down"></i> Disadvantages</h3>
+                    <ul>
+                        <li><i class="fas fa-times"></i> Hard to maintain</li>
+                        <li><i class="fas fa-times"></i> Cannot cover every case of a language</li>
+                        <li><i class="fas fa-times"></i> Weak on ambiguous words</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="example-cta"><button class="btn example-btn" data-era="1"><i class="fas fa-globe"></i>&nbsp; Real-world example</button></div>
+        </div>
+
+        <!-- Era 2 -->
+        <div class="era-panel" id="era-2">
+            <h3><i class="fas fa-dice"></i> Statistical Taggers: Learning from Data</h3>
+            <p>
+                Instead of writing rules, statistical taggers <strong>learn probabilities</strong> from a
+                <strong>tagged corpus</strong>: a collection of sentences where every word already has its correct tag, like
+            </p>
+            <p style="font-family: monospace; background: #fff; border-radius: 0.6rem; padding: 0.7rem 1rem; margin: 0.7rem 0; font-size: 0.92rem;">
+                The/DT cat/NN sleeps/VBZ &nbsp;·&nbsp; Students/NNS study/VBP NLP/NNP &nbsp;·&nbsp; She/PRP reads/VBZ books/NNS
+            </p>
+            <p>The goal: find the <strong>most probable sequence of tags</strong> for a whole sentence. Two probabilities are estimated by counting in the corpus:</p>
+
+            <h4><i class="fas fa-arrow-down"></i> Emission probability: P(word | tag)</h4>
+            <p style="font-size: 0.95rem;">
+                How likely is this <em>word</em>, given this <em>tag</em>? If the tag NN appears 100 times, and "cat" is
+                tagged NN 10 of those times: <span class="prob-pill">P(cat | NN) = 10 / 100 = 0.10</span>
+            </p>
+
+            <h4><i class="fas fa-arrow-right"></i> Transition probability: P(tag₂ | tag₁)</h4>
+            <p style="font-size: 0.95rem;">
+                How likely does one tag <em>follow</em> another? If DT appears 600 times and is followed by NN 500 times:
+                <span class="prob-pill">P(NN | DT) = 500 / 600 ≈ 0.83</span>, so a noun very often follows a determiner.
+            </p>
+
+            <h4><i class="fas fa-eye-slash"></i> Hidden Markov Model (HMM)</h4>
+            <p style="font-size: 0.95rem;">
+                In an HMM, the <strong>words are observed</strong> but the <strong>tags are hidden</strong>, so the model must
+                guess the hidden sequence. It combines both probabilities to pick the best tags:
+                <span class="prob-pill">Best tags = argmax P(Words | Tags) × P(Tags)</span>
+            </p>
+            <div style="display: flex; justify-content: center; margin: 1rem 0;">
+                <svg class="draw-svg" width="460" height="170" viewBox="0 0 460 170" xmlns="http://www.w3.org/2000/svg" aria-label="HMM diagram: hidden tags emit observed words">
+                    <!-- hidden tags -->
+                    <circle cx="90" cy="45" r="26" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <circle cx="230" cy="45" r="26" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <circle cx="370" cy="45" r="26" fill="rgba(26,74,110,0.08)" stroke="#1a4a6e" stroke-width="2"/>
+                    <line x1="118" y1="45" x2="202" y2="45" stroke="#1a4a6e" stroke-width="2"/>
+                    <line x1="258" y1="45" x2="342" y2="45" stroke="#1a4a6e" stroke-width="2"/>
+                    <!-- emissions -->
+                    <line x1="90" y1="73" x2="90" y2="112" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <line x1="230" y1="73" x2="230" y2="112" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <line x1="370" y1="73" x2="370" y2="112" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <rect x="55" y="115" width="70" height="30" rx="8" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+                    <rect x="195" y="115" width="70" height="30" rx="8" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+                    <rect x="335" y="115" width="70" height="30" rx="8" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="90" y="50" font-size="13" fill="#0b2a4a" font-weight="700" text-anchor="middle">DT</text>
+                    <text x="230" y="50" font-size="13" fill="#0b2a4a" font-weight="700" text-anchor="middle">NN</text>
+                    <text x="370" y="50" font-size="13" fill="#0b2a4a" font-weight="700" text-anchor="middle">VBZ</text>
+                    <text x="90" y="135" font-size="12" fill="#0b2a4a" text-anchor="middle">The</text>
+                    <text x="230" y="135" font-size="12" fill="#0b2a4a" text-anchor="middle">cat</text>
+                    <text x="370" y="135" font-size="12" fill="#0b2a4a" text-anchor="middle">sleeps</text>
+                    <text x="160" y="35" font-size="10" fill="#1a4a6e" text-anchor="middle">transition</text>
+                    <text x="132" y="98" font-size="10" fill="#a6741b" text-anchor="middle">emission</text>
+                    <text x="30" y="48" font-size="10" fill="#5f7d97" text-anchor="end">hidden</text>
+                    <text x="30" y="133" font-size="10" fill="#5f7d97" text-anchor="end">observed</text>
+                </svg>
+            </div>
+
+            <h4><i class="fas fa-route"></i> The Viterbi algorithm</h4>
+            <p style="font-size: 0.95rem;">
+                Trying <em>every</em> possible tag sequence is far too expensive. <strong>Viterbi</strong> uses
+                <strong>dynamic programming</strong>: it moves word by word, keeps only the best path to each tag,
+                stores the best previous state, then <strong>backtracks</strong> to recover the winning sequence.
+                Step through it yourself:
+            </p>
+            <div class="viterbi-box">
+                <div style="font-weight: 600; color: #0b2a4a;">Input: "The students study NLP"</div>
+                <div class="viterbi-words">
+                    <div class="v-col"><span class="v-word">The</span><span class="v-tag" id="vt0">?</span></div>
+                    <div class="v-col"><span class="v-word">students</span><span class="v-tag" id="vt1">?</span></div>
+                    <div class="v-col"><span class="v-word">study</span><span class="v-tag" id="vt2">?</span></div>
+                    <div class="v-col"><span class="v-word">NLP</span><span class="v-tag" id="vt3">?</span></div>
+                </div>
+                <div class="v-note" id="vNote">Press "Next step" to run Viterbi.</div>
+                <button class="btn" id="vNext"><i class="fas fa-step-forward"></i>&nbsp; Next step</button>
+                <button class="btn ghost" id="vReset"><i class="fas fa-undo"></i>&nbsp; Restart</button>
+            </div>
+
+            <h4><i class="fas fa-layer-group"></i> Maximum Entropy (MaxEnt)</h4>
+            <p style="font-size: 0.95rem;">
+                MaxEnt taggers go one step further: they predict the tag by combining <strong>many features at once</strong>:
+                the current word, the previous and next words, suffixes, capitalization, and the previous predicted tag.
+                Example: the word <em>"Running"</em> ends with "-ing" + starts with a capital + previous word is "is"
+                → prediction: <strong>VBG</strong>. An HMM cannot mix independent features like this.
+            </p>
+            <div class="example-cta"><button class="btn example-btn" data-era="2"><i class="fas fa-globe"></i>&nbsp; Real-world example</button></div>
+        </div>
+
+        <!-- Era 3 -->
+        <div class="era-panel" id="era-3">
+            <h3><i class="fas fa-cogs"></i> Discriminative Machine Learning: CRF</h3>
+            <p>
+                <strong>Conditional Random Fields (CRF)</strong> became one of the most successful sequence-labeling
+                models. Unlike an HMM, which mainly looks at the previous tag, a CRF can use
+                <strong>arbitrary, overlapping features</strong> and considers <strong>the whole sentence</strong> before
+                assigning tags. It can ask questions like: <em>Does the word end in "-ly"? Is it capitalized?
+                What is the word two positions ahead?</em>
+            </p>
+            <div class="comp-col" style="margin-top: 1rem;">
+                <h3><i class="fas fa-thumbs-up"></i> Why CRFs work so well</h3>
+                <ul>
+                    <li><i class="fas fa-check"></i> Uses many features at the same time</li>
+                    <li><i class="fas fa-check"></i> Reduces the label bias problem</li>
+                    <li><i class="fas fa-check"></i> Predictions are globally consistent over the sentence</li>
+                    <li><i class="fas fa-check"></i> Excellent for any sequence-labeling task</li>
+                </ul>
+            </div>
+            <div class="example-cta"><button class="btn example-btn" data-era="3"><i class="fas fa-globe"></i>&nbsp; Real-world example</button></div>
+        </div>
+
+        <!-- Era 4 -->
+        <div class="era-panel" id="era-4">
+            <h3><i class="fas fa-brain"></i> Deep Learning: No More Handcrafted Features</h3>
+            <p>
+                All previous models needed <strong>features designed by humans</strong>. Neural networks
+                <strong>learn useful representations automatically</strong> from data, and capture long-distance
+                context far better than HMMs. Today's state-of-the-art taggers are all neural.
+            </p>
+            <div class="comparison-grid">
+                <div class="comp-col">
+                    <h3><i class="fas fa-arrows-alt-h"></i> RNN / LSTM &amp; BiLSTM</h3>
+                    <ul>
+                        <li><i class="fas fa-long-arrow-alt-right"></i> RNNs / LSTMs read the sentence word by word and remember earlier context</li>
+                        <li><i class="fas fa-exchange-alt"></i> A <strong>BiLSTM</strong> reads it in <em>both directions</em> (forward + backward)</li>
+                        <li><i class="fas fa-check"></i> Each word gets a fully contextual representation before it is classified</li>
+                        <li><i class="fas fa-trophy"></i> The most popular neural architecture for POS tagging</li>
+                    </ul>
+                </div>
+                <div class="comp-col">
+                    <h3><i class="fas fa-bolt"></i> Transformers (BERT)</h3>
+                    <ul>
+                        <li><i class="fas fa-eye"></i> Use <strong>self-attention</strong>: every word looks at every other word at the same time</li>
+                        <li><i class="fas fa-weight-hanging"></i> Attention weighs how important each word is for each other word</li>
+                        <li><i class="fas fa-medal"></i> Reach near-perfect, human-level tagging accuracy</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="example-cta"><button class="btn example-btn" data-era="4"><i class="fas fa-globe"></i>&nbsp; Real-world example</button></div>
+        </div>
+
+        <!-- 6. Quiz -->
+        <div class="section-title fade-up">
+            <i class="fas fa-graduation-cap"></i> Quick Check: Can You Tag?
+            <span class="title-line"></span>
+        </div>
+        <div class="quiz-box fade-up">
+            <div class="quiz-q" id="quizQ"></div>
+            <div class="quiz-opts" id="quizOpts"></div>
+            <div class="quiz-feedback" id="quizFb"></div>
+            <div class="quiz-progress" id="quizProg"></div>
+        </div>
+
+        <!-- 7. Key takeaway -->
+        <div class="section-title fade-up">
+            <i class="fas fa-key"></i> Key Takeaway
+            <span class="title-line"></span>
+        </div>
+        <div class="takeaway fade-up">
+            <p style="font-weight: 500; font-size: 1.05rem;">
+                POS tagging gives every word its grammatical role. It is the first structural step toward understanding a
+                sentence. Its main enemy is <strong>ambiguity</strong>, and its history is the history of NLP itself:
+                from handwritten rules, to counted probabilities (HMM + Viterbi), to feature-rich learners (MaxEnt, CRF),
+                to neural networks (BiLSTM, Transformers) that learn everything from data.
+            </p>
+        </div>
+
+    </div> <!-- /content -->
+</div> <!-- /presentation-card -->
+
+
+<!-- Real-world example modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+        <div class="modal-era" id="modalEra"></div>
+        <h3 id="modalTitle"></h3>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-nav">
+            <button class="btn ghost" id="modalPrev"><i class="fas fa-chevron-left"></i>&nbsp; Previous</button>
+            <div class="modal-dots" id="modalDots"></div>
+            <button class="btn" id="modalNext">Next &nbsp;<i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    /* ---------- Scroll animations ---------- */
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.2, rootMargin: "0px 0px -50px 0px" });
+    document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+    /* ---------- Interactive sentence tagger ---------- */
+    const sentences = [
+        [["The","DET"],["cat","NOUN"],["sleeps","VERB"],["on","ADP"],["the","DET"],["mat","NOUN"],[".",null]],
+        [["The","DET"],["students","NOUN"],["study","VERB"],["NLP","PROPN"],["carefully","ADV"],[".",null]]
+    ];
+    let sIdx = 0;
+    const row = document.getElementById('sentenceRow');
+
+    function buildSentence() {
+        row.innerHTML = '';
+        sentences[sIdx].forEach(([w, tag]) => {
+            if (!tag) return; // skip punctuation chip
+            const chip = document.createElement('div');
+            chip.className = 'word-chip c-' + tag;
+            chip.setAttribute('role', 'button');
+            chip.setAttribute('tabindex', '0');
+            chip.innerHTML = '<span class="word">' + w + '</span><span class="pos-tag t-' + tag + '">' + tag + '</span>';
+            const reveal = () => {
+                if (chip.classList.contains('revealed')) return;
+                chip.classList.add('revealed');
+                chip.querySelector('.pos-tag').classList.add('pop');
+            };
+            chip.addEventListener('click', reveal);
+            chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); reveal(); } });
+        row.appendChild(chip);
+        });
+    }
+    buildSentence();
+
+    document.getElementById('autoTagBtn').addEventListener('click', () => {
+        const chips = [...row.querySelectorAll('.word-chip:not(.revealed)')];
+        chips.forEach((c, i) => setTimeout(() => {
+            c.classList.add('revealed');
+            c.querySelector('.pos-tag').classList.add('pop');
+        }, i * 350));
+    });
+    document.getElementById('switchBtn').addEventListener('click', () => { sIdx = 1 - sIdx; buildSentence(); });
+    document.getElementById('resetBtn').addEventListener('click', buildSentence);
+
+    /* ---------- Ambiguity cards ---------- */
+    document.querySelectorAll('.amb-card').forEach(card => {
+        card.addEventListener('click', () => card.classList.toggle('open'));
+    });
+
+    /* ---------- Tabs ---------- */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    /* ---------- Era panels ---------- */
+    document.querySelectorAll('.era-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.era-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.era-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('era-' + btn.dataset.era).classList.add('active');
+        });
+    });
+
+    /* ---------- Viterbi stepper ---------- */
+    const vSteps = [
+        { note: "Step 1. Initialize: compute the probability of each starting tag for \"The\". Best: DT.", tag: 0, label: "DT", cls: "t-DET" },
+        { note: "Step 2. Recursion: for \"students\", keep only the best path to each tag. P(NNS|DT) is high → NNS.", tag: 1, label: "NNS", cls: "t-NOUN" },
+        { note: "Step 3. Continue: after a plural noun, a present verb is likely → VBP. The best previous state is stored.", tag: 2, label: "VBP", cls: "t-VERB" },
+        { note: "Step 4. Last word: \"NLP\" is capitalized, emission favors a proper noun → NNP.", tag: 3, label: "NNP", cls: "t-PROPN" },
+        { note: "Step 5. Backtrack through stored states. Final output: DT NNS VBP NNP ✔", tag: -1 }
+    ];
+    let vStep = 0;
+    const vNote = document.getElementById('vNote');
+    document.getElementById('vNext').addEventListener('click', () => {
+        if (vStep >= vSteps.length) return;
+        const s = vSteps[vStep];
+        vNote.textContent = s.note;
+        if (s.tag >= 0) {
+            const el = document.getElementById('vt' + s.tag);
+            el.textContent = s.label;
+            el.classList.add('done', s.cls, 'pop');
+        }
+        vStep++;
+        if (vStep === vSteps.length) document.getElementById('vNext').style.opacity = 0.4;
+    });
+    document.getElementById('vReset').addEventListener('click', () => {
+        vStep = 0;
+        vNote.textContent = 'Press "Next step" to run Viterbi.';
+        for (let i = 0; i < 4; i++) {
+            const el = document.getElementById('vt' + i);
+            el.textContent = '?';
+            el.className = 'v-tag';
+        }
+        document.getElementById('vNext').style.opacity = 1;
+    });
+
+    /* ---------- Quiz ---------- */
+    const quiz = [
+        { s: 'The boy is <span class="target">running</span> quickly.', opts: ["NOUN", "VBG (verb gerund)", "ADV"], correct: 1,
+          why: "It ends with \"-ing\" and follows \"is\" → verb gerund." },
+        { s: '"<span class="target">Book</span> a flight."', opts: ["NOUN", "VERB", "ADJ"], correct: 1,
+          why: "It starts a command, so \"book\" is an action." },
+        { s: 'She reads <span class="target">books</span>.', opts: ["VERB", "NOUN", "DET"], correct: 1,
+          why: "It is the thing being read, a plural noun (NNS)." },
+        { s: 'In UD, how many universal POS tags exist?', opts: ["17", "45", "100"], correct: 0,
+          why: "UD uses 17 UPOS tags; Penn Treebank uses 45." }
+    ];
+    let qIdx = 0, qDone = false;
+    const qQ = document.getElementById('quizQ'), qO = document.getElementById('quizOpts'),
+          qF = document.getElementById('quizFb'), qP = document.getElementById('quizProg');
+
+    function loadQuiz() {
+        qDone = false;
+        const q = quiz[qIdx];
+        qQ.innerHTML = q.s;
+        qF.textContent = '';
+        qP.textContent = 'Question ' + (qIdx + 1) + ' of ' + quiz.length;
+        qO.innerHTML = '';
+        q.opts.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.className = 'quiz-opt';
+            b.textContent = o;
+            b.addEventListener('click', () => {
+                if (qDone) return;
+                qDone = true;
+                if (i === q.correct) {
+                    b.classList.add('correct');
+                    qF.style.color = '#157a5b';
+                    qF.textContent = '✔ Correct! ' + q.why;
+                } else {
+                    b.classList.add('wrong');
+                    qO.children[q.correct].classList.add('correct');
+                    qF.style.color = '#b3452c';
+                    qF.textContent = '✘ Not quite. ' + q.why;
+                }
+                setTimeout(() => { qIdx = (qIdx + 1) % quiz.length; loadQuiz(); }, 3200);
+            });
+            qO.appendChild(b);
+        });
+    }
+    loadQuiz();
+
+    /* ---------- Real-world example modals ---------- */
+    const modalData = {
+        1: {
+            era: "GENERATION 1 · RULE-BASED",
+            title: "Real world: grammar checkers",
+            slides: [
+                `<p><strong>Where was it used?</strong> Early grammar checkers in word processors, and the famous <strong>EngCG (Constraint Grammar)</strong> system that tagged newspaper text in the 1990s with thousands of hand-written rules.</p>
+                 <p>Task: tag <em>"The running water is cold."</em></p>
+                 <p><strong>Step A: dictionary lookup.</strong> The dictionary lists every possible tag for each word:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">The</span><span class="cand t-DET">DT</span></div>
+                    <div class="schema-word"><span class="w">running</span><span class="cand t-VERB">VBG</span><span class="cand t-ADV" style="background:#6b4fa1;">JJ</span></div>
+                    <div class="schema-word"><span class="w">water</span><span class="cand t-NOUN">NN</span><span class="cand t-VERB">VB</span></div>
+                    <div class="schema-word"><span class="w">is</span><span class="cand t-VERB">VBZ</span></div>
+                    <div class="schema-word"><span class="w">cold</span><span class="cand" style="background:#6b4fa1;">JJ</span><span class="cand t-NOUN">NN</span></div>
+                 </div>
+                 <p>Three words are ambiguous. Now the rules must remove the wrong candidates.</p>`,
+                `<p><strong>Step B: apply the constraint rules.</strong> Each rule crosses out an impossible tag:</p>
+                 <div class="rule-note"><i class="fas fa-gavel"></i> Rule 1: a verb cannot come directly after "the" → remove VBG for <em>running</em>.</div>
+                 <div class="rule-note"><i class="fas fa-gavel"></i> Rule 2: the subject just before "is" must be a noun → remove VB for <em>water</em>.</div>
+                 <div class="rule-note"><i class="fas fa-gavel"></i> Rule 3: after "is", a describing word is an adjective → remove NN for <em>cold</em>.</div>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">The</span><span class="cand t-DET">DT</span></div>
+                    <div class="schema-word"><span class="w">running</span><span class="cand t-VERB cut">VBG</span><span class="cand" style="background:#6b4fa1;">JJ</span></div>
+                    <div class="schema-word"><span class="w">water</span><span class="cand t-NOUN">NN</span><span class="cand t-VERB cut">VB</span></div>
+                    <div class="schema-word"><span class="w">is</span><span class="cand t-VERB">VBZ</span></div>
+                    <div class="schema-word"><span class="w">cold</span><span class="cand" style="background:#6b4fa1;">JJ</span><span class="cand t-NOUN cut">NN</span></div>
+                 </div>`,
+                `<p><strong>Result:</strong> one tag survives for every word:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">The</span><span class="cand t-DET">DT</span></div>
+                    <div class="schema-word"><span class="w">running</span><span class="cand" style="background:#6b4fa1;">JJ</span></div>
+                    <div class="schema-word"><span class="w">water</span><span class="cand t-NOUN">NN</span></div>
+                    <div class="schema-word"><span class="w">is</span><span class="cand t-VERB">VBZ</span></div>
+                    <div class="schema-word"><span class="w">cold</span><span class="cand" style="background:#6b4fa1;">JJ</span></div>
+                 </div>
+                 <p><strong>The lesson:</strong> it works, and every decision can be explained. But a real language needs thousands of such rules, written and maintained by experts, and unusual sentences still break them. This is exactly why the next generation decided to <em>learn from data</em> instead.</p>`
+            ]
+        },
+        2: {
+            era: "GENERATION 2 · STATISTICAL (HMM)",
+            title: "Real world: speech recognition and predictive keyboards",
+            slides: [
+                `<p><strong>Where is it used?</strong> Speech recognition and the predictive keyboard of your phone. When you dictate <em>"I want to book a flight"</em>, the system hears the sound of "book" but must decide the grammar: verb or noun? The answer changes which words it suggests next.</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">to</span><span class="cand" style="background:#5f7d97;">TO</span></div>
+                    <div class="schema-word"><span class="w">book</span><span class="cand t-VERB">VB ?</span><span class="cand t-NOUN">NN ?</span></div>
+                 </div>
+                 <p>An HMM answers with counted probabilities, not with rules.</p>`,
+                `<p><strong>The two paths compete.</strong> The transition probability strongly prefers a verb after "to":</p>
+                 <div class="modal-svg-wrap">
+                 <svg width="480" height="285" viewBox="0 0 480 285" xmlns="http://www.w3.org/2000/svg" aria-label="HMM trellis: TO to VB wins over TO to NN">
+                    <!-- column guides -->
+                    <text x="30" y="112" font-size="10" fill="#5f7d97" text-anchor="middle">hidden</text>
+                    <text x="30" y="245" font-size="10" fill="#5f7d97" text-anchor="middle">observed</text>
+
+                    <!-- transition lines (drawn first, under the nodes) -->
+                    <line x1="118" y1="98" x2="322" y2="58" stroke="#157a5b" stroke-width="4.5" stroke-linecap="round"/>
+                    <line x1="118" y1="118" x2="322" y2="162" stroke="#b3452c" stroke-width="1.5" stroke-dasharray="6 5"/>
+
+                    <!-- emission lines -->
+                    <line x1="118" y1="136" x2="118" y2="222" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <path d="M 358 68 Q 425 145 352 224" fill="none" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <line x1="330" y1="190" x2="330" y2="222" stroke="#a6741b" stroke-width="2" stroke-dasharray="5" opacity="0.55"/>
+
+                    <!-- hidden state nodes -->
+                    <circle cx="118" cy="108" r="28" fill="#eef4fa" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="118" y="113" font-size="14" font-weight="700" fill="#0b2a4a" text-anchor="middle">TO</text>
+
+                    <circle cx="330" cy="55" r="30" fill="rgba(21,122,91,0.12)" stroke="#157a5b" stroke-width="3.5"/>
+                    <text x="330" y="61" font-size="14" font-weight="700" fill="#157a5b" text-anchor="middle">VB</text>
+
+                    <circle cx="330" cy="162" r="28" fill="rgba(179,69,44,0.06)" stroke="#b3452c" stroke-width="1.5" stroke-dasharray="5"/>
+                    <text x="330" y="168" font-size="14" font-weight="700" fill="#b3452c" text-anchor="middle">NN</text>
+
+                    <!-- winner / loser badges -->
+                    <circle cx="368" cy="26" r="12" fill="#157a5b"/>
+                    <text x="368" y="31" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">&#10003;</text>
+                    <text x="386" y="30" font-size="10.5" font-weight="600" fill="#157a5b">winner path</text>
+                    <circle cx="368" cy="188" r="10" fill="#fff" stroke="#b3452c" stroke-width="1.5"/>
+                    <text x="368" y="192" font-size="11" font-weight="700" fill="#b3452c" text-anchor="middle">&#10005;</text>
+
+                    <!-- transition probability pills -->
+                    <rect x="152" y="18" width="150" height="24" rx="12" fill="#fff" stroke="#157a5b" stroke-width="1.5"/>
+                    <text x="227" y="34" font-size="11.5" font-weight="700" fill="#157a5b" text-anchor="middle">P(VB | TO) = high</text>
+                    <rect x="132" y="168" width="164" height="24" rx="12" fill="#fff" stroke="#b3452c" stroke-width="1.2"/>
+                    <text x="214" y="184" font-size="11.5" font-weight="700" fill="#b3452c" text-anchor="middle">P(NN | TO) = very low</text>
+
+                    <!-- emission probability labels -->
+                    <text x="430" y="150" font-size="10.5" font-weight="600" fill="#a6741b" text-anchor="middle">P("book" | VB)</text>
+                    <text x="285" y="212" font-size="10.5" font-weight="600" fill="#a6741b" text-anchor="end" opacity="0.75">P("book" | NN)</text>
+
+                    <!-- observed word boxes -->
+                    <rect x="82" y="224" width="72" height="32" rx="9" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="118" y="245" font-size="13" font-weight="600" fill="#0b2a4a" text-anchor="middle">to</text>
+                    <rect x="294" y="224" width="72" height="32" rx="9" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+                    <text x="330" y="245" font-size="13" font-weight="600" fill="#0b2a4a" text-anchor="middle">book</text>
+
+                    <!-- legend -->
+                    <line x1="82" y1="272" x2="112" y2="272" stroke="#157a5b" stroke-width="4" stroke-linecap="round"/>
+                    <text x="118" y="276" font-size="10" fill="#46617a">strong transition</text>
+                    <line x1="218" y1="272" x2="248" y2="272" stroke="#b3452c" stroke-width="1.5" stroke-dasharray="6 5"/>
+                    <text x="254" y="276" font-size="10" fill="#46617a">weak transition</text>
+                    <line x1="345" y1="272" x2="375" y2="272" stroke="#a6741b" stroke-width="2" stroke-dasharray="5"/>
+                    <text x="381" y="276" font-size="10" fill="#46617a">emission</text>
+                 </svg>
+                 </div>
+                 <p>Both paths also multiply the emission probability of the word "book". The green path wins by far.</p>`,
+                `<p><strong>Viterbi in action.</strong> The algorithm keeps only the best path at each word, so the full sentence is tagged in milliseconds:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">to</span><span class="cand" style="background:#5f7d97;">TO</span></div>
+                    <div class="schema-word"><span class="w">book</span><span class="cand t-VERB">VB</span></div>
+                    <div class="schema-word"><span class="w">a</span><span class="cand t-DET">DT</span></div>
+                    <div class="schema-word"><span class="w">flight</span><span class="cand t-NOUN">NN</span></div>
+                 </div>
+                 <p><strong>The lesson:</strong> no expert wrote a rule for "book". The model simply counted a tagged corpus. The same mathematics still powers autocorrect suggestions today.</p>`
+            ]
+        },
+        3: {
+            era: "GENERATION 3 · MACHINE LEARNING (CRF)",
+            title: "Real world: extracting information from documents",
+            slides: [
+                `<p><strong>Where is it used?</strong> Information extraction systems: sorting CVs automatically, removing patient names from medical records, and classic Named Entity Recognition tools (Stanford NER, early spaCy) were all built on CRFs.</p>
+                 <p>Sentence: <em>"Apple opened a store in Paris."</em></p>
+                 <p>Is <strong>Apple</strong> the fruit (a common noun) or the company (a proper noun)? A CRF decides by combining many clues at once.</p>`,
+                `<p><strong>Many features vote together</strong> for the word "Apple":</p>
+                 <div style="text-align:center; margin: 0.8rem 0;">
+                    <span class="feat-chip"><i class="fas fa-check"></i> Starts with a capital</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> First word of the sentence</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> Next word "opened" is a verb</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> A subject is needed before the verb</span>
+                    <div style="margin: 0.6rem 0; color:#1a4a6e;"><i class="fas fa-arrow-down fa-lg"></i></div>
+                    <div class="schema-word" style="display:inline-flex;"><span class="w">Apple</span><span class="cand t-PROPN">PROPN (company)</span></div>
+                 </div>
+                 <p>An HMM could not mix overlapping clues like these. A CRF can, and it may even look at words two positions ahead.</p>`,
+                `<p><strong>The whole sentence is scored at once.</strong> The CRF does not tag word by word; it chooses the best <em>complete</em> tag sequence, so decisions support each other:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">Apple</span><span class="cand t-PROPN">PROPN</span></div>
+                    <div class="schema-word"><span class="w">opened</span><span class="cand t-VERB">VERB</span></div>
+                    <div class="schema-word"><span class="w">a</span><span class="cand t-DET">DET</span></div>
+                    <div class="schema-word"><span class="w">store</span><span class="cand t-NOUN">NOUN</span></div>
+                    <div class="schema-word"><span class="w">in</span><span class="cand t-ADP">ADP</span></div>
+                    <div class="schema-word"><span class="w">Paris</span><span class="cand t-PROPN">PROPN</span></div>
+                 </div>
+                 <p><strong>The lesson:</strong> "Paris" after the preposition "in", capitalized, is also a proper noun, and the two PROPN decisions make the whole sequence globally consistent. That is why CRFs dominated sequence labeling for a decade.</p>`
+            ]
+        },
+        4: {
+            era: "GENERATION 4 · DEEP LEARNING",
+            title: "Real world: machine translation and voice assistants",
+            slides: [
+                `<p><strong>Where is it used?</strong> Google Translate, voice assistants, and every modern NLP pipeline. Consider:</p>
+                 <p style="text-align:center; font-size:1.05rem;"><em>"I have a <strong>run</strong> in my stockings."</em></p>
+                 <p>If the tagger says VERB, the translation is nonsense. As a NOUN, French gets the correct <em>"une échelle dans mes bas"</em>. No hand-written rule or simple probability handles this well; the model needs the <strong>whole context</strong>.</p>`,
+                `<p><strong>BiLSTM: read in both directions.</strong> One network reads left to right, another right to left. Their two views meet at "run", so the word already knows about "stockings" before it is classified:</p>
+                 <div class="modal-svg-wrap">
+                 <svg width="460" height="150" viewBox="0 0 460 150" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="15" y="60" width="70" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="105" y="60" width="70" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="195" y="60" width="70" height="30" rx="8" fill="#fef9f0" stroke="#a6741b" stroke-width="2.5"/>
+                    <rect x="285" y="60" width="70" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="375" y="60" width="70" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <text x="50" y="80" font-size="12" text-anchor="middle" fill="#0b2a4a">I have</text>
+                    <text x="140" y="80" font-size="12" text-anchor="middle" fill="#0b2a4a">a</text>
+                    <text x="230" y="80" font-size="12" font-weight="700" text-anchor="middle" fill="#0b2a4a">run</text>
+                    <text x="320" y="80" font-size="12" text-anchor="middle" fill="#0b2a4a">in my</text>
+                    <text x="410" y="80" font-size="12" text-anchor="middle" fill="#0b2a4a">stockings</text>
+                    <path d="M 50 55 Q 140 20 225 55" fill="none" stroke="#157a5b" stroke-width="2.5"/>
+                    <text x="130" y="28" font-size="10" fill="#157a5b" font-weight="600">forward →</text>
+                    <path d="M 410 95 Q 320 130 235 95" fill="none" stroke="#6b4fa1" stroke-width="2.5"/>
+                    <text x="300" y="132" font-size="10" fill="#6b4fa1" font-weight="600">← backward</text>
+                 </svg>
+                 </div>
+                 <p>No handcrafted features anywhere: the network learned its own representations from data.</p>`,
+                `<p><strong>Transformers (BERT): attention.</strong> Every word looks at every other word at the same time and weighs how important each one is. For "run", the heaviest attention goes to "stockings":</p>
+                 <div class="modal-svg-wrap">
+                 <svg width="460" height="130" viewBox="0 0 460 130" xmlns="http://www.w3.org/2000/svg">
+                    <text x="50" y="105" font-size="12" text-anchor="middle" fill="#5f7d97">I</text>
+                    <text x="130" y="105" font-size="12" text-anchor="middle" fill="#5f7d97">have</text>
+                    <text x="210" y="105" font-size="12" text-anchor="middle" fill="#5f7d97">a</text>
+                    <text x="290" y="105" font-size="13" font-weight="700" text-anchor="middle" fill="#b3452c">run</text>
+                    <text x="395" y="105" font-size="12" text-anchor="middle" fill="#0b2a4a">stockings</text>
+                    <path d="M 290 90 Q 340 40 393 90" fill="none" stroke="#b3452c" stroke-width="5"/>
+                    <path d="M 290 90 Q 250 55 212 90" fill="none" stroke="#b3452c" stroke-width="2.5" opacity="0.55"/>
+                    <path d="M 290 90 Q 212 30 132 90" fill="none" stroke="#b3452c" stroke-width="1.2" opacity="0.35"/>
+                    <text x="345" y="45" font-size="10" fill="#b3452c" font-weight="600">strong attention</text>
+                 </svg>
+                 </div>
+                 <div class="schema-row"><div class="schema-word"><span class="w">run</span><span class="cand t-NOUN">NOUN ✔</span></div></div>
+                 <p><strong>The lesson:</strong> thanks to attention over the full sentence, modern taggers reach near-perfect, human-level accuracy, and this is the technology inside the tools you use every day.</p>`
+            ]
+        }
+    };
+
+    const mBackdrop = document.getElementById('modalBackdrop');
+    const mEra = document.getElementById('modalEra'), mTitle = document.getElementById('modalTitle'),
+          mBody = document.getElementById('modalBody'), mDots = document.getElementById('modalDots'),
+          mPrev = document.getElementById('modalPrev'), mNext = document.getElementById('modalNext');
+    let mCurrent = null, mSlide = 0;
+
+    function renderSlide() {
+        const d = modalData[mCurrent];
+        mEra.textContent = d.era;
+        mTitle.textContent = d.title;
+        mBody.innerHTML = d.slides[mSlide];
+        mDots.innerHTML = d.slides.map((_, i) => '<span class="' + (i === mSlide ? 'on' : '') + '"></span>').join('');
+        mPrev.disabled = mSlide === 0;
+        mNext.disabled = mSlide === d.slides.length - 1;
+    }
+    function openModal(era) {
+        mCurrent = era; mSlide = 0;
+        renderSlide();
+        mBackdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+        mBackdrop.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    document.querySelectorAll('.example-btn').forEach(b =>
+        b.addEventListener('click', () => openModal(+b.dataset.era)));
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    mBackdrop.addEventListener('click', e => { if (e.target === mBackdrop) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (!mBackdrop.classList.contains('open')) return;
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'ArrowRight' && !mNext.disabled) { mSlide++; renderSlide(); }
+        if (e.key === 'ArrowLeft' && !mPrev.disabled) { mSlide--; renderSlide(); }
+    });
+    mPrev.addEventListener('click', () => { if (mSlide > 0) { mSlide--; renderSlide(); } });
+    mNext.addEventListener('click', () => { if (mSlide < modalData[mCurrent].slides.length - 1) { mSlide++; renderSlide(); } });
+</script>
+
+</body>
+</html>

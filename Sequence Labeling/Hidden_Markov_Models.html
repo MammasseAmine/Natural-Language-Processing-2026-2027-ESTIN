@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chapter 05 – Hidden Markov Models</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: #f4f7fc;
+        color: #1e293b;
+        min-height: 100vh;
+        line-height: 1.6;
+    }
+
+    .presentation-card {
+        width: 100%;
+        background: #ffffff;
+        box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+        overflow: hidden;
+    }
+
+    /* HEADER */
+    .hero {
+        position: relative;
+        background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+        padding: 2rem 3rem;
+        color: #fff;
+        text-align: center;
+    }
+    .page-nav { position: absolute; top: 50%; display: inline-flex; align-items: center; justify-content: center; width: clamp(42px, 3.2vw, 52px); height: clamp(42px, 3.2vw, 52px); color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 50%; background: rgba(255,255,255,0.08); font-size: clamp(1rem, 1.3vw, 1.3rem); text-decoration: none; transform: translateY(-50%); transition: background 0.2s, border-color 0.2s, transform 0.2s; z-index: 2; }
+    .page-nav:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.7); transform: translateY(-50%) scale(1.04); }
+    .page-nav:focus-visible { outline: 3px solid #a8c6e0; outline-offset: 3px; }
+    .page-nav.prev { left: clamp(0.6rem, 1.25vw, 1.25rem); }
+    .page-nav.next { right: clamp(0.6rem, 1.25vw, 1.25rem); }
+    .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+    .hero .chapter-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(4px);
+        padding: 0.3rem 1.5rem;
+        border-radius: 100px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(255,255,255,0.15);
+        margin-top: 0.5rem;
+    }
+
+    .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+    .section-title {
+        font-size: 1.35rem; font-weight: 700; margin-bottom: 1.2rem;
+        display: flex; align-items: center; gap: 0.75rem; color: #0b2a4a;
+    }
+    .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+    .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+    .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse {
+        stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 1.5s ease-in-out;
+    }
+    .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+    .draw-svg.visible line, .draw-svg.visible ellipse { stroke-dashoffset: 0; }
+
+    p { color: #334155; }
+    strong { color: #0b2a4a; }
+
+    /* Hook / ice cream row */
+    .hook-row { display: flex; justify-content: center; gap: 2.2rem; margin: 1.8rem 0 1rem; flex-wrap: wrap; }
+    .hook-day { text-align: center; }
+    .hook-day .clue { font-size: 1.9rem; color: #d97706; margin-bottom: 0.3rem; }
+    .hook-day .arrow { color: #94a3b8; margin: 0.2rem 0; }
+    .hook-day .guess { font-size: 1.9rem; }
+    .hook-day .guess.sun { color: #f59e0b; }
+    .hook-day .guess.rain { color: #1a4a6e; }
+    .hook-day .label { font-size: 0.75rem; color: #64748b; margin-top: 0.3rem; }
+
+    /* Formula card */
+    .formula-card {
+        background: #f0f6fe; border-radius: 1rem; padding: 1.4rem 1.8rem;
+        margin: 1.2rem 0 1.8rem; border-left: 5px solid #1a4a6e;
+    }
+    .formula-card .formula { font-size: 1.15rem; font-weight: 700; color: #0b2a4a; margin-bottom: 0.4rem; }
+    .formula-card .meaning { font-size: 0.92rem; color: #475569; }
+
+    /* Interactive weather chain */
+    .chain-wrap { display: flex; flex-direction: column; align-items: center; margin: 1.5rem 0; }
+    .chain-note {
+        min-height: 2.6rem; text-align: center; font-size: 0.95rem; color: #0b2a4a;
+        font-weight: 500; margin-top: 0.8rem; background: #f8faff; border: 1px solid #e9edf2;
+        border-radius: 0.7rem; padding: 0.6rem 1.2rem; max-width: 480px;
+    }
+    .state-node { cursor: pointer; }
+    .state-node circle { transition: fill 0.3s ease, stroke-width 0.3s ease; }
+    .state-node text { pointer-events: none; }
+
+    /* Toggle button */
+    .toggle-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: #0b2a4a; color: #fff; border: none; padding: 0.6rem 1.3rem;
+        border-radius: 100px; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+        cursor: pointer; margin: 0.5rem auto 1.2rem; transition: background 0.25s ease;
+    }
+    .toggle-btn:hover { background: #1a4a6e; }
+    .hmm-diagram-wrap { display: flex; flex-direction: column; align-items: center; }
+    .hidden-label { transition: opacity 0.4s ease; }
+    .hidden-label.dim { opacity: 0.15; }
+
+    /* Five pieces flip cards */
+    .component-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.2rem; margin: 1.5rem 0 2rem; }
+    .flip-card { perspective: 1000px; height: 150px; cursor: pointer; }
+    .flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+    .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+    .flip-front, .flip-back {
+        position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+        border-radius: 1rem; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; text-align: center; padding: 0.8rem;
+    }
+    .flip-front { background: #f0f6fe; border: 1px solid #dce5ef; }
+    .flip-front .symbol { font-size: 1.8rem; font-weight: 700; color: #0b2a4a; }
+    .flip-front .name { font-size: 0.85rem; color: #475569; margin-top: 0.3rem; }
+    .flip-front .tap { font-size: 0.7rem; color: #94a3b8; margin-top: 0.5rem; }
+    .flip-back {
+        background: #0b2a4a; color: #fff; transform: rotateY(180deg); font-size: 0.82rem;
+    }
+    .flip-back .formula { font-weight: 700; margin-bottom: 0.4rem; font-size: 0.95rem; }
+
+    /* POS demo */
+    .pos-row { display: flex; justify-content: center; gap: 0.8rem; margin: 1.8rem 0 2rem; flex-wrap: wrap; }
+    .pos-item { text-align: center; }
+    .word-chip {
+        background: #fff; border: 2px solid #1a4a6e; color: #0b2a4a; font-weight: 600;
+        padding: 0.6rem 1.1rem; border-radius: 0.7rem; cursor: pointer; font-size: 1rem;
+        transition: background 0.25s ease, transform 0.15s ease;
+    }
+    .word-chip:hover { transform: translateY(-2px); }
+    .word-chip.active { background: #1a4a6e; color: #fff; }
+    .tag-chip {
+        margin-top: 0.6rem; height: 1.8rem; font-size: 0.85rem; font-weight: 600;
+        color: #b45309; opacity: 0; transform: translateY(-6px); transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .tag-chip.shown { opacity: 1; transform: translateY(0); }
+
+    /* comparison grid (advantages/limits) */
+    .comparison-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin: 1.5rem 0 2rem; }
+    .comp-col { flex: 1; min-width: 280px; background: #f8faff; border-radius: 1rem; padding: 1.5rem; border: 1px solid #e9edf2; }
+    .comp-col h3 { font-weight: 700; color: #0b2a4a; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+    .comp-col ul { list-style: none; padding: 0; }
+    .comp-col li { padding: 0.4rem 0; border-bottom: 1px solid #eceff5; display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.95rem; }
+    .comp-col li i { color: #1a4a6e; width: 1.2rem; text-align: center; }
+
+    /* challenge cards */
+    .challenge-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.5rem 0 2rem; }
+    .challenge-card { flex: 1; min-width: 240px; background: #fef9f0; border: 1px solid #f0e0c0; border-radius: 1rem; padding: 1.3rem; }
+    .challenge-card .num { display: inline-flex; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: #1a4a6e; color: #fff; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.6rem; }
+    .challenge-card h4 { color: #0b2a4a; margin-bottom: 0.4rem; font-size: 1rem; }
+    .challenge-card p { font-size: 0.88rem; }
+
+    /* Real-world example modal */
+    .example-btn-wrap { text-align: center; margin: 1.2rem 0 0.5rem; }
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(11,42,74,0.6);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease;
+        z-index: 999; padding: 1.2rem;
+    }
+    .modal-overlay.open { opacity: 1; visibility: visible; }
+    .modal-box {
+        background: #fff; border-radius: 1.2rem; max-width: 660px; width: 100%;
+        max-height: 88vh; overflow-y: auto; padding: 2rem 2.2rem 2.2rem; position: relative;
+        transform: translateY(16px); transition: transform 0.3s ease;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .modal-close {
+        position: absolute; top: 1.1rem; right: 1.1rem; background: #f1f5f9; border: none;
+        width: 2.1rem; height: 2.1rem; border-radius: 50%; color: #475569; cursor: pointer;
+        font-size: 0.9rem; transition: background 0.2s ease;
+    }
+    .modal-close:hover { background: #e2e8f0; }
+    .modal-title { color: #0b2a4a; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.3rem; padding-right: 2rem; }
+    .modal-sub { color: #64748b; font-size: 0.92rem; margin-bottom: 1.3rem; }
+    .modal-tabs { display: flex; gap: 0.6rem; margin-bottom: 1.4rem; border-bottom: 1px solid #e9edf2; }
+    .modal-tab {
+        background: none; border: none; font-family: inherit; font-size: 0.92rem; font-weight: 600;
+        color: #94a3b8; padding: 0.6rem 0.2rem; cursor: pointer; border-bottom: 3px solid transparent;
+        margin-right: 1.2rem; transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .modal-tab.active { color: #0b2a4a; border-bottom-color: #1a4a6e; }
+    .modal-panel { display: none; }
+    .modal-panel.active { display: block; }
+
+    .mini-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 0.9rem; margin: 1rem 0 1.3rem; }
+    .mini-card { background: #f8faff; border: 1px solid #e9edf2; border-radius: 0.8rem; padding: 0.9rem 1rem; }
+    .mini-card .mini-title { color: #0b2a4a; font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
+    .mini-card .mini-title i { color: #1a4a6e; width: 1.1rem; text-align: center; }
+    .mini-card p { font-size: 0.85rem; margin: 0; }
+
+    .sentence-strip { display: flex; justify-content: center; gap: 0.6rem; margin: 0.5rem 0 1.4rem; flex-wrap: wrap; }
+    .sentence-strip .sword { text-align: center; }
+    .sentence-strip .sword .w { background:#fff; border:2px solid #1a4a6e; color:#0b2a4a; font-weight:700; padding:0.45rem 0.8rem; border-radius:0.6rem; font-size:0.95rem; }
+    .sentence-strip .sword .t { margin-top:0.35rem; font-size:0.78rem; font-weight:700; color:#b45309; }
+
+    .step-table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 1.2rem; font-size: 0.86rem; }
+    .step-table th, .step-table td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid #eceff5; }
+    .step-table th { color: #64748b; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .step-table td.term { color: #0b2a4a; font-weight: 600; }
+    .step-table td.val { color: #1a4a6e; font-weight: 700; text-align: right; }
+
+    .final-prob {
+        background: #0b2a4a; color: #fff; border-radius: 0.9rem; padding: 1rem 1.3rem;
+        text-align: center; font-size: 0.95rem; margin-top: 0.6rem;
+    }
+    .final-prob .num { font-size: 1.3rem; font-weight: 700; display: block; margin-top: 0.2rem; }
+
+    .dark-graph-card {
+        background: linear-gradient(160deg, #0b2a4a 0%, #163a5c 100%);
+        border-radius: 1rem; padding: 1.4rem 1rem;
+        display: flex; justify-content: center; margin: 0 0 0.6rem;
+    }
+
+    @media (max-width: 768px) {
+        .hero { padding: 1.8rem 1.5rem; }
+        .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+        .content { padding: 1.8rem 1.5rem; }
+        .hook-row { gap: 1.2rem; }
+    }
+</style>
+</head>
+<body>
+<div class="presentation-card">
+
+    <header class="hero">
+        <a class="page-nav prev" href="Named Entity Recognition (NER).html" aria-label="Previous lesson" title="Previous lesson">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <h1>Hidden Markov Models</h1>
+        <div class="chapter-badge">From What You See to What's Hidden</div>
+        <a class="page-nav next" href="Conditional_Random_Fields.html" aria-label="Next lesson" title="Next lesson">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <div class="content">
+
+        <!-- 1. The Big Idea -->
+        <div class="section-title fade-up"><i class="fas fa-lightbulb"></i> The Big Idea<span class="title-line"></span></div>
+        <p class="fade-up" style="margin-bottom:1.2rem;">
+            You cannot see the weather from inside your room. But you can see how many ice creams your friend eats.
+            Lots of ice cream usually means a sunny day. No ice cream might mean rain. You never see the weather
+            directly. You only see a <strong>clue</strong>, and you guess from there. That single idea is the whole
+            engine behind a <strong>Hidden Markov Model (HMM)</strong>: something real is hidden, and you observe
+            something else that depends on it.
+        </p>
+
+        <div class="hook-row fade-up">
+            <div class="hook-day">
+                <div class="clue"><i class="fas fa-ice-cream"></i><i class="fas fa-ice-cream"></i><i class="fas fa-ice-cream"></i></div>
+                <div class="label">3 ice creams</div>
+                <div class="arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="guess sun"><i class="fas fa-sun"></i></div>
+                <div class="label">probably sunny</div>
+            </div>
+            <div class="hook-day">
+                <div class="clue"><i class="fas fa-ice-cream"></i></div>
+                <div class="label">1 ice cream</div>
+                <div class="arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="guess" style="color:#64748b;"><i class="fas fa-cloud"></i></div>
+                <div class="label">not sure</div>
+            </div>
+            <div class="hook-day">
+                <div class="clue" style="color:#94a3b8;"><i class="far fa-circle"></i></div>
+                <div class="label">0 ice creams</div>
+                <div class="arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="guess rain"><i class="fas fa-cloud-rain"></i></div>
+                <div class="label">probably rain</div>
+            </div>
+        </div>
+
+        <p class="fade-up" style="text-align:center; color:#475569; font-style:italic; margin-bottom:0.5rem;">
+            Hidden = the weather. Observed = the ice cream count. HMMs are used in NLP (guessing word tags),
+            speech recognition (guessing words from sound), and bioinformatics (guessing gene regions from DNA).
+        </p>
+
+        <!-- 2. Markov Chains First -->
+        <div class="section-title fade-up" style="margin-top:2.3rem;"><i class="fas fa-link"></i> Markov Chains, First<span class="title-line"></span></div>
+        <p class="fade-up">
+            Before "hidden" anything, meet the plain <strong>Markov Chain</strong>: a system that moves between
+            states, where the next state only depends on the <em>current</em> state, not on everything that
+            happened before. This short-memory rule is called the <strong>Markov Property</strong>.
+        </p>
+
+        <div class="formula-card fade-up">
+            <div class="formula">P(next state | all past states) &nbsp;≈&nbsp; P(next state | current state)</div>
+            <div class="meaning">Everything before the current state gets compressed away. Only "now" matters for predicting "next". This is what makes the model easy to compute.</div>
+        </div>
+
+        <p class="fade-up" style="margin-bottom:0.5rem;">Tap a weather state below to see where it can go next:</p>
+        <div class="chain-wrap fade-up">
+            <svg class="draw-svg" width="400" height="230" viewBox="0 0 400 230" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                        <path d="M0,0 L9,4.5 L0,9 z" fill="#0b2a4a" />
+                    </marker>
+                </defs>
+
+                <!-- symmetric looping arrows, top and bottom -->
+                <path d="M 130,58 C 165,15 235,15 270,58" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+                <path d="M 270,150 C 235,193 165,193 130,150" fill="none" stroke="#cbd5e1" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+                <text id="lbl-ss" x="200" y="14" text-anchor="middle" font-size="12" fill="#0b2a4a" font-weight="700" opacity="0">Sunny → Sunny  0.7</text>
+                <text id="lbl-sr" x="200" y="40" text-anchor="middle" font-size="12" fill="#0b2a4a" font-weight="700" opacity="0">Sunny → Rainy  0.3</text>
+                <text id="lbl-rs" x="200" y="215" text-anchor="middle" font-size="12" fill="#0b2a4a" font-weight="700" opacity="0">Rainy → Sunny  0.4</text>
+                <text id="lbl-rr" x="200" y="189" text-anchor="middle" font-size="12" fill="#0b2a4a" font-weight="700" opacity="0">Rainy → Rainy  0.6</text>
+
+                <!-- Sunny node -->
+                <g class="state-node" id="node-sunny">
+                    <circle cx="100" cy="104" r="42" fill="#fff7e6" stroke="#f59e0b" stroke-width="2.5"/>
+                    <circle cx="100" cy="88" r="12" fill="#f59e0b"/>
+                    <g stroke="#f59e0b" stroke-width="2.4" stroke-linecap="round">
+                        <line x1="100" y1="68" x2="100" y2="61"/>
+                        <line x1="100" y1="115" x2="100" y2="108"/>
+                        <line x1="80" y1="88" x2="73" y2="88"/>
+                        <line x1="127" y1="88" x2="120" y2="88"/>
+                        <line x1="86" y1="74" x2="81" y2="69"/>
+                        <line x1="114" y1="74" x2="119" y2="69"/>
+                        <line x1="86" y1="102" x2="81" y2="107"/>
+                        <line x1="114" y1="102" x2="119" y2="107"/>
+                    </g>
+                    <text x="100" y="132" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="700">Sunny</text>
+                </g>
+
+                <!-- Rainy node -->
+                <g class="state-node" id="node-rainy">
+                    <circle cx="300" cy="104" r="42" fill="#eaf2fb" stroke="#1a4a6e" stroke-width="2.5"/>
+                    <path d="M 280,90 a 11,11 0 0 1 6,-21 a 14,14 0 0 1 27,3 a 10,10 0 0 1 -3,20 z" fill="#1a4a6e"/>
+                    <g stroke="#1a4a6e" stroke-width="2.2" stroke-linecap="round">
+                        <line x1="288" y1="98" x2="284" y2="110"/>
+                        <line x1="300" y1="98" x2="296" y2="112"/>
+                        <line x1="312" y1="98" x2="308" y2="110"/>
+                    </g>
+                    <text x="300" y="132" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="700">Rainy</text>
+                </g>
+            </svg>
+            <div class="chain-note" id="chain-note">Tap "Sunny" or "Rainy" above to see tomorrow's odds.</div>
+        </div>
+
+        <!-- 3. Add a hidden layer -->
+        <div class="section-title fade-up" style="margin-top:2rem;"><i class="fas fa-eye-slash"></i> Add a Layer You Cannot See<span class="title-line"></span></div>
+        <p class="fade-up">
+            In a plain Markov chain, the states are what you see. In an HMM, the states are <strong>locked away</strong>.
+            Each hidden state only shows you a symbol it "emits", based on its own probabilities. Two different hidden
+            states can even produce the same observation. That is exactly why the state stays hidden.
+        </p>
+
+        <div class="hmm-diagram-wrap fade-up">
+            <button class="toggle-btn" id="hmm-toggle"><i class="fas fa-eye"></i> Reveal the hidden weather</button>
+            <svg width="360" height="210" viewBox="0 0 360 210" xmlns="http://www.w3.org/2000/svg">
+                <text x="180" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600" letter-spacing="1">HIDDEN STATES</text>
+                <g class="hidden-label dim" id="hidden-layer">
+                    <circle cx="110" cy="55" r="26" fill="#fff7e6" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="110" y="60" text-anchor="middle" font-size="11" fill="#b45309" font-weight="700">Sunny</text>
+                    <circle cx="250" cy="55" r="26" fill="#eaf2fb" stroke="#1a4a6e" stroke-width="2"/>
+                    <text x="250" y="60" text-anchor="middle" font-size="11" fill="#0b2a4a" font-weight="700">Rainy</text>
+                </g>
+                <line x1="110" y1="81" x2="110" y2="140" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,4"/>
+                <line x1="250" y1="81" x2="250" y2="140" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="5,4"/>
+                <text x="180" y="165" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600" letter-spacing="1">OBSERVED</text>
+
+                <circle cx="110" cy="150" r="26" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+                <line x1="97" y1="150" x2="123" y2="150" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round"/>
+                <line x1="110" y1="137" x2="110" y2="163" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" transform="rotate(35 110 150)"/>
+                <text x="110" y="165" text-anchor="middle" font-size="8.5" fill="#0b2a4a" font-weight="600">Tennis</text>
+
+                <circle cx="250" cy="150" r="26" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+                <rect x="239" y="140" width="14" height="17" rx="1.5" fill="none" stroke="#7c3aed" stroke-width="2"/>
+                <line x1="246" y1="140" x2="246" y2="157" stroke="#7c3aed" stroke-width="1.6"/>
+                <text x="250" y="165" text-anchor="middle" font-size="8.5" fill="#0b2a4a" font-weight="600">Reading</text>
+            </svg>
+        </div>
+        <p class="fade-up" style="text-align:center; color:#475569; font-style:italic;">
+            You only ever see "tennis" or "reading". The weather that caused it stays hidden, and the model has to infer it.
+        </p>
+
+        <!-- 4. Five pieces -->
+        <div class="section-title fade-up" style="margin-top:2.3rem;"><i class="fas fa-puzzle-piece"></i> The Five Pieces of an HMM<span class="title-line"></span></div>
+        <p class="fade-up">Tap each piece to see what it means. Together, these five things are all an HMM needs.</p>
+
+        <div class="component-grid fade-up">
+            <div class="flip-card"><div class="flip-inner">
+                <div class="flip-front"><div class="symbol">Q</div><div class="name">Hidden states</div><div class="tap">tap to flip</div></div>
+                <div class="flip-back"><div class="formula">Q = {Sunny, Rainy}</div>The set of hidden conditions the system can be in.</div>
+            </div></div>
+            <div class="flip-card"><div class="flip-inner">
+                <div class="flip-front"><div class="symbol">O</div><div class="name">Observations</div><div class="tap">tap to flip</div></div>
+                <div class="flip-back"><div class="formula">O = {o₁ … o_M}</div>The symbols you can actually see, drawn from a fixed vocabulary.</div>
+            </div></div>
+            <div class="flip-card"><div class="flip-inner">
+                <div class="flip-front"><div class="symbol">A</div><div class="name">Transitions</div><div class="tap">tap to flip</div></div>
+                <div class="flip-back"><div class="formula">aᵢⱼ = P(state j at t | state i at t−1)</div>Chance of moving from one hidden state to the next.</div>
+            </div></div>
+            <div class="flip-card"><div class="flip-inner">
+                <div class="flip-front"><div class="symbol">B</div><div class="name">Emissions</div><div class="tap">tap to flip</div></div>
+                <div class="flip-back"><div class="formula">bᵢ(o) = P(observation o | state i)</div>Chance a hidden state produces a given observation.</div>
+            </div></div>
+            <div class="flip-card"><div class="flip-inner">
+                <div class="flip-front"><div class="symbol">π</div><div class="name">Start odds</div><div class="tap">tap to flip</div></div>
+                <div class="flip-back"><div class="formula">πᵢ = P(state i at t = 1)</div>Chance the sequence begins in each hidden state.</div>
+            </div></div>
+        </div>
+        <p class="fade-up" style="text-align:center; color:#475569; font-style:italic;">Every question an HMM answers, likelihood, best path, or learning the parameters, is built from A, B, and π.</p>
+
+        <!-- 5. Worked example -->
+        <div class="section-title fade-up" style="margin-top:2.3rem;"><i class="fas fa-font"></i> Worked Example: Tagging a Sentence<span class="title-line"></span></div>
+        <p class="fade-up">
+            In NLP, the hidden states are often grammar tags, and the observations are the words themselves.
+            Tap each word to reveal its hidden Part-of-Speech tag:
+        </p>
+        <div class="pos-row fade-up" id="pos-row"></div>
+
+        <!-- 6. Advantages / Limitations -->
+        <div class="section-title fade-up" style="margin-top:1.5rem;"><i class="fas fa-balance-scale"></i> Strengths and Weaknesses<span class="title-line"></span></div>
+        <div class="comparison-grid fade-up">
+            <div class="comp-col">
+                <h3><i class="fas fa-thumbs-up"></i> Advantages</h3>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Solid, well-understood probability foundation</li>
+                    <li><i class="fas fa-bolt"></i> Fast, efficient inference algorithms</li>
+                    <li><i class="fas fa-eye"></i> Easy to interpret: every number has a meaning</li>
+                    <li><i class="fas fa-stream"></i> Built for sequences, not single items</li>
+                    <li><i class="fas fa-seedling"></i> Works even with limited training data</li>
+                </ul>
+            </div>
+            <div class="comp-col">
+                <h3><i class="fas fa-thumbs-down"></i> Limitations</h3>
+                <ul>
+                    <li><i class="fas fa-brain"></i> Strong independence assumptions</li>
+                    <li><i class="fas fa-ruler-horizontal"></i> Weak at long-range dependencies</li>
+                    <li><i class="fas fa-language"></i> Struggles with complex language structure</li>
+                    <li><i class="fas fa-chart-line"></i> Outperformed by Transformers on modern NLP</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 7. Where HMMs fall short -->
+        <div class="section-title fade-up"><i class="fas fa-mountain"></i> Where HMMs Fall Short<span class="title-line"></span></div>
+        <div class="challenge-grid fade-up">
+            <div class="challenge-card">
+                <div class="num">1</div>
+                <h4>Short memory</h4>
+                <p>The Markov assumption only looks one step back. Real grammar often depends on much more context.</p>
+            </div>
+            <div class="challenge-card">
+                <div class="num">2</div>
+                <h4>Blind emissions</h4>
+                <p>An emission looks at the word alone. It cannot use capital letters, prefixes, or neighboring words.</p>
+            </div>
+            <div class="challenge-card">
+                <div class="num">3</div>
+                <h4>Features don't combine easily</h4>
+                <p>Adding one new clue (like word shape) means redesigning the whole emission distribution.</p>
+            </div>
+        </div>
+        <p class="fade-up" style="color:#475569;">
+            These exact gaps are why Maximum Entropy Markov Models and Conditional Random Fields relax the
+            independence rules, and why modern neural taggers replace hand-built emissions with learned
+            representations, picking up right where this chapter ends.
+        </p>
+
+        <!-- Key takeaway -->
+        <div class="section-title fade-up" style="margin-top:2rem;"><i class="fas fa-key"></i> Key Takeaway<span class="title-line"></span></div>
+        <div class="fade-up" style="background:#e6f0fa; border-radius:1rem; padding:1.5rem; border-left:5px solid #1a4a6e;">
+            <p style="font-weight:500; font-size:1.05rem;">
+                An HMM guesses a hidden sequence from an observed one, using two simple ingredients: how hidden
+                states change over time (<strong>A</strong>), and what each hidden state tends to produce
+                (<strong>B</strong>). Ice cream reveals weather. Words reveal grammar. Sound reveals speech.
+                Same idea, every time.
+            </p>
+        </div>
+
+        <div class="example-btn-wrap fade-up">
+            <button class="toggle-btn" id="example-btn"><i class="fas fa-flask"></i> See a Real-World Example</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Real-world example modal -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box">
+        <button class="modal-close" id="modal-close"><i class="fas fa-times"></i></button>
+        <div class="modal-title">Real-World Example: Part-of-Speech Tagging</div>
+        <div class="modal-sub">Words are the observations. Grammar tags are the hidden states.</div>
+
+        <div class="modal-tabs">
+            <button class="modal-tab active" data-tab="simple">Simple</button>
+            <button class="modal-tab" data-tab="hard">A Bit Deeper, With the Math</button>
+        </div>
+
+        <!-- SIMPLE TAB -->
+        <div class="modal-panel active" id="panel-simple">
+            <p style="margin-bottom:0.9rem;">
+                In part-of-speech tagging, the words in a sentence are what you observe. The grammar tag behind
+                each word (Noun, Verb, Adjective) is hidden. The HMM learns two things: how likely one tag is to
+                follow another, and how likely a tag is to produce a certain word.
+            </p>
+            <div class="mini-card-grid">
+                <div class="mini-card">
+                    <div class="mini-title"><i class="fas fa-eye-slash"></i> States (hidden)</div>
+                    <p>Noun (N), Verb (V), Adjective (ADJ). Hidden because a plain sentence never labels its own grammar.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-title"><i class="fas fa-eye"></i> Observations</div>
+                    <p>The actual words in the sentence. Each hidden state can produce different words.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-title"><i class="fas fa-arrow-right"></i> Transitions</div>
+                    <p>The chance of moving from one tag to the next. Example: a Noun is followed by a Verb 70% of the time.</p>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-title"><i class="fas fa-comment-dots"></i> Emissions</div>
+                    <p>The chance a tag produces a specific word. Example: the Noun state produces "light" 40% of the time.</p>
+                </div>
+            </div>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.4rem;">The three tags and how they connect</p>
+            <div style="display:flex; justify-content:center; margin-bottom:0.6rem;">
+                <svg width="380" height="300" viewBox="0 0 380 300" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="pgArrowBold" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                            <path d="M0,0 L9,4.5 L0,9 z" fill="#0b2a4a" />
+                        </marker>
+                        <marker id="pgArrowThin" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 z" fill="#cbd5e1" />
+                        </marker>
+                    </defs>
+
+                    <!-- thin (non-winning) edges -->
+                    <path d="M 92.6,203.2 Q 150.9,154.6 172.4,81.8" fill="none" stroke="#cbd5e1" stroke-width="1.6" marker-end="url(#pgArrowThin)"/>
+                    <path d="M 207.6,81.8 Q 229.1,154.6 287.4,203.2" fill="none" stroke="#cbd5e1" stroke-width="1.6" marker-end="url(#pgArrowThin)"/>
+                    <path d="M 273,230 Q 190,208 107,230" fill="none" stroke="#cbd5e1" stroke-width="1.6" marker-end="url(#pgArrowThin)"/>
+                    <text x="168" y="178" font-size="10.5" fill="#94a3b8" font-weight="600">0.2</text>
+                    <text x="216" y="178" font-size="10.5" fill="#94a3b8" font-weight="600">0.1</text>
+                    <text x="182" y="200" font-size="10.5" fill="#94a3b8" font-weight="600">0.4</text>
+
+                    <!-- bold (winning-path) edges -->
+                    <path d="M 172.4,81.8 Q 114.1,130.4 92.6,203.2" fill="none" stroke="#0b2a4a" stroke-width="2.6" marker-end="url(#pgArrowBold)"/>
+                    <path d="M 107,230 Q 190,252 273,230" fill="none" stroke="#0b2a4a" stroke-width="2.6" marker-end="url(#pgArrowBold)"/>
+                    <path d="M 287.4,203.2 Q 265.9,130.4 207.6,81.8" fill="none" stroke="#0b2a4a" stroke-width="2.6" marker-end="url(#pgArrowBold)"/>
+                    <text x="94" y="122" font-size="12" fill="#0b2a4a" font-weight="700">0.6</text>
+                    <text x="183" y="272" font-size="12" fill="#0b2a4a" font-weight="700">0.7</text>
+                    <text x="272" y="122" font-size="12" fill="#0b2a4a" font-weight="700">0.5</text>
+
+                    <!-- nodes -->
+                    <circle cx="190" cy="55" r="32" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5"/>
+                    <text x="190" y="61" text-anchor="middle" font-size="14" fill="#5b21b6" font-weight="700">ADJ</text>
+
+                    <circle cx="75" cy="230" r="32" fill="#eaf2fb" stroke="#1a4a6e" stroke-width="2.5"/>
+                    <text x="75" y="236" text-anchor="middle" font-size="14" fill="#0b2a4a" font-weight="700">N</text>
+
+                    <circle cx="305" cy="230" r="32" fill="#f0fdf4" stroke="#16a34a" stroke-width="2.5"/>
+                    <text x="305" y="236" text-anchor="middle" font-size="14" fill="#166534" font-weight="700">V</text>
+                </svg>
+            </div>
+            <p style="text-align:center; color:#475569; font-size:0.85rem; margin-bottom:0.8rem;">
+                <span style="color:#0b2a4a; font-weight:700;">Dark arrows</span> are the path the winning tagging
+                takes: ADJ → N → V → ADJ. <span style="color:#94a3b8; font-weight:700;">Light arrows</span> are
+                the other routes the model also checks. (Each tag can also repeat itself, e.g. N → N; left off
+                the graph to keep it readable.)
+            </p>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.4rem; margin-top:1.6rem;">The same graph, laid out with words attached</p>
+            <div class="dark-graph-card fade-up">
+                <svg width="100%" height="auto" viewBox="0 0 620 460" xmlns="http://www.w3.org/2000/svg" style="max-width:560px;">
+                    <defs>
+                        <marker id="dgBoldA" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                            <path d="M0,0 L9,4.5 L0,9 z" fill="#7dd3fc" />
+                        </marker>
+                        <marker id="dgThinA" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 z" fill="#5b7a99" />
+                        </marker>
+                    </defs>
+
+                    <!-- self loops -->
+                    <path d="M 65,47 C 45,5 115,5 135,47" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="80" y="18" font-size="11" fill="#cbd5e1" font-weight="600">0.3</text>
+                    <path d="M 445,47 C 425,5 495,5 515,47" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="460" y="18" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+                    <path d="M 270,308 C 250,350 370,350 350,308" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="295" y="352" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+
+                    <!-- thin (non-winning) transitions -->
+                    <path d="M 195,65 Q 310,25 425,65" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="290" y="30" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+                    <path d="M 258,253 Q 150,210 95,105" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="140" y="220" font-size="11" fill="#cbd5e1" font-weight="600">0.2</text>
+                    <path d="M 470,103 Q 440,170 348,255" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinA)"/>
+                    <text x="435" y="180" font-size="11" fill="#cbd5e1" font-weight="600">0.4</text>
+
+                    <!-- bold (winning-path) transitions -->
+                    <path d="M 425,88 Q 310,125 195,88" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldA)"/>
+                    <text x="295" y="132" font-size="12" fill="#7dd3fc" font-weight="700">0.5</text>
+                    <path d="M 150,103 Q 190,170 272,255" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldA)"/>
+                    <text x="175" y="185" font-size="12" fill="#7dd3fc" font-weight="700">0.6</text>
+                    <path d="M 362,253 Q 460,210 515,105" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldA)"/>
+                    <text x="450" y="235" font-size="12" fill="#7dd3fc" font-weight="700">0.7</text>
+
+                    <!-- emission arrows (all part of this example) -->
+                    <path d="M 70,103 Q 75,140 90,180" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldA)"/>
+                    <text x="35" y="145" font-size="11" fill="#7dd3fc" font-weight="700">0.5</text>
+                    <path d="M 90,103 Q 160,220 90,340" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldA)"/>
+                    <text x="140" y="225" font-size="11" fill="#7dd3fc" font-weight="700">0.4</text>
+                    <path d="M 310,308 Q 310,355 310,400" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldA)"/>
+                    <text x="325" y="360" font-size="11" fill="#7dd3fc" font-weight="700">0.4</text>
+                    <path d="M 470,103 Q 500,140 530,180" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldA)"/>
+                    <text x="480" y="145" font-size="11" fill="#7dd3fc" font-weight="700">0.5</text>
+
+                    <!-- state nodes -->
+                    <rect x="45" y="47" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="120" y="81" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Adjective</text>
+
+                    <rect x="425" y="47" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="500" y="81" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Verb</text>
+
+                    <rect x="235" y="252" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="310" y="286" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Noun</text>
+
+                    <!-- word (observation) nodes -->
+                    <rect x="45" y="180" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="90" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">blue</text>
+
+                    <rect x="45" y="340" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="90" y="365" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">bright</text>
+
+                    <rect x="265" y="400" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="310" y="425" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">light</text>
+
+                    <rect x="485" y="180" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="530" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">shines</text>
+                </svg>
+            </div>
+            <p style="text-align:center; color:#475569; font-size:0.85rem; margin-bottom:0.8rem;">
+                <span style="color:#0b2a4a; font-weight:700;">Bright arrows</span> are the transitions and word
+                choices the winning tagging actually uses. <span style="color:#94a3b8; font-weight:700;">Dim
+                arrows</span> (including the small loops, a tag repeating itself) are the other routes the model
+                also checks and rejects.
+            </p>
+
+            <p style="color:#64748b; font-style:italic; font-size:0.9rem;">
+                Tap "A Bit Deeper" to see these numbers used to tag a real sentence, step by step.
+            </p>
+        </div>
+
+        <!-- HARD TAB -->
+        <div class="modal-panel" id="panel-hard">
+            <p style="margin-bottom:0.7rem;">Take the sentence:</p>
+            <div class="sentence-strip">
+                <div class="sword"><div class="w">Blue</div><div class="t">ADJ</div></div>
+                <div class="sword"><div class="w">light</div><div class="t">N</div></div>
+                <div class="sword"><div class="w">shines</div><div class="t">V</div></div>
+                <div class="sword"><div class="w">bright</div><div class="t">ADJ</div></div>
+            </div>
+            <p style="margin-bottom:0.8rem;">
+                The HMM tests many possible tag sequences for this sentence. For each one, it multiplies the
+                transition probabilities (how tags follow each other) with the emission probabilities (how tags
+                produce words). The sequence with the highest result wins.
+            </p>
+            <div class="formula-card">
+                <div class="formula" style="font-size:1rem;">P(tags, words) = π(t₁) · P(t₂|t₁) · P(t₃|t₂) · P(t₄|t₃) · P(w₁|t₁) · P(w₂|t₂) · P(w₃|t₃) · P(w₄|t₄)</div>
+                <div class="meaning">One factor for every tag change, one factor for every word produced.</div>
+            </div>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.4rem;">The path this sequence takes through the graph</p>
+            <div class="dark-graph-card">
+                <svg width="100%" height="auto" viewBox="0 0 620 460" xmlns="http://www.w3.org/2000/svg" style="max-width:560px;">
+                    <defs>
+                        <marker id="dgBoldB" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                            <path d="M0,0 L9,4.5 L0,9 z" fill="#7dd3fc" />
+                        </marker>
+                        <marker id="dgThinB" markerWidth="8" markerHeight="8" refX="6.5" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 z" fill="#5b7a99" />
+                        </marker>
+                    </defs>
+
+                    <!-- self loops -->
+                    <path d="M 65,47 C 45,5 115,5 135,47" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="80" y="18" font-size="11" fill="#cbd5e1" font-weight="600">0.3</text>
+                    <path d="M 445,47 C 425,5 495,5 515,47" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="460" y="18" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+                    <path d="M 270,308 C 250,350 370,350 350,308" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="295" y="352" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+
+                    <!-- thin (non-winning) transitions -->
+                    <path d="M 195,65 Q 310,25 425,65" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="290" y="30" font-size="11" fill="#cbd5e1" font-weight="600">0.1</text>
+                    <path d="M 258,253 Q 150,210 95,105" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="140" y="220" font-size="11" fill="#cbd5e1" font-weight="600">0.2</text>
+                    <path d="M 470,103 Q 440,170 348,255" fill="none" stroke="#5b7a99" stroke-width="1.6" marker-end="url(#dgThinB)"/>
+                    <text x="435" y="180" font-size="11" fill="#cbd5e1" font-weight="600">0.4</text>
+
+                    <!-- bold (winning-path) transitions -->
+                    <path d="M 425,88 Q 310,125 195,88" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldB)"/>
+                    <text x="295" y="132" font-size="12" fill="#7dd3fc" font-weight="700">0.5</text>
+                    <path d="M 150,103 Q 190,170 272,255" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldB)"/>
+                    <text x="175" y="185" font-size="12" fill="#7dd3fc" font-weight="700">0.6</text>
+                    <path d="M 362,253 Q 460,210 515,105" fill="none" stroke="#7dd3fc" stroke-width="2.4" marker-end="url(#dgBoldB)"/>
+                    <text x="450" y="235" font-size="12" fill="#7dd3fc" font-weight="700">0.7</text>
+
+                    <!-- emission arrows (all part of this example) -->
+                    <path d="M 70,103 Q 75,140 90,180" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldB)"/>
+                    <text x="35" y="145" font-size="11" fill="#7dd3fc" font-weight="700">0.5</text>
+                    <path d="M 90,103 Q 160,220 90,340" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldB)"/>
+                    <text x="140" y="225" font-size="11" fill="#7dd3fc" font-weight="700">0.4</text>
+                    <path d="M 310,308 Q 310,355 310,400" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldB)"/>
+                    <text x="325" y="360" font-size="11" fill="#7dd3fc" font-weight="700">0.4</text>
+                    <path d="M 470,103 Q 500,140 530,180" fill="none" stroke="#7dd3fc" stroke-width="2.2" marker-end="url(#dgBoldB)"/>
+                    <text x="480" y="145" font-size="11" fill="#7dd3fc" font-weight="700">0.5</text>
+
+                    <!-- state nodes -->
+                    <rect x="45" y="47" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="120" y="81" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Adjective</text>
+
+                    <rect x="425" y="47" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="500" y="81" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Verb</text>
+
+                    <rect x="235" y="252" width="150" height="56" rx="10" fill="#1c3f63" stroke="#5fa8e0" stroke-width="2.2"/>
+                    <text x="310" y="286" text-anchor="middle" font-size="15" fill="#fff" font-weight="700">Noun</text>
+
+                    <!-- word (observation) nodes -->
+                    <rect x="45" y="180" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="90" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">blue</text>
+
+                    <rect x="45" y="340" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="90" y="365" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">bright</text>
+
+                    <rect x="265" y="400" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="310" y="425" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">light</text>
+
+                    <rect x="485" y="180" width="90" height="40" rx="8" fill="#254d78" stroke="#5fa8e0" stroke-width="1.8"/>
+                    <text x="530" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="600">shines</text>
+                </svg>
+            </div>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.3rem;">Step 1: Transition probabilities for ADJ → N → V → ADJ</p>
+            <table class="step-table">
+                <tr><th>Step</th><th>Meaning</th><th>Value</th></tr>
+                <tr><td class="term">π(ADJ)</td><td>Start the sentence in ADJ</td><td class="val">0.6</td></tr>
+                <tr><td class="term">P(N | ADJ)</td><td>ADJ is followed by N</td><td class="val">0.6</td></tr>
+                <tr><td class="term">P(V | N)</td><td>N is followed by V</td><td class="val">0.7</td></tr>
+                <tr><td class="term">P(ADJ | V)</td><td>V is followed by ADJ</td><td class="val">0.5</td></tr>
+            </table>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.3rem;">Step 2: Emission probabilities for the words</p>
+            <table class="step-table">
+                <tr><th>Step</th><th>Meaning</th><th>Value</th></tr>
+                <tr><td class="term">P(Blue | ADJ)</td><td>ADJ produces "Blue"</td><td class="val">0.5</td></tr>
+                <tr><td class="term">P(light | N)</td><td>N produces "light"</td><td class="val">0.4</td></tr>
+                <tr><td class="term">P(shines | V)</td><td>V produces "shines"</td><td class="val">0.5</td></tr>
+                <tr><td class="term">P(bright | ADJ)</td><td>ADJ produces "bright"</td><td class="val">0.4</td></tr>
+            </table>
+
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.3rem;">Step 3: Multiply everything together</p>
+            <p style="font-size:0.88rem; color:#475569; margin-bottom:0.6rem;">
+                Transitions: 0.6 × 0.6 × 0.7 × 0.5 = 0.126 &nbsp;|&nbsp; Emissions: 0.5 × 0.4 × 0.5 × 0.4 = 0.04
+            </p>
+            <div class="final-prob">
+                Total probability of ADJ → N → V → ADJ for "Blue light shines bright"
+                <span class="num">0.126 × 0.04 = 0.00504</span>
+            </div>
+            <p style="font-weight:600; color:#0b2a4a; margin-bottom:0.3rem;">Step 4: Compare against the other possible taggings</p>
+            <p style="font-size:0.88rem; color:#475569; margin-bottom:0.6rem;">
+                With 3 possible tags for each of the 4 words, there are 3⁴ = 81 possible tag sequences for this
+                sentence. Each one gets scored the exact same way: multiply its transitions, multiply its
+                emissions, multiply the two together. Here are the highest-scoring ones:
+            </p>
+            <table class="step-table">
+                <tr><th>Rank</th><th>Tag sequence</th><th>Score</th></tr>
+                <tr style="background:#e6f0fa;"><td>1</td><td class="term">ADJ → N → V → ADJ</td><td class="val">0.00504</td></tr>
+                <tr><td>2</td><td>ADJ → N → V → N</td><td class="val">0.000504</td></tr>
+                <tr><td>3</td><td>ADJ → N → V → V</td><td class="val">0.000126</td></tr>
+                <tr><td>4</td><td>ADJ → N → ADJ → ADJ</td><td class="val">0.0000864</td></tr>
+                <tr><td>5</td><td>V → N → V → ADJ</td><td class="val">0.000056</td></tr>
+                <tr><td>81</td><td>V → V → N → N</td><td class="val">0.000000005</td></tr>
+            </table>
+            <p style="font-size:0.85rem; color:#64748b; margin-bottom:0.6rem;">
+                Rank 81 tags "Blue" as a Verb. The model has no built-in grammar rules, it tries every
+                combination blindly. What kills this one is the emission table: <strong>P(Blue | V) = 0.05</strong>
+                versus <strong>P(Blue | ADJ) = 0.5</strong>. A weak word-to-tag match, multiplied through the whole
+                sequence, is enough to sink it to the very bottom.
+            </p>
+            <div class="final-prob">
+                Winner: ADJ → N → V → ADJ
+                <span class="num">Blue/ADJ  light/N  shines/V  bright/ADJ</span>
+            </div>
+            <p style="color:#64748b; font-style:italic; font-size:0.88rem; margin-top:0.8rem;">
+                Scoring all 81 sequences by hand works for a 4-word sentence, but it grows fast: a 10-word
+                sentence would need 3¹⁰ (nearly 60,000) sequences. The Viterbi algorithm finds the same winning
+                sequence without ever checking them one by one.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const observerOptions = { threshold: 0.2, rootMargin: "0px 0px -50px 0px" };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, observerOptions);
+    document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+    // Markov chain click interaction
+    const chainNote = document.getElementById('chain-note');
+    const edges = {
+        sunny: [ {label:'lbl-ss', text:'Sunny → Sunny: 70%'}, {label:'lbl-sr', text:'Sunny → Rainy: 30%'} ],
+        rainy: [ {label:'lbl-rs', text:'Rainy → Sunny: 40%'}, {label:'lbl-rr', text:'Rainy → Rainy: 60%'} ]
+    };
+    function showEdges(which) {
+        document.querySelectorAll('[id^="lbl-"]').forEach(el => el.setAttribute('opacity', 0));
+        const info = edges[which];
+        info.forEach(e => document.getElementById(e.label).setAttribute('opacity', 1));
+        if (which === 'sunny') {
+            chainNote.textContent = "If today is Sunny: 70% chance tomorrow is Sunny, 30% chance it turns Rainy.";
+        } else {
+            chainNote.textContent = "If today is Rainy: 40% chance tomorrow is Sunny, 60% chance it stays Rainy.";
+        }
+    }
+    document.getElementById('node-sunny').addEventListener('click', () => showEdges('sunny'));
+    document.getElementById('node-rainy').addEventListener('click', () => showEdges('rainy'));
+
+    // Hidden layer toggle
+    const hmmToggle = document.getElementById('hmm-toggle');
+    const hiddenLayer = document.getElementById('hidden-layer');
+    let revealed = false;
+    hmmToggle.addEventListener('click', () => {
+        revealed = !revealed;
+        hiddenLayer.classList.toggle('dim', !revealed);
+        hmmToggle.innerHTML = revealed
+            ? '<i class="fas fa-eye-slash"></i> Hide the hidden weather'
+            : '<i class="fas fa-eye"></i> Reveal the hidden weather';
+    });
+
+    // Flip cards
+    document.querySelectorAll('.flip-card').forEach(card => {
+        card.addEventListener('click', () => card.classList.toggle('flipped'));
+    });
+
+    // POS demo build
+    const sentence = [
+        {word:'Time', tag:'Noun'},
+        {word:'flies', tag:'Verb'},
+        {word:'like', tag:'Preposition'},
+        {word:'an', tag:'Determiner'},
+        {word:'arrow', tag:'Noun'}
+    ];
+    const posRow = document.getElementById('pos-row');
+    sentence.forEach((item, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'pos-item';
+        const chip = document.createElement('div');
+        chip.className = 'word-chip';
+        chip.textContent = item.word;
+        const tag = document.createElement('div');
+        tag.className = 'tag-chip';
+        tag.textContent = item.tag;
+        chip.addEventListener('click', () => {
+            chip.classList.add('active');
+            tag.classList.add('shown');
+        });
+        wrap.appendChild(chip);
+        wrap.appendChild(tag);
+        posRow.appendChild(wrap);
+    });
+
+    // Real-world example modal
+    const exampleBtn = document.getElementById('example-btn');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalClose = document.getElementById('modal-close');
+    exampleBtn.addEventListener('click', () => modalOverlay.classList.add('open'));
+    modalClose.addEventListener('click', () => modalOverlay.classList.remove('open'));
+    modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('open'); });
+
+    document.querySelectorAll('.modal-tab').forEach(tabBtn => {
+        tabBtn.addEventListener('click', () => {
+            document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+            tabBtn.classList.add('active');
+            document.getElementById('panel-' + tabBtn.dataset.tab).classList.add('active');
+        });
+    });
+</script>
+</body>
+</html>
+

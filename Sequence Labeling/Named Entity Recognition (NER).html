@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 05 – Named Entity Recognition</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card { width: 100%; background: #ffffff; box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06); overflow: hidden; }
+
+        .hero { position: relative; background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%); padding: 2rem 3rem; color: #fff; text-align: center; }
+        .page-nav { position: absolute; top: 50%; display: inline-flex; align-items: center; justify-content: center; width: clamp(42px, 3.2vw, 52px); height: clamp(42px, 3.2vw, 52px); color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 50%; background: rgba(255,255,255,0.08); font-size: clamp(1rem, 1.3vw, 1.3rem); text-decoration: none; transform: translateY(-50%); transition: background 0.2s, border-color 0.2s, transform 0.2s; z-index: 2; }
+        .page-nav:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.7); transform: translateY(-50%) scale(1.04); }
+        .page-nav:focus-visible { outline: 3px solid #a8c6e0; outline-offset: 3px; }
+        .page-nav.prev { left: clamp(0.6rem, 1.25vw, 1.25rem); }
+        .page-nav.next { right: clamp(0.6rem, 1.25vw, 1.25rem); }
+        .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+        .hero .chapter-badge {
+            display: inline-block; background: rgba(255,255,255,0.15); backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem; border-radius: 100px; font-size: 0.95rem; font-weight: 500;
+            letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.15); margin-top: 0.5rem;
+        }
+
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        .section-title { font-size: 1.35rem; font-weight: 700; margin: 2.2rem 0 1.2rem; display: flex; align-items: center; gap: 0.75rem; color: #0b2a4a; }
+        .section-title:first-child { margin-top: 0; }
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse {
+            stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse { stroke-dashoffset: 0; }
+
+        @keyframes popIn { 0% { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+        .pop { animation: popIn 0.4s ease forwards; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-up, .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line { transition: none; }
+            .pop { animation: none; }
+        }
+
+        /* ---------- ENTITY COLOURS (shared across the page) ---------- */
+        .t-PERSON { background: #b3452c; } .c-PERSON { color: #b3452c; }
+        .t-ORG    { background: #1a4a6e; } .c-ORG    { color: #1a4a6e; }
+        .t-LOC    { background: #157a5b; } .c-LOC    { color: #157a5b; }
+        .t-DATE   { background: #a6741b; } .c-DATE   { color: #a6741b; }
+        .t-MONEY  { background: #6b4fa1; } .c-MONEY  { color: #6b4fa1; }
+        .t-O      { background: #94a3b8; } .c-O      { color: #94a3b8; }
+
+        /* ---------- INTERACTIVE TAGGER ---------- */
+        .tagger-box { background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.8rem; margin: 1.2rem 0 2rem; text-align: center; }
+        .tagger-hint { font-size: 0.9rem; color: #5f7d97; margin-bottom: 1.2rem; }
+        .tagger-hint i { color: #1a4a6e; margin-right: 0.3rem; }
+        .sentence-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.8rem; margin-bottom: 1.2rem; }
+
+        .word-chip { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; cursor: pointer; user-select: none; }
+        .word-chip .word {
+            background: #ffffff; border: 2px solid #dce5ef; border-radius: 0.7rem; padding: 0.4rem 1rem;
+            font-size: 1.1rem; font-weight: 600; color: #0b2a4a; transition: border-color 0.25s, transform 0.15s, box-shadow 0.25s;
+        }
+        .word-chip:hover .word { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(11,42,74,0.12); }
+        .word-chip .ent-tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; padding: 0.15rem 0.65rem; border-radius: 30px; color: #fff; visibility: hidden; }
+        .word-chip.revealed .ent-tag { visibility: visible; }
+        .word-chip.revealed .word { border-color: currentColor; }
+
+        .tagger-controls { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+        .btn { background: #1a4a6e; color: #fff; border: none; border-radius: 30px; padding: 0.45rem 1.3rem; font-family: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: background 0.25s, transform 0.15s; }
+        .btn:hover { background: #0b2a4a; transform: translateY(-2px); }
+        .btn.ghost { background: #fff; color: #1a4a6e; border: 1.5px solid #1a4a6e; }
+        .btn.ghost:hover { background: #eef4fa; }
+        .btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+        .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1rem; }
+        .legend-chip { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: #46617a; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* ---------- BIO STRIP ---------- */
+        .bio-box { background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.6rem; margin: 1.2rem 0 1.5rem; }
+        .bio-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 1rem 0; }
+        .bio-cell { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+        .bio-cell .w { font-weight: 600; color: #0b2a4a; background: #fff; border: 1px solid #dce5ef; border-radius: 0.5rem; padding: 0.3rem 0.7rem; font-size: 0.92rem; }
+        .bio-cell .lab { font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 0.12rem 0.6rem; color: #fff; }
+
+        /* ---------- WHY IT MATTERS CARDS ---------- */
+        .app-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; }
+        .app-card { flex: 1; min-width: 200px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem; transition: transform 0.2s, box-shadow 0.2s; }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(11,42,74,0.1); }
+        .app-card i { color: #1a4a6e; font-size: 1.4rem; }
+        .app-card h4 { margin: 0.5rem 0 0.3rem; }
+        .app-card p { font-size: 0.9rem; }
+
+        /* ---------- ENTITY TYPE GRID ---------- */
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.2rem 0 1.5rem; }
+        .type-card { background: #fff; border: 1px solid #e9edf2; border-left: 5px solid var(--c); border-radius: 0.8rem; padding: 1.1rem; transition: transform 0.2s, box-shadow 0.2s; }
+        .type-card:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.07); }
+        .type-card .type-name { font-weight: 700; color: var(--c); font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+        .type-card .type-ex { font-size: 0.85rem; color: #46617a; margin-top: 0.4rem; }
+        .type-card .type-ex strong { color: #1e293b; }
+
+        /* ---------- AMBIGUITY FLIP CARDS ---------- */
+        .amb-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1.2rem 0 1.5rem; }
+        .amb-card { flex: 1; min-width: 260px; background: #fef9f0; border: 1px solid #f0e0c0; border-radius: 1rem; padding: 1.4rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .amb-card:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.07); }
+        .amb-card .amb-sentence { font-size: 1.05rem; margin-bottom: 0.6rem; }
+        .amb-card .amb-answer { font-weight: 700; border-radius: 30px; display: inline-block; padding: 0.15rem 0.9rem; color: #fff; font-size: 0.85rem; opacity: 0; transition: opacity 0.4s; }
+        .amb-card.open .amb-answer { opacity: 1; }
+        .amb-card .amb-cta { font-size: 0.8rem; color: #a6741b; margin-top: 0.4rem; }
+        .amb-card.open .amb-cta { display: none; }
+
+        /* nested entity box */
+        .nested-wrap { display: flex; justify-content: center; margin: 1rem 0; }
+        .nested-outer { background: rgba(26,74,110,0.08); border: 2px solid #1a4a6e; border-radius: 0.8rem; padding: 0.8rem 1.2rem; text-align: center; position: relative; }
+        .nested-outer .lab-top { position: absolute; top: -0.7rem; left: 1rem; background: #1a4a6e; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.6rem; border-radius: 20px; }
+        .nested-inner { background: rgba(21,122,91,0.1); border: 2px solid #157a5b; border-radius: 0.6rem; padding: 0.3rem 0.9rem; display: inline-block; margin-top: 0.4rem; position: relative; }
+        .nested-inner .lab-bottom { position: absolute; bottom: -1.4rem; left: 50%; transform: translateX(-50%); background: #157a5b; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.6rem; border-radius: 20px; white-space: nowrap; }
+
+        /* messy text card */
+        .messy-card { background: #fff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.4rem; margin: 1.2rem 0 1.5rem; text-align: center; }
+        .messy-bubble { display: inline-block; background: #eef4fa; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; padding: 0.8rem 1.3rem; font-size: 1.05rem; color: #0b2a4a; }
+        .annotation { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: 1rem; }
+        .annotation .tag { background: #f0f6fe; border: 1px solid #c9d6e6; border-radius: 20px; padding: 0.25rem 0.8rem; font-size: 0.8rem; color: #1a4a6e; font-weight: 600; }
+        .annotation .tag i { margin-right: 0.3rem; }
+
+        /* ---------- ERA STRIP + MODAL (evolution) ---------- */
+        .era-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 1.2rem 0 0; }
+        .era-btn { background: #fff; border: 2px solid #dce5ef; border-radius: 1rem; padding: 0.9rem 0.7rem; font-family: inherit; cursor: pointer; text-align: center; transition: border-color 0.25s, transform 0.2s, box-shadow 0.2s; }
+        .era-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(11,42,74,0.08); }
+        .era-btn .era-num { font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: #a6741b; }
+        .era-btn .era-name { font-weight: 700; color: #0b2a4a; font-size: 0.95rem; }
+        .era-btn .era-ex { font-size: 0.75rem; color: #5f7d97; }
+        .era-btn i { color: #1a4a6e; font-size: 1.15rem; margin-bottom: 0.25rem; display: block; }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(11,42,74,0.55); display: none; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+        .modal-backdrop.open { display: flex; }
+        .modal { background: #fff; border-radius: 1.2rem; max-width: 660px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 1.8rem; position: relative; animation: popIn 0.3s ease; }
+        .modal-close { position: absolute; top: 0.7rem; right: 1rem; background: none; border: none; font-size: 1.7rem; color: #5f7d97; cursor: pointer; line-height: 1; }
+        .modal-close:hover { color: #0b2a4a; }
+        .modal-era { font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; color: #a6741b; }
+        .modal h3 { color: #0b2a4a; margin: 0.2rem 0 0.9rem; font-size: 1.15rem; }
+        .modal-body p { font-size: 0.95rem; margin-bottom: 0.7rem; }
+        .modal-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.2rem; gap: 0.8rem; }
+        .modal-dots { display: flex; gap: 0.4rem; }
+        .modal-dots span { width: 9px; height: 9px; border-radius: 50%; background: #dce5ef; transition: background 0.25s; }
+        .modal-dots span.on { background: #1a4a6e; }
+
+        .schema-row { display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; margin: 1rem 0; }
+        .schema-word { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+        .schema-word .w { font-weight: 700; color: #0b2a4a; background: #f0f6fe; border-radius: 0.6rem; padding: 0.3rem 0.8rem; }
+        .cand { font-size: 0.72rem; font-weight: 700; color: #fff; border-radius: 20px; padding: 0.1rem 0.55rem; }
+        .feat-chip { display: inline-flex; align-items: center; gap: 0.35rem; background: #e6f0fa; border: 1px solid #c9d6e6; border-radius: 30px; padding: 0.2rem 0.8rem; font-size: 0.82rem; font-weight: 600; color: #0b2a4a; margin: 0.2rem; }
+        .feat-chip i { color: #157a5b; }
+        .modal-svg-wrap { display: flex; justify-content: center; margin: 0.8rem 0; }
+        .modal-svg-wrap svg { max-width: 100%; height: auto; }
+        .rule-note { background: #fef9f0; border: 1px solid #f0e0c0; border-radius: 0.8rem; padding: 0.6rem 1rem; font-size: 0.87rem; margin: 0.5rem 0; }
+
+        .takeaway { background: #e6f0fa; border-radius: 1rem; padding: 1.5rem; border-left: 5px solid #1a4a6e; }
+
+        @media (max-width: 768px) {
+            .hero { padding: 1.8rem 1.5rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.8rem 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="presentation-card">
+
+    <header class="hero">
+        <a class="page-nav prev" href="POS_Tagging.html" aria-label="Previous lesson" title="Previous lesson">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <h1>Named Entity Recognition (NER)</h1>
+        <div class="chapter-badge">Finding Who, What, and Where – Hidden in Plain Text</div>
+        <a class="page-nav next" href="Hidden_Markov_Models.html" aria-label="Next lesson" title="Next lesson">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <div class="content">
+
+        <!-- 1. What is NER -->
+        <div class="section-title fade-up">
+            <i class="fas fa-question-circle"></i> What is Named Entity Recognition?
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem;">
+            <strong>Named Entity Recognition (NER)</strong> is the task of finding names in a text and labeling what kind of thing each name is.
+            A name can be a <strong>person</strong>, a <strong>company</strong>, a <strong>place</strong>, a <strong>date</strong>, or an <strong>amount of money</strong>.
+            NER is one of the first steps in turning free text into facts a computer can search, sort, or store.
+        </p>
+        <p class="fade-up" style="margin-bottom: 1.5rem; color: #475569; font-style: italic;">
+            Tap each word below to see what NER would label it as.
+        </p>
+
+        <div class="tagger-box fade-up">
+            <div class="tagger-hint"><i class="fas fa-hand-pointer"></i> Tap a word or phrase to reveal its label</div>
+            <div class="sentence-row" id="taggerRow"></div>
+            <div class="tagger-controls">
+                <button class="btn" id="revealAll">Reveal All</button>
+                <button class="btn ghost" id="hideAll">Hide All</button>
+            </div>
+            <div class="legend">
+                <span class="legend-chip"><span class="legend-dot" style="background:#b3452c;"></span>PERSON</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#1a4a6e;"></span>ORG</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#157a5b;"></span>LOC</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#a6741b;"></span>DATE</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#6b4fa1;"></span>MONEY</span>
+                <span class="legend-chip"><span class="legend-dot" style="background:#94a3b8;"></span>not an entity</span>
+            </div>
+        </div>
+
+        <!-- 2. BIO tagging -->
+        <div class="section-title fade-up">
+            <i class="fas fa-layer-group"></i> How a Computer Marks Entity Borders: BIOES Tags
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem;">
+            Some entities are more than one word, like "Tim Cook" or "New York". A computer needs a way to mark
+            <em>where an entity starts and where it ends</em>. A simple B/I/O scheme only marks the start –
+            it cannot tell a model where a name stops. The <strong>BIOES scheme</strong> fixes that with two extra tags:
+        </p>
+        <div class="fade-up" style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.2rem;">
+            <div style="flex:1; min-width:160px; background:#f0f6fe; border-radius:0.8rem; padding:1rem;">
+                <strong style="color:#0b2a4a;">B</strong> – Beginning of a multi-word entity
+            </div>
+            <div style="flex:1; min-width:160px; background:#f0f6fe; border-radius:0.8rem; padding:1rem;">
+                <strong style="color:#0b2a4a;">I</strong> – Inside, continues the entity
+            </div>
+            <div style="flex:1; min-width:160px; background:#f0f6fe; border-radius:0.8rem; padding:1rem;">
+                <strong style="color:#0b2a4a;">O</strong> – Outside, not part of any entity
+            </div>
+            <div style="flex:1; min-width:160px; background:#f0f6fe; border-radius:0.8rem; padding:1rem;">
+                <strong style="color:#0b2a4a;">E</strong> – End, the last word of a multi-word entity
+            </div>
+            <div style="flex:1; min-width:160px; background:#f0f6fe; border-radius:0.8rem; padding:1rem;">
+                <strong style="color:#0b2a4a;">S</strong> – Single, a one-word entity on its own
+            </div>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem; color:#475569;">
+            Marking the exact end (E) and one-word entities (S) separately gives a model sharper boundaries –
+            it no longer has to guess whether the next word still belongs to the same name.
+        </p>
+        <div class="bio-box fade-up">
+            <p style="text-align:center; font-size:0.9rem; color:#5f7d97;">"Tim Cook Jr. visited New York with Sam"</p>
+            <div class="bio-row">
+                <div class="bio-cell"><span class="w">Tim</span><span class="lab" style="background:#b3452c;">B-PER</span></div>
+                <div class="bio-cell"><span class="w">Cook</span><span class="lab" style="background:#b3452c;">I-PER</span></div>
+                <div class="bio-cell"><span class="w">Jr.</span><span class="lab" style="background:#b3452c;">E-PER</span></div>
+                <div class="bio-cell"><span class="w">visited</span><span class="lab" style="background:#94a3b8;">O</span></div>
+                <div class="bio-cell"><span class="w">New</span><span class="lab" style="background:#157a5b;">B-LOC</span></div>
+                <div class="bio-cell"><span class="w">York</span><span class="lab" style="background:#157a5b;">E-LOC</span></div>
+                <div class="bio-cell"><span class="w">with</span><span class="lab" style="background:#94a3b8;">O</span></div>
+                <div class="bio-cell"><span class="w">Sam</span><span class="lab" style="background:#b3452c;">S-PER</span></div>
+            </div>
+            <p style="text-align:center; font-size:0.85rem; color:#46617a; font-style:italic;">
+                "Tim" opens the name, "Cook" continues it, "Jr." closes it – three tags for one three-word entity.
+                "Sam" stands alone, so it gets a single S tag instead of a B. This is why NER is really a word-by-word labeling task, not just a search for names.
+            </p>
+        </div>
+
+        <!-- 3. Why NER matters -->
+        <div class="section-title fade-up">
+            <i class="fas fa-star"></i> Why NER Matters
+            <span class="title-line"></span>
+        </div>
+        <div class="app-grid fade-up">
+            <div class="app-card">
+                <i class="fas fa-magnifying-glass"></i>
+                <h4>Smarter Search</h4>
+                <p>Search engines use NER to know that "Paris Hilton" is a person, not a city with a hotel.</p>
+            </div>
+            <div class="app-card">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <h4>Finance & News</h4>
+                <p>Trading systems scan news for company names and money amounts in real time to react fast.</p>
+            </div>
+            <div class="app-card">
+                <i class="fas fa-notes-medical"></i>
+                <h4>Privacy Protection</h4>
+                <p>Hospitals use NER to find and hide patient names in medical records automatically.</p>
+            </div>
+            <div class="app-card">
+                <i class="fas fa-headset"></i>
+                <h4>Chatbots</h4>
+                <p>A booking bot needs NER to pull the city, date, and traveler name out of one sentence.</p>
+            </div>
+        </div>
+
+        <!-- 4. Entity types -->
+        <div class="section-title fade-up">
+            <i class="fas fa-tags"></i> The Main Entity Types
+            <span class="title-line"></span>
+        </div>
+        <div class="type-grid fade-up">
+            <div class="type-card" style="--c:#b3452c;"><div class="type-name"><i class="fas fa-user"></i> PERSON</div><div class="type-ex">e.g. <strong>Elon Musk</strong>, <strong>Marie Curie</strong></div></div>
+            <div class="type-card" style="--c:#1a4a6e;"><div class="type-name"><i class="fas fa-building"></i> ORGANIZATION</div><div class="type-ex">e.g. <strong>Google</strong>, <strong>United Nations</strong></div></div>
+            <div class="type-card" style="--c:#157a5b;"><div class="type-name"><i class="fas fa-map-marker-alt"></i> LOCATION</div><div class="type-ex">e.g. <strong>Algeria</strong>, <strong>the Nile</strong></div></div>
+            <div class="type-card" style="--c:#a6741b;"><div class="type-name"><i class="fas fa-calendar"></i> DATE / TIME</div><div class="type-ex">e.g. <strong>3 June 2024</strong>, <strong>next Monday</strong></div></div>
+            <div class="type-card" style="--c:#6b4fa1;"><div class="type-name"><i class="fas fa-coins"></i> MONEY / QUANTITY</div><div class="type-ex">e.g. <strong>$200</strong>, <strong>50 kilometers</strong></div></div>
+            <div class="type-card" style="--c:#46617a;"><div class="type-name"><i class="fas fa-shapes"></i> MISC (product, event…)</div><div class="type-ex">e.g. <strong>iPhone</strong>, <strong>the Olympics</strong></div></div>
+        </div>
+
+        <!-- 5. Why it's hard -->
+        <div class="section-title fade-up">
+            <i class="fas fa-mountain"></i> Why NER Is Hard
+            <span class="title-line"></span>
+        </div>
+
+        <h3 class="fade-up" style="font-weight:600; color:#0b2a4a; margin-bottom:0.7rem;">
+            <i class="fas fa-question"></i> The same word, different meaning
+        </h3>
+        <p class="fade-up" style="margin-bottom: 0.8rem; color:#475569;">Tap a card to see the correct label – the same word can be two very different entity types.</p>
+        <div class="amb-grid fade-up">
+            <div class="amb-card" data-color="#1a4a6e"><div class="amb-sentence"><strong>Apple</strong> released a new phone.</div><div class="amb-answer" style="background:#1a4a6e;">ORGANIZATION</div><div class="amb-cta">Tap to reveal</div></div>
+            <div class="amb-card" data-color="#157a5b"><div class="amb-sentence">She ate an <strong>apple</strong> for lunch.</div><div class="amb-answer" style="background:#94a3b8;">not an entity – common noun</div><div class="amb-cta">Tap to reveal</div></div>
+            <div class="amb-card" data-color="#b3452c"><div class="amb-sentence"><strong>Washington</strong> gave a famous speech.</div><div class="amb-answer" style="background:#b3452c;">PERSON</div><div class="amb-cta">Tap to reveal</div></div>
+            <div class="amb-card" data-color="#157a5b"><div class="amb-sentence">The flight lands in <strong>Washington</strong>.</div><div class="amb-answer" style="background:#157a5b;">LOCATION</div><div class="amb-cta">Tap to reveal</div></div>
+        </div>
+
+        <h3 class="fade-up" style="font-weight:600; color:#0b2a4a; margin: 1.5rem 0 0.7rem;">
+            <i class="fas fa-layer-group"></i> Entities can hide inside entities
+        </h3>
+        <p class="fade-up" style="margin-bottom: 0.8rem;">"Bank of America" is one organization, but it contains the word "America", which is also a place. A good tagger must see the whole phrase, not just the pieces.</p>
+        <div class="nested-wrap fade-up">
+            <div class="nested-outer">
+                <span class="lab-top">ORG</span>
+                Bank of
+                <span class="nested-inner">America<span class="lab-bottom">looks like LOC</span></span>
+            </div>
+        </div>
+
+        <h3 class="fade-up" style="font-weight:600; color:#0b2a4a; margin: 2.2rem 0 0.7rem;">
+            <i class="fas fa-ruler-combined"></i> Where does the name end?
+        </h3>
+        <p class="fade-up" style="margin-bottom: 0.8rem;">"New York Times" is one newspaper – a single ORG entity. Split it in the wrong place and a model might see two separate entities instead: a place ("New York") and a random word ("Times"). Getting the boundary right matters as much as getting the type right.</p>
+
+        <h3 class="fade-up" style="font-weight:600; color:#0b2a4a; margin: 2.2rem 0 0.7rem;">
+            <i class="fas fa-comment-dots"></i> Messy, everyday text
+        </h3>
+        <div class="messy-card fade-up">
+            <div class="messy-bubble">"just landed in nyc, meeting w/ sam tmrw 😊"</div>
+            <div class="annotation">
+                <span class="tag"><i class="fas fa-font"></i> no capital letters</span>
+                <span class="tag"><i class="fas fa-compress"></i> nickname (nyc = New York City)</span>
+                <span class="tag"><i class="fas fa-clock"></i> abbreviation (tmrw)</span>
+            </div>
+            <p style="text-align:center; margin-top:1rem; font-style:italic; color:#5f7d97;">
+                Capital letters are a big clue for NER – casual texting removes that clue completely.
+            </p>
+        </div>
+
+        <!-- 6. Evolution -->
+        <div class="section-title fade-up">
+            <i class="fas fa-timeline"></i> How Machines Learned to Spot Entities
+            <span class="title-line"></span>
+        </div>
+        <p class="fade-up" style="margin-bottom: 1rem;">Explore how each generation of NLP tackled the same sentence. Tap a card to see a real example.</p>
+        <div class="era-strip fade-up">
+            <button class="era-btn" data-era="1"><i class="fas fa-list"></i><div class="era-num">GEN 1</div><div class="era-name">Rule-Based</div><div class="era-ex">Gazetteers & regex</div></button>
+            <button class="era-btn" data-era="2"><i class="fas fa-dice"></i><div class="era-num">GEN 2</div><div class="era-name">Statistical (HMM)</div><div class="era-ex">Probability tables</div></button>
+            <button class="era-btn" data-era="3"><i class="fas fa-project-diagram"></i><div class="era-num">GEN 3</div><div class="era-name">Machine Learning (CRF)</div><div class="era-ex">Features that vote</div></button>
+            <button class="era-btn" data-era="4"><i class="fas fa-brain"></i><div class="era-num">GEN 4</div><div class="era-name">Deep Learning</div><div class="era-ex">BiLSTM & Transformers</div></button>
+        </div>
+
+        <!-- Key takeaway -->
+        <div class="section-title fade-up" style="margin-top: 2.2rem;">
+            <i class="fas fa-key"></i> Key Takeaway
+            <span class="title-line"></span>
+        </div>
+        <div class="takeaway fade-up">
+            <p style="font-weight: 500; font-size: 1.05rem;">
+                NER turns free text into structured facts by finding names and labeling their type. The hard part
+                is never spelling the name – it is deciding <em>what kind</em> of thing it is and <em>where it starts and ends</em>,
+                using context, not just capital letters. That is why every generation of NLP, from simple lists to
+                transformers, has tried to solve it in a smarter way.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div class="modal-era" id="modalEra"></div>
+        <h3 id="modalTitle"></h3>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-nav">
+            <button class="btn ghost" id="modalPrev">&larr; Prev</button>
+            <div class="modal-dots" id="modalDots"></div>
+            <button class="btn ghost" id="modalNext">Next &rarr;</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- fade-up / draw-svg observer ----------
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.2, rootMargin: "0px 0px -50px 0px" });
+    document.querySelectorAll('.fade-up, .draw-svg').forEach(el => observer.observe(el));
+
+    // ---------- interactive tagger ----------
+    const sentence = [
+        { text: "Tim Cook", type: "PERSON" },
+        { text: "the", type: "O" },
+        { text: "CEO", type: "O" },
+        { text: "of", type: "O" },
+        { text: "Apple", type: "ORG" },
+        { text: "visited", type: "O" },
+        { text: "Paris", type: "LOC" },
+        { text: "on", type: "O" },
+        { text: "3 June 2024", type: "DATE" },
+        { text: "to", type: "O" },
+        { text: "launch", type: "O" },
+        { text: "a", type: "O" },
+        { text: "product", type: "O" },
+        { text: "worth", type: "O" },
+        { text: "$200", type: "MONEY" }
+    ];
+    const row = document.getElementById('taggerRow');
+    sentence.forEach(tok => {
+        const chip = document.createElement('div');
+        chip.className = 'word-chip';
+        chip.innerHTML = `<div class="word">${tok.text}</div><div class="ent-tag t-${tok.type}">${tok.type}</div>`;
+        chip.addEventListener('click', () => chip.classList.toggle('revealed'));
+        row.appendChild(chip);
+    });
+    document.getElementById('revealAll').addEventListener('click', () => {
+        document.querySelectorAll('.word-chip').forEach(c => c.classList.add('revealed'));
+    });
+    document.getElementById('hideAll').addEventListener('click', () => {
+        document.querySelectorAll('.word-chip').forEach(c => c.classList.remove('revealed'));
+    });
+
+    // ---------- ambiguity cards ----------
+    document.querySelectorAll('.amb-card').forEach(card => {
+        card.addEventListener('click', () => card.classList.toggle('open'));
+    });
+
+    // ---------- era modal ----------
+    const modalData = {
+        1: {
+            era: "GENERATION 1 · RULE-BASED / GAZETTEERS",
+            title: "Real world: 1990s newswire systems",
+            slides: [
+                `<p><strong>How it worked.</strong> Linguists built long lists of known names – a <em>gazetteer</em> of countries, companies, and first names – plus hand-written rules like "capitalized word after Mr./Dr. = PERSON".</p>
+                 <p>Sentence: <em>"Dr. Smith works at IBM in Boston."</em></p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">Dr. Smith</span><span class="cand t-PERSON">PERSON</span></div>
+                    <div class="schema-word"><span class="w">IBM</span><span class="cand t-ORG">ORG (in list)</span></div>
+                    <div class="schema-word"><span class="w">Boston</span><span class="cand t-LOC">LOC (in list)</span></div>
+                 </div>`,
+                `<p><strong>The catch.</strong> This only works for names the list already knows. A brand-new startup name, or a name from a language the list wasn't built for, is invisible to the system:</p>
+                 <div class="rule-note"><i class="fas fa-exclamation-triangle"></i> "Zylotech raised funding" – not in any list, so the rule-based system tags nothing at all.</div>
+                 <p><strong>The lesson:</strong> rules are precise but never grow on their own. Every new company name means someone must update the list by hand.</p>`
+            ]
+        },
+        2: {
+            era: "GENERATION 2 · STATISTICAL (HMM)",
+            title: "Real world: early automated tagging",
+            slides: [
+                `<p><strong>The idea.</strong> Instead of fixed lists, a Hidden Markov Model learns from many already-labeled sentences: which words tend to start a PERSON, which tag usually follows which.</p>
+                 <p>Sentence: <em>"Cook flew to Rome."</em></p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">Cook</span><span class="cand t-PERSON">PERSON 0.6</span></div>
+                    <div class="schema-word"><span class="w">Cook</span><span class="cand" style="background:#94a3b8;">O 0.4</span></div>
+                 </div>
+                 <p>Both readings are possible – "Cook" could be a surname or a job. The model must pick the more likely path for the <em>whole</em> sentence.</p>`,
+                `<p><strong>Context breaks the tie.</strong> The word right after – "flew" – almost always follows a PERSON, rarely an everyday noun. Multiplying the probabilities together, the PERSON path wins:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">Cook</span><span class="cand t-PERSON">PERSON</span></div>
+                    <div class="schema-word"><span class="w">flew</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">to</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">Rome</span><span class="cand t-LOC">LOC</span></div>
+                 </div>
+                 <p><strong>The lesson:</strong> no one wrote a rule for "Cook" – the model simply counted patterns in labeled data. But it still only looks at one neighbor at a time.</p>`
+            ]
+        },
+        3: {
+            era: "GENERATION 3 · MACHINE LEARNING (CRF)",
+            title: "Real world: information extraction pipelines",
+            slides: [
+                `<p><strong>Where used.</strong> Tools like Stanford NER used Conditional Random Fields (CRF) to power résumé parsers, legal-document scanners, and early spaCy models.</p>
+                 <p>Sentence: <em>"Apple opened a store in Paris."</em></p>
+                 <p>Is <strong>Apple</strong> the fruit or the company? A CRF decides by combining many clues at once.</p>`,
+                `<p><strong>Many features vote together</strong> for the word "Apple":</p>
+                 <div style="text-align:center; margin: 0.8rem 0;">
+                    <span class="feat-chip"><i class="fas fa-check"></i> Starts with a capital</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> First word of the sentence</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> Next word "opened" is a verb</span>
+                    <span class="feat-chip"><i class="fas fa-check"></i> A subject usually comes before a verb</span>
+                    <div style="margin: 0.6rem 0; color:#1a4a6e;"><i class="fas fa-arrow-down fa-lg"></i></div>
+                    <div class="schema-word" style="display:inline-flex;"><span class="w">Apple</span><span class="cand t-ORG">ORG (company)</span></div>
+                 </div>
+                 <p>An HMM could not combine overlapping clues like these – a CRF can, and it may even peek two words ahead.</p>`,
+                `<p><strong>The BIO tags for the whole sentence are chosen together</strong>, not one word at a time, so decisions support each other:</p>
+                 <div class="schema-row">
+                    <div class="schema-word"><span class="w">Apple</span><span class="cand t-ORG">B-ORG</span></div>
+                    <div class="schema-word"><span class="w">opened</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">a</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">store</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">in</span><span class="cand" style="background:#94a3b8;">O</span></div>
+                    <div class="schema-word"><span class="w">Paris</span><span class="cand t-LOC">B-LOC</span></div>
+                 </div>
+                 <p><strong>The lesson:</strong> CRFs dominated NER for about a decade because they could weigh many clues and keep the whole tag sequence consistent.</p>`
+            ]
+        },
+        4: {
+            era: "GENERATION 4 · DEEP LEARNING",
+            title: "Real world: modern search and voice assistants",
+            slides: [
+                `<p><strong>Where used.</strong> Google, Siri, and every modern NLP pipeline. Consider a name the model has never seen before:</p>
+                 <p style="text-align:center; font-size:1.05rem;"><em>"Zylenthra just opened an office in Béjaïa."</em></p>
+                 <p>No gazetteer contains "Zylenthra". A rule list would miss it completely. Deep learning instead looks at the <strong>letters inside the word</strong> and its <strong>context</strong>.</p>`,
+                `<p><strong>Character-level clues.</strong> A BiLSTM reads the word letter by letter and notices it looks like a company name – capitalized, no dictionary match, unusual ending – even though it has never seen this exact word:</p>
+                 <div class="modal-svg-wrap">
+                 <svg width="420" height="120" viewBox="0 0 420 120" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="45" width="60" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="90" y="45" width="60" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="160" y="45" width="60" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="230" y="45" width="60" height="30" rx="8" fill="#f0f6fe" stroke="#1a4a6e" stroke-width="1.5"/>
+                    <rect x="300" y="45" width="90" height="30" rx="8" fill="#fef9f0" stroke="#a6741b" stroke-width="2.5"/>
+                    <text x="50" y="64" font-size="12" text-anchor="middle" fill="#0b2a4a">Z</text>
+                    <text x="120" y="64" font-size="12" text-anchor="middle" fill="#0b2a4a">y</text>
+                    <text x="190" y="64" font-size="12" text-anchor="middle" fill="#0b2a4a">l</text>
+                    <text x="260" y="64" font-size="12" text-anchor="middle" fill="#0b2a4a">...</text>
+                    <text x="345" y="64" font-size="12" font-weight="700" text-anchor="middle" fill="#0b2a4a">→ ORG?</text>
+                 </svg>
+                 </div>
+                 <p>No handcrafted feature list anywhere – the network learned its own representation of "what a company name looks like" from data.</p>`,
+                `<p><strong>Transformers (BERT): full-sentence attention.</strong> Every word looks at every other word at once. For "Zylenthra", the strongest attention goes to "office", which usually follows an organization:</p>
+                 <div class="modal-svg-wrap">
+                 <svg width="440" height="120" viewBox="0 0 440 120" xmlns="http://www.w3.org/2000/svg">
+                    <text x="70" y="95" font-size="12" text-anchor="middle" fill="#b3452c" font-weight="700">Zylenthra</text>
+                    <text x="200" y="95" font-size="12" text-anchor="middle" fill="#5f7d97">opened</text>
+                    <text x="290" y="95" font-size="12" text-anchor="middle" fill="#5f7d97">an</text>
+                    <text x="360" y="95" font-size="12" text-anchor="middle" fill="#0b2a4a">office</text>
+                    <path d="M 70 78 Q 220 30 355 78" fill="none" stroke="#b3452c" stroke-width="4"/>
+                    <text x="200" y="25" font-size="10" fill="#b3452c" font-weight="600">strong attention</text>
+                 </svg>
+                 </div>
+                 <div class="schema-row"><div class="schema-word"><span class="w">Zylenthra</span><span class="cand t-ORG">B-ORG ✔</span></div></div>
+                 <p><strong>The lesson:</strong> thanks to full-sentence attention plus subword tokenization, transformer models tag even unseen, made-up, or foreign names with high accuracy – the technology behind today's search and assistant tools.</p>`
+            ]
+        }
+    };
+
+    const mBackdrop = document.getElementById('modalBackdrop');
+    const mEra = document.getElementById('modalEra'), mTitle = document.getElementById('modalTitle'),
+          mBody = document.getElementById('modalBody'), mDots = document.getElementById('modalDots'),
+          mPrev = document.getElementById('modalPrev'), mNext = document.getElementById('modalNext');
+    let mCurrent = null, mSlide = 0;
+
+    function renderSlide() {
+        const d = modalData[mCurrent];
+        mEra.textContent = d.era;
+        mTitle.textContent = d.title;
+        mBody.innerHTML = d.slides[mSlide];
+        mDots.innerHTML = d.slides.map((_, i) => '<span class="' + (i === mSlide ? 'on' : '') + '"></span>').join('');
+        mPrev.disabled = mSlide === 0;
+        mNext.disabled = mSlide === d.slides.length - 1;
+    }
+    function openModal(era) { mCurrent = era; mSlide = 0; renderSlide(); mBackdrop.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function closeModal() { mBackdrop.classList.remove('open'); document.body.style.overflow = ''; }
+
+    document.querySelectorAll('.era-btn').forEach(b => b.addEventListener('click', () => openModal(+b.dataset.era)));
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    mBackdrop.addEventListener('click', e => { if (e.target === mBackdrop) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (!mBackdrop.classList.contains('open')) return;
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'ArrowRight' && !mNext.disabled) { mSlide++; renderSlide(); }
+        if (e.key === 'ArrowLeft' && !mPrev.disabled) { mSlide--; renderSlide(); }
+    });
+    mPrev.addEventListener('click', () => { if (mSlide > 0) { mSlide--; renderSlide(); } });
+    mNext.addEventListener('click', () => { if (mSlide < modalData[mCurrent].slides.length - 1) { mSlide++; renderSlide(); } });
+</script>
+
+</body>
+</html>
