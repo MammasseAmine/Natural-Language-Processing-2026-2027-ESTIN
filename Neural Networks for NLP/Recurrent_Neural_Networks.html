@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chapter 07 – Recurrent Neural Networks</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f4f7fc;
+    color: #1e293b;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.presentation-card {
+    width: 100%;
+    background: #ffffff;
+    box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+    overflow: hidden;
+    border-radius: 0;
+}
+
+/* ---------- HEADER ---------- */
+.hero {
+    background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+    padding: 2rem 3rem;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.hero-nav {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    transform: translateY(-50%);
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 24px;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+.hero-nav:hover, .hero-nav:focus-visible {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-50%) scale(1.05);
+}
+.hero-nav:focus-visible {
+    outline: 3px solid #8ec6ef;
+    outline-offset: 3px;
+}
+.hero-nav.previous { left: 14px; }
+.hero-nav.next { right: 14px; }
+.hero h1 {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.4rem;
+}
+.hero .chapter-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    padding: 0.3rem 1.5rem;
+    border-radius: 100px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    margin-top: 0.5rem;
+}
+.hero .chapter-line {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #9fc4e0;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+/* ---------- CONTENT ---------- */
+.content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+.section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 2.6rem 0 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #0b2a4a;
+}
+.section-title:first-child { margin-top: 0; }
+.section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+.title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+h3.sub { font-weight: 600; color: #0b2a4a; margin: 1.4rem 0 0.6rem; font-size: 1.05rem; }
+p { margin-bottom: 0.9rem; }
+.muted { color: #5f7d97; }
+.center { text-align: center; }
+.italic-note { text-align: center; color: #5f7d97; font-style: italic; font-size: 0.92rem; margin-top: 0.6rem; }
+
+/* ---------- ANIMATION ---------- */
+.fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+.draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+    stroke-dasharray: 1200; stroke-dashoffset: 1200; transition: stroke-dashoffset 1.6s ease-in-out;
+}
+.draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+.draw-svg.visible line, .draw-svg.visible ellipse, .draw-svg.visible polyline { stroke-dashoffset: 0; }
+.no-draw { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
+
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(26,74,110,0.35); } 50% { box-shadow: 0 0 0 10px rgba(26,74,110,0); } }
+@keyframes slideRight { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes dashFlow { to { stroke-dashoffset: -60; } }
+
+/* ---------- GENERIC BLOCKS ---------- */
+.panel { background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.5rem; margin: 1.2rem 0; }
+.panel-dark { background: #0b2a4a; color: #e6f0fa; border-radius: 1rem; padding: 1.5rem; margin: 1.2rem 0; }
+.callout { background: #e6f0fa; border-radius: 1rem; padding: 1.3rem 1.5rem; border-left: 5px solid #1a4a6e; margin: 1.2rem 0; }
+.callout-warn { background: #fef9f0; border-left-color: #d97706; border: 1px solid #f0e0c0; border-left: 5px solid #d97706; }
+
+.grid { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: 1.2rem 0; }
+.card { flex: 1; min-width: 230px; background: #f0f6fe; border-radius: 1rem; padding: 1.2rem; border: 1px solid #e2ecf8; }
+.card h4 { margin: 0.5rem 0 0.3rem; color: #0b2a4a; font-size: 1rem; }
+.card p { font-size: 0.9rem; margin: 0; }
+.card i.top { color: #1a4a6e; font-size: 1.4rem; }
+
+.tag {
+    display: inline-block; background: #fff; border: 1px solid #dce5ef; border-radius: 30px;
+    padding: 0.15rem 0.85rem; font-size: 0.8rem; font-weight: 600; color: #1a4a6e; margin: 0.2rem 0.2rem 0.2rem 0;
+}
+.num-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%; background: #1a4a6e; color: #fff;
+    font-size: 0.85rem; font-weight: 700; margin-right: 0.5rem; flex-shrink: 0;
+}
+
+/* ---------- BUTTONS ---------- */
+.btn {
+    background: #1a4a6e; color: #fff; border: none; border-radius: 100px;
+    padding: 0.5rem 1.3rem; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.45rem;
+}
+.btn:hover { background: #0b2a4a; transform: translateY(-1px); }
+.btn.ghost { background: #fff; color: #1a4a6e; border: 1px solid #c9d9e8; }
+.btn.ghost:hover { background: #eef5fd; color: #0b2a4a; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin: 0.9rem 0; }
+
+.toggle-row { display: inline-flex; background: #eaf1f9; border-radius: 100px; padding: 0.25rem; gap: 0.25rem; }
+.toggle-row button {
+    border: none; background: transparent; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    color: #4a6a86; padding: 0.4rem 1.1rem; border-radius: 100px; cursor: pointer; transition: all 0.2s;
+}
+.toggle-row button.active { background: #1a4a6e; color: #fff; }
+
+/* ---------- TABLES ---------- */
+table.nice { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: 0.9rem; }
+table.nice th {
+    background: #0b2a4a; color: #fff; text-align: left; padding: 0.65rem 0.9rem; font-weight: 600; font-size: 0.85rem;
+}
+table.nice td { padding: 0.6rem 0.9rem; border-bottom: 1px solid #e9edf2; vertical-align: top; }
+table.nice tr:nth-child(even) td { background: #f8faff; }
+table.nice tr.hot td { background: #e6f0fa !important; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ---------- CHIPS / WORDS ---------- */
+.word-chip {
+    display: inline-block; padding: 0.35rem 0.85rem; border-radius: 0.6rem; background: #eef3f9;
+    border: 1px solid #dbe6f0; font-weight: 600; color: #43617c; margin: 0.2rem; transition: all 0.35s ease;
+}
+.word-chip.on { background: #1a4a6e; color: #fff; border-color: #1a4a6e; transform: translateY(-3px); }
+.word-chip.done { background: #dce9f6; color: #1a4a6e; border-color: #c3d8ea; }
+
+/* ---------- HERO DEMO ---------- */
+.reader-box { background: #f8faff; border: 1px solid #e9edf2; border-radius: 1rem; padding: 1.4rem; }
+.mem-bar-wrap { display: flex; align-items: center; gap: 0.8rem; margin-top: 1rem; }
+.mem-bar { flex: 1; height: 14px; background: #e6ecf3; border-radius: 100px; overflow: hidden; }
+.mem-fill { height: 100%; width: 0%; border-radius: 100px; background: linear-gradient(90deg, #1a4a6e, #4a90c2); transition: width 0.5s ease; }
+.verdict { font-weight: 700; font-size: 1.05rem; transition: color 0.4s ease; }
+
+/* ---------- INTERACTIVE PARTS ---------- */
+.clickable { cursor: pointer; transition: all 0.2s ease; }
+.clickable:hover { filter: brightness(1.06); }
+
+.eq {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; text-align: center;
+    background: #fff; border: 1px dashed #c9d9e8; border-radius: 0.8rem; padding: 1rem; margin: 0.8rem 0;
+    line-height: 2.1;
+}
+.eq span.part { padding: 0.15rem 0.35rem; border-radius: 0.35rem; cursor: pointer; transition: all 0.2s; }
+.eq span.part:hover { background: #e6f0fa; }
+.eq span.part.sel { background: #1a4a6e; color: #fff; }
+
+.info-slot {
+    background: #0b2a4a; color: #e6f0fa; border-radius: 0.8rem; padding: 1rem 1.2rem;
+    min-height: 3.6rem; font-size: 0.93rem; animation: slideRight 0.35s ease;
+}
+.info-slot b { color: #ffd79a; }
+
+.vec { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+.vec-cell {
+    width: 74px; background: #fff; border: 1px solid #dbe6f0; border-radius: 0.5rem; padding: 0.4rem;
+    text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+}
+.vec-cell .lbl { font-size: 0.62rem; color: #7b93a8; display: block; font-family: 'Inter', sans-serif; letter-spacing: 0.3px; }
+.vec-cell .bar { height: 5px; border-radius: 3px; margin-top: 0.3rem; background: #dbe6f0; position: relative; overflow: hidden; }
+.vec-cell .bar i { position: absolute; top: 0; bottom: 0; left: 50%; background: #1a4a6e; transition: all 0.4s ease; }
+
+/* ---------- ACCORDION ---------- */
+.acc { border: 1px solid #e2ecf8; border-radius: 0.9rem; margin-bottom: 0.6rem; overflow: hidden; background: #fff; }
+.acc-head {
+    padding: 0.85rem 1.1rem; cursor: pointer; display: flex; align-items: center; gap: 0.7rem;
+    font-weight: 600; color: #0b2a4a; background: #f8faff; transition: background 0.2s; font-size: 0.95rem;
+}
+.acc-head:hover { background: #eef5fd; }
+.acc-head i.chev { margin-left: auto; transition: transform 0.3s; color: #7b93a8; }
+.acc.open .acc-head i.chev { transform: rotate(90deg); }
+.acc-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+.acc-body-inner { padding: 0.2rem 1.1rem 1rem 3rem; font-size: 0.92rem; color: #40566b; }
+
+/* ---------- SLIDERS ---------- */
+.slider-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 0.7rem 0; }
+.slider-row label { font-size: 0.88rem; font-weight: 600; color: #0b2a4a; min-width: 190px; }
+input[type=range] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 100px; background: #dbe6f0; flex: 1; min-width: 160px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #1a4a6e; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #1a4a6e; cursor: pointer; border: 3px solid #fff; }
+.readout { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #1a4a6e; min-width: 74px; text-align: right; }
+
+.stat-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.stat {
+    flex: 1; min-width: 140px; background: #fff; border: 1px solid #e2ecf8; border-radius: 0.8rem;
+    padding: 0.8rem 1rem; text-align: center;
+}
+.stat .big { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #0b2a4a; display: block; }
+.stat .cap { font-size: 0.75rem; color: #7b93a8; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ---------- GATE COLOURS ---------- */
+.g-forget { --g: #b45309; }
+.g-input  { --g: #0e7490; }
+.g-cand   { --g: #4d7c0f; }
+.g-output { --g: #7c3aed; }
+
+.gate-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.8rem 0; }
+.gate-pill {
+    border: 2px solid #dbe6f0; border-radius: 100px; padding: 0.3rem 1rem; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; background: #fff; transition: all 0.2s; color: #43617c;
+}
+.gate-pill.sel { color: #fff; }
+
+/* ---------- MISC ---------- */
+.flow-note { font-size: 0.82rem; color: #7b93a8; text-align: center; margin-top: 0.4rem; }
+.svg-wrap { display: flex; justify-content: center; overflow-x: auto; margin: 1rem 0; }
+.pill-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.glossary-term {
+    background: #f0f6fe; border: 1px solid #dbe6f0; border-radius: 0.6rem; padding: 0.45rem 0.9rem;
+    font-weight: 600; color: #1a4a6e; cursor: pointer; font-size: 0.88rem; transition: all 0.2s;
+}
+.glossary-term:hover, .glossary-term.sel { background: #1a4a6e; color: #fff; }
+
+.two-col { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+.two-col > div { flex: 1; min-width: 270px; }
+
+.check li, .cross li { list-style: none; padding: 0.3rem 0; font-size: 0.93rem; display: flex; gap: 0.5rem; align-items: baseline; }
+.check li i { color: #15803d; }
+.cross li i { color: #b91c1c; }
+
+@media (max-width: 768px) {
+    .hero { padding: 1.8rem 1.2rem; }
+    .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+    .content { padding: 1.6rem 1.1rem 2rem; }
+    .section-title { font-size: 1.15rem; }
+    .slider-row label { min-width: 100%; }
+    .eq { font-size: 0.9rem; }
+}
+</style>
+</head>
+<body>
+<div class="presentation-card">
+
+<header class="hero">
+    <a class="hero-nav previous" href="Feedforward_Networks.html" aria-label="Previous lesson" title="Previous lesson">
+        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+    </a>
+    <a class="hero-nav next" href="Vanishing_Gradients.html" aria-label="Next lesson" title="Next lesson">
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </a>
+    <h1>Recurrent Neural Networks</h1>
+    <div class="chapter-badge">
+        Give the network a memory, and language starts to make sense
+    </div>
+</header>
+
+<div class="content">
+
+<!-- ============ 1. HOOK ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-play-circle"></i> Reading a sentence, one word at a time
+    <span class="title-line"></span>
+</div>
+
+<div class="fade-up">
+    <p>A feedforward network reads a fixed box of numbers and forgets everything afterwards. Language is not a box.
+    It arrives word after word, and the meaning of the next word depends on every word before it.
+    Recurrent networks fix this with one simple idea: <strong>keep a memory, and update it at every word</strong>.</p>
+</div>
+
+<div class="reader-box fade-up" id="hookBox">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn" id="hookNext"><i class="fas fa-forward-step"></i> Next word</button>
+        <button class="btn ghost" id="hookReset"><i class="fas fa-rotate-left"></i> Reset</button>
+        <button class="btn ghost" id="hookDrop">Remove the word "not"</button>
+    </div>
+    <div id="hookWords" style="font-size:1.1rem; margin:0.6rem 0;"></div>
+    <div class="mem-bar-wrap">
+        <span style="font-size:0.85rem; font-weight:600; color:#0b2a4a; width:78px;"><i class="fas fa-brain"></i> Memory</span>
+        <div class="mem-bar"><div class="mem-fill" id="hookFill"></div></div>
+    </div>
+    <div id="hookThought" class="italic-note" style="min-height:1.4rem;">Press "Next word". Watch the memory grow with every word.</div>
+    <div class="center" style="margin-top:0.7rem;">
+        <span class="verdict" id="hookVerdict">Verdict: waitingâ€¦</span>
+    </div>
+</div>
+
+<p class="fade-up muted" style="font-size:0.92rem;">
+    The word <strong>good</strong> is positive on its own. Because <strong>not</strong> arrived three words earlier and stayed in memory,
+    the final answer flips to negative. That memory is the whole chapter.
+</p>
+
+<!-- ============ 2. WHY FEEDFORWARD FAILS ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-triangle-exclamation"></i> Why a feedforward network is not enough
+    <span class="title-line"></span>
+</div>
+
+<div class="grid fade-up">
+    <div class="card">
+        <i class="fas fa-lock top"></i>
+        <h4>1 · The input size is frozen</h4>
+        <p>A feedforward layer holds one weight per input position. Train it on 5 words and you cannot feed it 30. Real sentences have no fixed length.</p>
+    </div>
+    <div class="card">
+        <i class="fas fa-eraser top"></i>
+        <h4>2 · There is no memory</h4>
+        <p>Every example is handled alone. When the network reaches word 12 it keeps no trace of word 3. Pronouns, negation and agreement all need that trace.</p>
+    </div>
+    <div class="card">
+        <i class="fas fa-shuffle top"></i>
+        <h4>3 · Order is thrown away</h4>
+        <p>A bag of words gives the very same vector to two sentences that mean opposite things.</p>
+    </div>
+</div>
+
+<div class="panel fade-up">
+    <div class="center" style="margin-bottom:0.8rem;">
+        <div class="toggle-row" id="bowToggle">
+            <button class="active" data-s="0">dog bites man</button>
+            <button data-s="1">man bites dog</button>
+        </div>
+    </div>
+    <div class="center" style="font-size:1.25rem; font-weight:600; color:#0b2a4a; margin-bottom:0.8rem;" id="bowSentence">dog bites man</div>
+    <div class="two-col">
+        <div>
+            <div style="font-size:0.8rem; font-weight:700; color:#7b93a8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">Bag of words sees</div>
+            <div class="vec" id="bowVec"></div>
+            <div class="flow-note" id="bowVerdictA">Identical counts → identical vector → identical prediction.</div>
+        </div>
+        <div>
+            <div style="font-size:0.8rem; font-weight:700; color:#7b93a8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">A recurrent network sees</div>
+            <div id="bowSeq" style="text-align:center;"></div>
+            <div class="flow-note" id="bowVerdictB">Order changes the memory → different answer.</div>
+        </div>
+    </div>
+</div>
+
+<div class="callout fade-up">
+    <strong>The question of this course:</strong> how can one network read an input of any length and still remember what it read at the beginning?
+</div>
+
+<!-- ============ 3. SEQUENCES EVERYWHERE ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-list-ol"></i> Sequences are everywhere in NLP
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Click a task to see what goes in and what comes out. In every one of them, <strong>order matters</strong>.</p>
+
+<div class="fade-up pill-list" id="taskPills" style="justify-content:center;"></div>
+<div class="panel fade-up" id="taskPanel" style="margin-top:0.9rem;"></div>
+
+<!-- ============ 4. THE RECURRENT IDEA ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-rotate"></i> The recurrent idea: one cell, reused
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">An RNN is not a long network. It is a very small network applied again and again – once per word – carrying a vector called the
+<strong>hidden state</strong> from each step to the next. The two pictures below show the same model.</p>
+
+<div class="center fade-up">
+    <div class="toggle-row" id="foldToggle">
+        <button class="active" data-v="folded"><i class="fas fa-circle-notch"></i> Folded (the loop)</button>
+        <button data-v="unrolled"><i class="fas fa-arrow-right-long"></i> Unrolled (over time)</button>
+    </div>
+</div>
+
+<div class="svg-wrap fade-up">
+    <div id="foldedView">
+        <svg width="360" height="230" viewBox="0 0 360 230" class="draw-svg">
+            <rect x="130" y="85" width="100" height="60" rx="12" fill="#e6f0fa" stroke="#1a4a6e" stroke-width="2.5"/>
+            <text x="180" y="120" text-anchor="middle" font-size="16" font-weight="700" fill="#0b2a4a" class="no-draw">RNN</text>
+            <line x1="180" y1="200" x2="180" y2="150" stroke="#1a4a6e" stroke-width="2.5" marker-end="url(#ar1)"/>
+            <text x="180" y="220" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="600" class="no-draw">input x</text>
+            <line x1="180" y1="82" x2="180" y2="42" stroke="#1a4a6e" stroke-width="2.5" marker-end="url(#ar1)"/>
+            <text x="180" y="30" text-anchor="middle" font-size="13" fill="#0b2a4a" font-weight="600" class="no-draw">output y</text>
+            <path d="M 232 100 C 300 80, 300 150, 232 130" fill="none" stroke="#b45309" stroke-width="2.5" marker-end="url(#ar2)"/>
+            <text x="300" y="118" text-anchor="middle" font-size="12" fill="#b45309" font-weight="700" class="no-draw">memory</text>
+            <defs>
+                <marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1a4a6e"/></marker>
+                <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#b45309"/></marker>
+            </defs>
+        </svg>
+        <div class="flow-note">One box. The orange arrow feeds the memory back into itself.</div>
+    </div>
+    <div id="unrolledView" style="display:none;">
+        <svg width="700" height="230" viewBox="0 0 700 230">
+            <defs>
+                <marker id="ar1u" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1a4a6e"/></marker>
+                <marker id="ar2u" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#b45309"/></marker>
+                <marker id="arPu" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/></marker>
+            </defs>
+            <g id="unrollG"></g>
+        </svg>
+        <div class="flow-note">The same box copied once per word. All copies share <strong>exactly the same weights</strong>.</div>
+    </div>
+</div>
+
+<div class="two-col fade-up">
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><i class="fas fa-clone"></i> Weight sharing</h3>
+        <p style="font-size:0.92rem; margin:0;">The unrolled picture looks deep, but every layer uses one single set of weights.
+        Two results: the parameter count does not grow with sentence length, and whatever the model learns at position 2 is reused for free at position 40.</p>
+    </div>
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><i class="fas fa-compress"></i> The hidden state is a summary</h3>
+        <p style="font-size:0.92rem; margin:0;">h<sub>t</sub> is a fixed-size vector – say 256 numbers. It must squeeze everything useful from words 1 to t.
+        That squeeze is the strength of the model, and later in this chapter it becomes its weakness.</p>
+    </div>
+</div>
+
+<!-- ============ 5. INSIDE ONE CELL ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-microchip"></i> Inside one RNN cell
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Everything a simple RNN does at time <span class="mono">t</span> fits in two lines of algebra.
+<strong>Click any coloured piece</strong> of the equations, the diagram or the table below to see what it does.</p>
+
+<div class="eq fade-up" id="rnnEq">
+    <span class="part" data-k="h">h<sub>t</sub></span> = tanh(
+    <span class="part" data-k="wx">W<sub>x</sub></span>·<span class="part" data-k="x">x<sub>t</sub></span> +
+    <span class="part" data-k="wh">W<sub>h</sub></span>·<span class="part" data-k="hp">h<sub>tâˆ’1</sub></span> +
+    <span class="part" data-k="b">b</span> )<br>
+    <span class="part" data-k="y">y<sub>t</sub></span> = softmax( <span class="part" data-k="wy">W<sub>y</sub></span>·<span class="part" data-k="h">h<sub>t</sub></span> +
+    <span class="part" data-k="by">b<sub>y</sub></span> )
+</div>
+
+<div class="info-slot fade-up" id="rnnEqInfo">Nothing selected yet – click a symbol above.</div>
+
+<div class="svg-wrap fade-up">
+    <svg width="640" height="220" viewBox="0 0 640 220" id="cellSvg">
+        <rect x="200" y="55" width="240" height="110" rx="16" fill="#f8faff" stroke="#1a4a6e" stroke-width="2.5"/>
+        <text x="320" y="48" text-anchor="middle" font-size="12" fill="#7b93a8" font-weight="600">cell at time t</text>
+        <circle cx="320" cy="110" r="34" fill="#e6f0fa" stroke="#1a4a6e" stroke-width="2" class="clickable" data-k="h"/>
+        <text x="320" y="107" text-anchor="middle" font-size="13" font-weight="700" fill="#0b2a4a" style="pointer-events:none;">tanh</text>
+        <text x="320" y="124" text-anchor="middle" font-size="11" fill="#4a6a86" style="pointer-events:none;">h_t</text>
+        <line x1="60" y1="110" x2="200" y2="110" stroke="#b45309" stroke-width="3" marker-end="url(#arO)" class="clickable" data-k="hp"/>
+        <text x="128" y="100" text-anchor="middle" font-size="12" fill="#b45309" font-weight="700">h_t-1</text>
+        <text x="128" y="128" text-anchor="middle" font-size="10" fill="#b45309">x W_h</text>
+        <line x1="320" y1="205" x2="320" y2="165" stroke="#1a4a6e" stroke-width="3" marker-end="url(#arB)" class="clickable" data-k="x"/>
+        <text x="390" y="196" text-anchor="middle" font-size="12" fill="#0b2a4a" font-weight="700">x_t   (x W_x)</text>
+        <line x1="440" y1="110" x2="580" y2="110" stroke="#b45309" stroke-width="3" marker-end="url(#arO)" class="clickable" data-k="h"/>
+        <text x="512" y="100" text-anchor="middle" font-size="12" fill="#b45309" font-weight="700">h_t to next step</text>
+        <line x1="320" y1="55" x2="320" y2="20" stroke="#7c3aed" stroke-width="3" marker-end="url(#arP)" class="clickable" data-k="y"/>
+        <text x="396" y="30" text-anchor="middle" font-size="12" fill="#7c3aed" font-weight="700">y_t   (x W_y)</text>
+        <defs>
+            <marker id="arO" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#b45309"/></marker>
+            <marker id="arB" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1a4a6e"/></marker>
+            <marker id="arP" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/></marker>
+        </defs>
+    </svg>
+</div>
+
+<table class="nice fade-up" id="symTable">
+    <thead><tr><th>Symbol</th><th>Shape</th><th>Changes every step?</th><th>Role</th></tr></thead>
+    <tbody>
+        <tr class="clickable" data-k="x"><td class="mono">x<sub>t</sub></td><td class="mono">d &times; 1</td><td><strong>yes</strong></td><td>Embedding of the current word</td></tr>
+        <tr class="clickable" data-k="hp"><td class="mono">h<sub>t-1</sub></td><td class="mono">h &times; 1</td><td><strong>yes</strong></td><td>Memory of everything read so far</td></tr>
+        <tr class="clickable" data-k="wx"><td class="mono">W<sub>x</sub></td><td class="mono">h &times; d</td><td>no &mdash; shared</td><td>How the new word enters the memory</td></tr>
+        <tr class="clickable" data-k="wh"><td class="mono">W<sub>h</sub></td><td class="mono">h &times; h</td><td>no &mdash; shared</td><td>How the old memory is transformed</td></tr>
+        <tr class="clickable" data-k="b"><td class="mono">b</td><td class="mono">h &times; 1</td><td>no &mdash; shared</td><td>Bias, shifts the activation</td></tr>
+        <tr class="clickable" data-k="wy"><td class="mono">W<sub>y</sub></td><td class="mono">|V| &times; h</td><td>no &mdash; shared</td><td>Reads an answer out of the memory</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-warn fade-up">
+    <strong>Why tanh and not ReLU?</strong> The same matrix is applied at every single step. tanh squeezes values into &minus;1 &hellip; 1, which stops the hidden
+    state from blowing up after 40 multiplications. ReLU has no upper limit and makes a plain RNN unstable.
+</div>
+
+<!-- ============ 6. FORWARD PASS ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-shoe-prints"></i> Watch the numbers move: a real forward pass
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">A tiny RNN with a 4-number hidden state reads <em>"the movie was not good"</em>.
+Every value below is computed live with the formula above &mdash; nothing is faked. Step through it.</p>
+
+<div class="panel fade-up">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn" id="fpStep"><i class="fas fa-forward-step"></i> Next word</button>
+        <button class="btn ghost" id="fpAuto"><i class="fas fa-play"></i> Auto</button>
+        <button class="btn ghost" id="fpReset"><i class="fas fa-rotate-left"></i> Reset</button>
+    </div>
+    <div id="fpWords" style="font-size:1.05rem; margin-bottom:1rem;"></div>
+
+    <div style="font-size:0.78rem; font-weight:700; color:#7b93a8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.4rem;">Input x<sub>t</sub> &mdash; word embedding</div>
+    <div class="vec" id="fpX"></div>
+
+    <div style="font-size:0.78rem; font-weight:700; color:#b45309; text-transform:uppercase; letter-spacing:0.5px; margin:1rem 0 0.4rem;">Hidden state h<sub>t</sub> &mdash; the memory</div>
+    <div class="vec" id="fpH"></div>
+
+    <div class="info-slot" id="fpNote" style="margin-top:1rem;">Nothing read yet. h<sub>0</sub> starts as all zeros.</div>
+
+    <div class="stat-row">
+        <div class="stat"><span class="big" id="fpScore">0.00</span><span class="cap">output score</span></div>
+        <div class="stat"><span class="big" id="fpProb">50%</span><span class="cap">P(positive)</span></div>
+        <div class="stat"><span class="big" id="fpLabel">&mdash;</span><span class="cap">prediction</span></div>
+    </div>
+</div>
+
+<p class="fade-up muted" style="font-size:0.9rem;">
+    Dimension 2 acts as a <em>negation flag</em>. When "not" switches it on, the shared weight W<sub>h</sub>[1,2] = &minus;2.0 subtracts from the polarity
+    dimension at the next step &mdash; so "good" arrives positive and leaves negative. One matrix, learned from data, does all of that.
+</p>
+
+<!-- ============ 7. SEQUENCE SHAPES ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-shapes"></i> Five shapes of sequence problem
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">The same cell solves very different tasks depending on where you attach the inputs and the outputs. Click a card.</p>
+<div class="grid fade-up" id="shapeGrid"></div>
+<div class="info-slot fade-up" id="shapeInfo">Click a shape to see a worked example.</div>
+
+<!-- ============ 8. BPTT ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-arrow-rotate-left"></i> How an RNN learns: backpropagation through time
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Training is ordinary backpropagation applied to the <em>unrolled</em> network. Because the weights are shared, every copy sends
+back its own gradient and all of them are <strong>added together</strong> into one update. Press the button and watch the three stages.</p>
+
+<div class="panel fade-up">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn" id="bpttPlay"><i class="fas fa-play"></i> Run one training step</button>
+        <span class="mono" id="bpttStage" style="color:#1a4a6e; font-weight:600;">idle</span>
+    </div>
+    <div class="svg-wrap" style="margin:0;">
+        <svg width="700" height="200" viewBox="0 0 700 200" id="bpttSvg"></svg>
+    </div>
+    <div class="info-slot" id="bpttNote">Stage 1 runs the sentence forward, stage 2 measures the error, stage 3 sends the blame backwards through every step.</div>
+</div>
+
+<div class="grid fade-up">
+    <div class="card"><i class="fas fa-1 top"></i><h4>Forward</h4><p>Read the whole sequence, keep every hidden state in memory &mdash; they are all needed later.</p></div>
+    <div class="card"><i class="fas fa-2 top"></i><h4>Loss</h4><p>Compare the prediction with the true label. Usually cross-entropy, summed over all time steps that produce output.</p></div>
+    <div class="card"><i class="fas fa-3 top"></i><h4>Backward</h4><p>Walk from the last step to the first, multiplying by W<sub>h</sub> at every hop. Add up the gradient contributions and update once.</p></div>
+</div>
+
+<div class="callout fade-up">
+    <strong>Two consequences.</strong> Memory grows with the sentence length, because every hidden state must be kept &mdash; which is why long documents are cut
+    into chunks, a trick called <em>truncated BPTT</em>. And because the signal shrinks at every hop, a plain RNN never really learns that word 40 depends on
+    word 2. That single weakness is the reason gates were invented.
+</div>
+
+<!-- ============ 9b. LIMITATIONS OF STANDARD RNNs ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-ban"></i> Limitations of standard RNNs
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">In theory an RNN can remember a sequence of any length. In practice four things get in the way. Click a card.</p>
+
+<div class="grid fade-up" id="limGrid"></div>
+<div class="info-slot fade-up" id="limInfo">Pick a limitation to see what it does to a real sentence.</div>
+
+<p class="fade-up" style="margin-top:1.4rem;">Here is the classic failure. The adjective at the end describes the noun near the start, and eight words sit between them.</p>
+
+<div class="panel fade-up">
+    <div class="svg-wrap" style="margin:0;"><svg width="700" height="120" viewBox="0 0 700 120" id="distSvg"></svg></div>
+    <div class="italic-note">Every hop shrinks the signal a little. By the time the model reaches <strong>amazing</strong>, almost nothing of <strong>movie</strong> is left in the memory,
+    so the model guesses from the nearest few words instead. Gates were invented to fix exactly this.</div>
+</div>
+
+<!-- ============ 10. LSTM ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-warehouse"></i> LSTM: give the memory a set of gates
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Hochreiter &amp; Schmidhuber, 1997. A plain RNN <em>overwrites</em> its memory at every word. The Long Short-Term Memory cell instead keeps a second
+vector, the <strong>cell state</strong> c<sub>t</sub>, and edits it gently with small valves called <strong>gates</strong>. A gate is just a sigmoid layer producing a
+number between 0 and 1 for each dimension: 0 means "block", 1 means "let it pass".</p>
+
+<div class="callout fade-up">
+    <strong>The memory highway.</strong> c<sub>t</sub> travels from step to step with only a multiply and an add &mdash; no matrix, no tanh.
+    That straight road is what lets a gradient survive hundreds of steps.
+</div>
+
+<p class="fade-up center"><strong>Click a gate</strong> to light up its path and read what it does.</p>
+
+<div class="gate-legend fade-up center" id="gateLegend" style="justify-content:center;"></div>
+
+<div class="svg-wrap fade-up">
+    <svg width="700" height="330" viewBox="0 0 700 330" id="lstmSvg">
+        <!-- cell box -->
+        <rect x="110" y="40" width="480" height="250" rx="18" fill="#f8faff" stroke="#c9d9e8" stroke-width="2"/>
+        <text x="350" y="30" text-anchor="middle" font-size="12" fill="#7b93a8" font-weight="600">one LSTM cell at time t</text>
+
+        <!-- cell state highway -->
+        <line id="hw1" x1="20" y1="90" x2="250" y2="90" stroke="#0b2a4a" stroke-width="5"/>
+        <line id="hw2" x1="250" y1="90" x2="420" y2="90" stroke="#0b2a4a" stroke-width="5"/>
+        <line id="hw3" x1="420" y1="90" x2="680" y2="90" stroke="#0b2a4a" stroke-width="5" marker-end="url(#arN)"/>
+        <text x="60" y="80" font-size="12" fill="#0b2a4a" font-weight="700">c_t-1</text>
+        <text x="630" y="80" font-size="12" fill="#0b2a4a" font-weight="700">c_t</text>
+
+        <!-- operators on the highway -->
+        <circle cx="250" cy="90" r="16" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+        <text x="250" y="96" text-anchor="middle" font-size="15" font-weight="700" fill="#0b2a4a">x</text>
+        <circle cx="420" cy="90" r="16" fill="#fff" stroke="#0b2a4a" stroke-width="2"/>
+        <text x="420" y="96" text-anchor="middle" font-size="17" font-weight="700" fill="#0b2a4a">+</text>
+
+        <!-- hidden state line -->
+        <line x1="20" y1="270" x2="150" y2="270" stroke="#b45309" stroke-width="3"/>
+        <text x="60" y="290" font-size="12" fill="#b45309" font-weight="700">h_t-1</text>
+        <line x1="150" y1="310" x2="150" y2="270" stroke="#1a4a6e" stroke-width="3"/>
+        <text x="150" y="325" text-anchor="middle" font-size="12" fill="#1a4a6e" font-weight="700">x_t</text>
+        <line x1="150" y1="270" x2="600" y2="270" stroke="#b45309" stroke-width="3" stroke-dasharray="5 4"/>
+        <text x="178" y="262" font-size="10" fill="#a06020" font-weight="600">[ h_t-1 , x_t ] goes to every gate</text>
+        <line x1="250" y1="270" x2="250" y2="228" stroke="#b45309" stroke-width="2"/>
+        <line x1="360" y1="270" x2="360" y2="228" stroke="#0e7490" stroke-width="2"/>
+        <line x1="475" y1="270" x2="475" y2="228" stroke="#4d7c0f" stroke-width="2"/>
+        <line x1="590" y1="270" x2="590" y2="228" stroke="#7c3aed" stroke-width="2"/>
+
+        <!-- gates -->
+        <g class="gateNode clickable" data-g="forget">
+            <rect x="205" y="180" width="90" height="46" rx="10" fill="#fff" stroke="#b45309" stroke-width="2.5"/>
+            <text x="250" y="202" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309" style="pointer-events:none;">forget f</text>
+            <text x="250" y="217" text-anchor="middle" font-size="10" fill="#a06020" style="pointer-events:none;">sigmoid</text>
+        </g>
+        <line x1="250" y1="180" x2="250" y2="112" stroke="#b45309" stroke-width="2.5" marker-end="url(#arO2)"/>
+
+        <g class="gateNode clickable" data-g="input">
+            <rect x="315" y="180" width="90" height="46" rx="10" fill="#fff" stroke="#0e7490" stroke-width="2.5"/>
+            <text x="360" y="202" text-anchor="middle" font-size="12" font-weight="700" fill="#0e7490" style="pointer-events:none;">input i</text>
+            <text x="360" y="217" text-anchor="middle" font-size="10" fill="#0e7490" style="pointer-events:none;">sigmoid</text>
+        </g>
+
+        <g class="gateNode clickable" data-g="cand">
+            <rect x="425" y="180" width="100" height="46" rx="10" fill="#fff" stroke="#4d7c0f" stroke-width="2.5"/>
+            <text x="475" y="202" text-anchor="middle" font-size="12" font-weight="700" fill="#4d7c0f" style="pointer-events:none;">candidate g</text>
+            <text x="475" y="217" text-anchor="middle" font-size="10" fill="#4d7c0f" style="pointer-events:none;">tanh</text>
+        </g>
+
+        <circle cx="420" cy="150" r="14" fill="#fff" stroke="#0e7490" stroke-width="2"/>
+        <text x="420" y="156" text-anchor="middle" font-size="14" font-weight="700" fill="#0e7490">x</text>
+        <line x1="360" y1="180" x2="405" y2="158" stroke="#0e7490" stroke-width="2.5"/>
+        <line x1="470" y1="180" x2="435" y2="158" stroke="#4d7c0f" stroke-width="2.5"/>
+        <line x1="420" y1="136" x2="420" y2="112" stroke="#0e7490" stroke-width="2.5" marker-end="url(#arT)"/>
+
+        <g class="gateNode clickable" data-g="output">
+            <rect x="545" y="180" width="90" height="46" rx="10" fill="#fff" stroke="#7c3aed" stroke-width="2.5"/>
+            <text x="590" y="202" text-anchor="middle" font-size="12" font-weight="700" fill="#7c3aed" style="pointer-events:none;">output o</text>
+            <text x="590" y="217" text-anchor="middle" font-size="10" fill="#7c3aed" style="pointer-events:none;">sigmoid</text>
+        </g>
+        <circle cx="590" cy="140" r="14" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+        <text x="590" y="146" text-anchor="middle" font-size="14" font-weight="700" fill="#7c3aed">x</text>
+        <line x1="590" y1="180" x2="590" y2="154" stroke="#7c3aed" stroke-width="2.5"/>
+        <path d="M 500 90 L 500 118 L 576 132" fill="none" stroke="#0b2a4a" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="505" y="115" font-size="9" fill="#0b2a4a">tanh(c_t)</text>
+        <line x1="604" y1="140" x2="680" y2="140" stroke="#b45309" stroke-width="3" marker-end="url(#arO2)"/>
+        <text x="645" y="132" font-size="12" fill="#b45309" font-weight="700">h_t</text>
+
+        <defs>
+            <marker id="arN" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#0b2a4a"/></marker>
+            <marker id="arO2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#b45309"/></marker>
+            <marker id="arT" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#0e7490"/></marker>
+        </defs>
+    </svg>
+</div>
+
+<div class="info-slot fade-up" id="gateInfo">Pick a gate above. Every gate reads the same two things: the previous hidden state and the current word.</div>
+
+<table class="nice fade-up">
+    <thead><tr><th>Part</th><th>Formula</th><th>Question it answers</th></tr></thead>
+    <tbody>
+        <tr><td><strong style="color:#b45309;">Forget gate</strong></td><td class="mono">f<sub>t</sub> = &sigma;(W<sub>f</sub>[h<sub>t-1</sub>, x<sub>t</sub>] + b<sub>f</sub>)</td><td>What should be thrown away?</td></tr>
+        <tr><td><strong style="color:#0e7490;">Input gate</strong></td><td class="mono">i<sub>t</sub> = &sigma;(W<sub>i</sub>[h<sub>t-1</sub>, x<sub>t</sub>] + b<sub>i</sub>)</td><td>How much of the new idea should be written?</td></tr>
+        <tr><td><strong style="color:#4d7c0f;">Candidate</strong></td><td class="mono">g<sub>t</sub> = tanh(W<sub>g</sub>[h<sub>t-1</sub>, x<sub>t</sub>] + b<sub>g</sub>)</td><td>What is the new idea itself?</td></tr>
+        <tr><td><strong style="color:#0b2a4a;">Cell state</strong></td><td class="mono">c<sub>t</sub> = f<sub>t</sub> &odot; c<sub>t-1</sub> + i<sub>t</sub> &odot; g<sub>t</sub></td><td>What is worth remembering long term?</td></tr>
+        <tr><td><strong style="color:#7c3aed;">Output gate</strong></td><td class="mono">o<sub>t</sub> = &sigma;(W<sub>o</sub>[h<sub>t-1</sub>, x<sub>t</sub>] + b<sub>o</sub>)</td><td>Which part of the memory is needed right now?</td></tr>
+        <tr><td><strong style="color:#b45309;">Hidden state</strong></td><td class="mono">h<sub>t</sub> = o<sub>t</sub> &odot; tanh(c<sub>t</sub>)</td><td>What do we hand to the next step and to the output layer?</td></tr>
+    </tbody>
+</table>
+
+<p class="fade-up muted" style="font-size:0.9rem;">&odot; means element-by-element multiplication. [h, x] means the two vectors stuck together into one longer vector,
+so a single matrix handles both.</p>
+
+<!-- forget gate half-life -->
+<div class="section-title fade-up">
+    <i class="fas fa-hourglass-half"></i> How long does a memory survive?
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">If the forget gate keeps a value <span class="mono">f</span> at every step, the strength left after <span class="mono">n</span> steps is
+<span class="mono">f<sup>n</sup></span>. Slide it and see how a value very close to 1 changes everything.</p>
+
+<div class="panel fade-up">
+    <div class="slider-row">
+        <label>Forget gate value f</label>
+        <input type="range" id="hlF" min="50" max="999" value="900" />
+        <span class="readout" id="hlFOut">0.900</span>
+    </div>
+    <div class="svg-wrap" style="margin:0.3rem 0;"><svg width="640" height="170" viewBox="0 0 640 170" id="hlSvg"></svg></div>
+    <div class="stat-row">
+        <div class="stat"><span class="big" id="hlHalf">7</span><span class="cap">steps to half strength</span></div>
+        <div class="stat"><span class="big" id="hlAt50">0.5%</span><span class="cap">left after 50 words</span></div>
+        <div class="stat"><span class="big" id="hlVerdict" style="font-size:1rem;">&mdash;</span><span class="cap">behaviour</span></div>
+    </div>
+    <div class="italic-note">A plain RNN has no such dial &mdash; it is stuck with whatever W<sub>h</sub> gives it. The LSTM <em>learns</em> this value, per dimension, per word.</div>
+</div>
+
+<!-- agreement walkthrough -->
+<div class="section-title fade-up">
+    <i class="fas fa-people-arrows"></i> A memory slot in action
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">English verbs must agree with a subject that may be far away. Step through the sentence and watch one dimension of the cell state
+hold the answer while everything else changes.</p>
+
+<div class="panel fade-up">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn" id="agStep"><i class="fas fa-forward-step"></i> Next word</button>
+        <button class="btn ghost" id="agReset"><i class="fas fa-rotate-left"></i> Reset</button>
+    </div>
+    <div id="agWords" style="font-size:1.1rem; margin-bottom:0.9rem;"></div>
+    <div class="two-col">
+        <div>
+            <div style="font-size:0.78rem;font-weight:700;color:#7b93a8;text-transform:uppercase;letter-spacing:.5px;">Memory slot &ldquo;subject number&rdquo;</div>
+            <div id="agSlot" style="font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:700; color:#0b2a4a; padding:0.6rem 0;">empty</div>
+            <div class="gate-legend" id="agGates"></div>
+        </div>
+        <div><div class="info-slot" id="agNote" style="height:100%;">The subject arrives early. The verb arrives six words later.</div></div>
+    </div>
+</div>
+
+<div class="two-col fade-up">
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><i class="fas fa-thumbs-up"></i> What LSTM gained</h3>
+        <ul class="check">
+            <li><i class="fas fa-check"></i> Long-range dependencies really do get learned</li>
+            <li><i class="fas fa-check"></i> Gradients survive because of the additive highway</li>
+            <li><i class="fas fa-check"></i> The model decides <em>per word</em> what to keep and what to drop</li>
+            <li><i class="fas fa-check"></i> Ruled machine translation, tagging and speech for two decades</li>
+        </ul>
+    </div>
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><i class="fas fa-thumbs-down"></i> What it cost</h3>
+        <ul class="cross">
+            <li><i class="fas fa-xmark"></i> Four weight matrices instead of one &mdash; four times the parameters</li>
+            <li><i class="fas fa-xmark"></i> Slower training, heavier memory use</li>
+            <li><i class="fas fa-xmark"></i> Still strictly step by step, so no parallel computing</li>
+            <li><i class="fas fa-xmark"></i> Many moving parts to tune</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ============ 11. GRU ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-feather"></i> GRU: the lighter cousin
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Cho et al., 2014. The Gated Recurrent Unit keeps the gating idea but throws away the separate cell state and uses two gates instead of three.
+Fewer parameters, faster training, and very often the same accuracy.</p>
+
+<div class="two-col fade-up">
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><span class="num-badge">1</span> One memory instead of two</h3>
+        <p style="font-size:0.92rem; margin:0;">c and h are merged. The cell carries a single state vector, so there is no highway to read from and no output gate to control it.</p>
+    </div>
+    <div class="panel" style="margin:0;">
+        <h3 class="sub" style="margin-top:0;"><span class="num-badge">2</span> Forget and input are tied together</h3>
+        <p style="font-size:0.92rem; margin:0;">One <strong>update gate</strong> z decides both sides of the deal: the fraction to keep and the fraction to replace. They always add up to 1.</p>
+    </div>
+</div>
+
+<table class="nice fade-up">
+    <thead><tr><th>Gate</th><th>Purpose</th></tr></thead>
+    <tbody>
+        <tr><td><strong style="color:#0e7490;">Update gate</strong></td><td>Controls memory retention and update</td></tr>
+        <tr><td><strong style="color:#b45309;">Reset gate</strong></td><td>Controls forgetting of previous information</td></tr>
+    </tbody>
+</table>
+
+<p class="fade-up muted" style="font-size:0.92rem;">So the cell answers only two questions at each word: <em>what should I forget?</em> and <em>what should I remember?</em>
+Setting the reset gate near 0 lets it start a fresh thought &mdash; handy at a sentence boundary.</p>
+
+<p class="fade-up center">Move the update gate and watch the memory blend.</p>
+
+<div class="panel fade-up">
+    <div class="slider-row">
+        <label>Update gate z</label>
+        <input type="range" id="gruZ" min="0" max="100" value="35" />
+        <span class="readout" id="gruZOut">0.35</span>
+    </div>
+    <div class="svg-wrap" style="margin:0.3rem 0;"><svg width="620" height="190" viewBox="0 0 620 190" id="gruSvg"></svg></div>
+    <div class="info-slot" id="gruNote"></div>
+</div>
+
+
+<h3 class="sub fade-up"><i class="fas fa-feather-pointed"></i> Why GRUs train faster</h3>
+
+<div class="two-col fade-up">
+    <div class="panel" style="margin:0;">
+        <div style="font-size:0.78rem;font-weight:700;color:#7b93a8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">Compared with LSTMs, GRUs have</div>
+        <ul class="check">
+            <li><i class="fas fa-minus"></i> Fewer gates</li>
+            <li><i class="fas fa-minus"></i> Fewer matrix multiplications</li>
+            <li><i class="fas fa-minus"></i> Fewer parameters</li>
+            <li><i class="fas fa-minus"></i> Less memory usage</li>
+        </ul>
+    </div>
+    <div class="panel" style="margin:0;">
+        <div style="font-size:0.78rem;font-weight:700;color:#7b93a8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">This results in</div>
+        <ul class="check">
+            <li><i class="fas fa-check"></i> Faster convergence</li>
+            <li><i class="fas fa-check"></i> Lower computational cost</li>
+            <li><i class="fas fa-check"></i> Smaller models</li>
+        </ul>
+    </div>
+</div>
+
+<h3 class="sub fade-up"><i class="fas fa-circle-question"></i> When should we use GRUs?</h3>
+<p class="fade-up">A GRU is usually the better pick when:</p>
+
+<div class="grid fade-up">
+    <div class="card"><i class="fas fa-database top"></i><h4>Training data is limited</h4><p>Fewer parameters means less to overfit.</p></div>
+    <div class="card"><i class="fas fa-gauge-high top"></i><h4>Fast training matters</h4><p>Fewer matrix multiplications per step.</p></div>
+    <div class="card"><i class="fas fa-memory top"></i><h4>Memory is tight</h4><p>Only one state vector to store and move.</p></div>
+    <div class="card"><i class="fas fa-bolt top"></i><h4>The system is real time</h4><p>Lower cost per token keeps latency down.</p></div>
+</div>
+
+<p class="fade-up"><strong>Typical places you will meet one:</strong>
+<span class="tag"><i class="fas fa-comments"></i> chatbots</span>
+<span class="tag"><i class="fas fa-microphone"></i> speech recognition</span>
+<span class="tag"><i class="fas fa-face-smile"></i> sentiment analysis</span>
+<span class="tag"><i class="fas fa-tags"></i> sequence classification</span>
+<span class="tag"><i class="fas fa-pen-nib"></i> text generation</span></p>
+
+<!-- ============ 12. PARAMETER COUNTER ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-calculator"></i> Counting the parameters
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">A recurrent layer always needs the same three things per gate: a matrix for the input, a matrix for the previous state, and a bias.
+So one gate costs <span class="mono">h&times;d + h&times;h + h</span>. Multiply that by the number of gates: 1 for an RNN, 3 for a GRU, 4 for an LSTM.</p>
+
+<div class="panel fade-up">
+    <div class="slider-row">
+        <label>Embedding size d</label>
+        <input type="range" id="pcD" min="16" max="1024" step="16" value="300" />
+        <span class="readout" id="pcDOut">300</span>
+    </div>
+    <div class="slider-row">
+        <label>Hidden size h</label>
+        <input type="range" id="pcH" min="16" max="1024" step="16" value="256" />
+        <span class="readout" id="pcHOut">256</span>
+    </div>
+    <div class="slider-row">
+        <label>Stacked layers</label>
+        <input type="range" id="pcL" min="1" max="6" value="1" />
+        <span class="readout" id="pcLOut">1</span>
+    </div>
+    <table class="nice" style="margin-bottom:0;">
+        <thead><tr><th>Cell</th><th>Gates</th><th>Formula</th><th>Parameters</th><th>Relative</th></tr></thead>
+        <tbody id="pcBody"></tbody>
+    </table>
+    <div class="italic-note">Only the recurrent layer is counted &mdash; the embedding table and the output layer are extra.</div>
+</div>
+
+<!-- ============ 13. STACKED ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-layer-group"></i> Making it deeper: stacked RNNs
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">One recurrent layer reads the words. A second layer reads the first layer's hidden states instead of words. The lower layer picks up short
+local patterns; the upper one builds phrase-level meaning.</p>
+
+<div class="svg-wrap fade-up"><svg width="640" height="240" viewBox="0 0 640 240" id="archSvg"></svg></div>
+<div class="info-slot fade-up" id="archInfo"></div>
+
+<!-- ============ 15. COMPARISON ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-scale-balanced"></i> RNN vs LSTM vs GRU
+    <span class="title-line"></span>
+</div>
+
+<table class="nice fade-up">
+    <thead><tr><th>&nbsp;</th><th>Simple RNN</th><th>LSTM</th><th>GRU</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Gates</strong></td><td>none</td><td>3 (forget, input, output)</td><td>2 (update, reset)</td></tr>
+        <tr><td><strong>State vectors</strong></td><td>h only</td><td>h and c</td><td>h only</td></tr>
+        <tr><td><strong>Parameters</strong></td><td>1&times;</td><td>4&times;</td><td>3&times;</td></tr>
+        <tr><td><strong>Long dependencies</strong></td><td>poor</td><td>strong</td><td>strong</td></tr>
+        <tr><td><strong>Training speed</strong></td><td>fastest</td><td>slowest</td><td>middle</td></tr>
+        <tr><td><strong>Small data</strong></td><td>unstable</td><td>can overfit</td><td>usually best</td></tr>
+        <tr><td><strong>Typical use today</strong></td><td>teaching, tiny signals</td><td>speech, long sequences</td><td>chatbots, on-device, real time</td></tr>
+    </tbody>
+</table>
+
+<div class="callout fade-up">
+    <strong>Practical rule:</strong> start with a GRU. Move to an LSTM only if the sequences are long and the extra memory clearly pays for itself.
+    Never ship a plain RNN for real language.
+</div>
+
+<!-- ============ 16. WHAT GATES COULD NOT FIX ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-door-open"></i> What gates could not fix
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Gating solved the gradient problem. Three problems stayed &mdash; and they are exactly the problems the next chapter's architecture was built for.</p>
+
+<div class="grid fade-up">
+    <div class="card" style="background:#fff; border:1px solid #e2ecf8;">
+        <span class="tag">Limit 1</span>
+        <h4>The encoder bottleneck</h4>
+        <p>In an encoder&ndash;decoder, the whole source sentence is squeezed into one final vector. A 40-word sentence gets the same number of slots as a 4-word one, so translation quality falls off a cliff as sentences grow.</p>
+        <p style="margin-top:0.6rem; color:#0b2a4a;"><strong>Answer:</strong> attention &mdash; let the decoder look back at every encoder state.</p>
+    </div>
+    <div class="card" style="background:#fff; border:1px solid #e2ecf8;">
+        <span class="tag">Limit 2</span>
+        <h4>No parallel computation</h4>
+        <p>h<sub>t</sub> needs h<sub>t-1</sub>. A 500-token document means 500 steps that no GPU can run at the same time. Training on billions of words becomes impossibly slow.</p>
+        <p style="margin-top:0.6rem; color:#0b2a4a;"><strong>Answer:</strong> self-attention processes every position at once.</p>
+    </div>
+    <div class="card" style="background:#fff; border:1px solid #e2ecf8;">
+        <span class="tag">Limit 3</span>
+        <h4>Distance still costs</h4>
+        <p>To connect word 1 with word 200, information must pass through 199 cells. Better than a plain RNN, but still a long fragile chain, and still one fixed-size vector doing the carrying.</p>
+        <p style="margin-top:0.6rem; color:#0b2a4a;"><strong>Answer:</strong> attention links any two positions in a single hop.</p>
+    </div>
+</div>
+
+<div class="panel-dark fade-up">
+    <h3 style="margin-bottom:0.6rem; font-size:1.05rem;"><i class="fas fa-compass"></i> Where recurrent models are still the right choice</h3>
+    <div class="grid" style="margin:0;">
+        <div style="flex:1; min-width:200px; font-size:0.9rem;"><i class="fas fa-tower-broadcast" style="color:#9fc4e0;"></i> <strong>Streaming input</strong><br>Tokens arrive one at a time and an answer is needed immediately.</div>
+        <div style="flex:1; min-width:200px; font-size:0.9rem;"><i class="fas fa-mobile-screen" style="color:#9fc4e0;"></i> <strong>Small devices</strong><br>A GRU is far smaller and cheaper than a transformer.</div>
+        <div style="flex:1; min-width:200px; font-size:0.9rem;"><i class="fas fa-database" style="color:#9fc4e0;"></i> <strong>Small training sets</strong><br>A transformer would simply overfit.</div>
+        <div style="flex:1; min-width:200px; font-size:0.9rem;"><i class="fas fa-wave-square" style="color:#9fc4e0;"></i> <strong>Very long signals</strong><br>Raw audio, where attention cost grows with the square of the length.</div>
+    </div>
+</div>
+
+<!-- ============ 18. TAKEAWAY ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-key"></i> Key takeaway
+    <span class="title-line"></span>
+</div>
+
+<div class="callout fade-up">
+    <p style="font-weight:500; font-size:1.05rem; margin:0;">
+        One small cell, applied again and again, with a vector of memory passed along the chain &mdash; that is the whole recurrent idea.
+        Plain RNNs proved the idea but lost the signal over distance. Gates gave the memory a set of valves and bought two decades of
+        state-of-the-art NLP. What they never bought was speed, because time can only be walked one step at a time. Removing that
+        constraint is what the next chapter is about.
+    </p>
+</div>
+
+</div><!-- /content -->
+</div><!-- /presentation-card -->
+
+<script>
+/* ---------- 0. reveal on scroll ---------- */
+const io = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+document.querySelectorAll('.fade-up, .draw-svg').forEach(el => io.observe(el));
+
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, text) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+/* ---------- 1. hook reader ---------- */
+(function () {
+  const FULL = [
+    { w: "The",   m: 10,  t: "Just an article. Nothing worth storing yet." },
+    { w: "movie", m: 32,  t: "Topic found: a film. Keep it." },
+    { w: "was",   m: 46,  t: "A description is coming next." },
+    { w: "not",   m: 74,  t: "Negation switched ON. Flip whatever follows." },
+    { w: "good",  m: 100, t: "Positive word - but the negation flag is still in memory." }
+  ];
+  const wordsEl = document.getElementById('hookWords');
+  const fill = document.getElementById('hookFill');
+  const th = document.getElementById('hookThought');
+  const vd = document.getElementById('hookVerdict');
+  const nextBtn = document.getElementById('hookNext');
+  const resetBtn = document.getElementById('hookReset');
+  const dropBtn = document.getElementById('hookDrop');
+  let withNot = true, t = 0;
+
+  function seq() { return withNot ? FULL : FULL.filter(o => o.w !== "not"); }
+  function draw() {
+    clear(wordsEl);
+    seq().forEach((o, i) => {
+      const s = document.createElement('span');
+      s.className = 'word-chip' + (i === t - 1 ? ' on' : (i < t - 1 ? ' done' : ''));
+      s.textContent = o.w;
+      wordsEl.appendChild(s);
+    });
+  }
+  function render() {
+    draw();
+    const s = seq();
+    nextBtn.disabled = t >= s.length;
+    if (t === 0) {
+      fill.style.width = '0%';
+      th.textContent = 'Press "Next word". Watch the memory grow with every word.';
+      vd.textContent = 'Verdict: waiting...'; vd.style.color = '#7b93a8';
+      return;
+    }
+    const o = s[t - 1];
+    fill.style.width = (withNot ? o.m : Math.min(100, o.m + 12)) + '%';
+    th.textContent = o.t;
+    if (t === s.length) {
+      vd.textContent = withNot ? 'Verdict: NEGATIVE' : 'Verdict: POSITIVE';
+      vd.style.color = withNot ? '#b91c1c' : '#15803d';
+    } else {
+      vd.textContent = 'Verdict: still reading...'; vd.style.color = '#7b93a8';
+    }
+  }
+  nextBtn.onclick = () => { if (t < seq().length) { t++; render(); } };
+  resetBtn.onclick = () => { t = 0; render(); };
+  dropBtn.onclick = () => {
+    withNot = !withNot;
+    dropBtn.innerHTML = withNot ? 'Remove the word "not"' : 'Put "not" back';
+    t = 0; render();
+  };
+  render();
+})();
+
+/* ---------- 2. bag of words ---------- */
+(function () {
+  const sents = [["dog", "bites", "man"], ["man", "bites", "dog"]];
+  const vecEl = document.getElementById('bowVec');
+  const seqEl = document.getElementById('bowSeq');
+  const sEl = document.getElementById('bowSentence');
+  const vA = document.getElementById('bowVerdictA');
+  const vB = document.getElementById('bowVerdictB');
+  function render(i) {
+    const s = sents[i];
+    sEl.textContent = s.join(' ');
+    clear(vecEl);
+    ["bites", "dog", "man"].forEach(w => {
+      const d = document.createElement('div');
+      d.className = 'vec-cell';
+      d.innerHTML = '<span class="lbl">' + w + '</span>1';
+      vecEl.appendChild(d);
+    });
+    clear(seqEl);
+    s.forEach((w, k) => {
+      const c = document.createElement('span');
+      c.className = 'word-chip done';
+      c.style.animation = 'pop .35s ease ' + (k * 0.12) + 's both';
+      c.textContent = (k + 1) + '. ' + w;
+      seqEl.appendChild(c);
+    });
+    vA.textContent = 'Same counts both times: {bites 1, dog 1, man 1}. The vector cannot tell the two apart.';
+    vB.innerHTML = i === 0 ? 'Memory after step 2: <strong>the dog is the biter</strong>.' : 'Memory after step 2: <strong>the man is the biter</strong>.';
+  }
+  document.querySelectorAll('#bowToggle button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#bowToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); render(+b.dataset.s);
+    };
+  });
+  render(0);
+})();
+
+/* ---------- 3. sequence tasks ---------- */
+(function () {
+  const T = [
+    { n: "Sentiment analysis", i: "fa-face-smile", inp: ["This", "film", "never", "gets", "boring"], out: ["POSITIVE"], note: "Many words in, one label out. Only the final hidden state is used." },
+    { n: "Machine translation", i: "fa-language", inp: ["I", "love", "this", "book"], out: ["J'", "adore", "ce", "livre"], note: "Two RNNs: one encodes the source, one generates the target. Lengths need not match." },
+    { n: "POS tagging", i: "fa-tags", inp: ["She", "books", "flights"], out: ["PRON", "VERB", "NOUN"], note: "One label per word. 'books' is a verb only because of the word before it." },
+    { n: "Named entity recognition", i: "fa-user-tag", inp: ["Ali", "works", "in", "Bejaia"], out: ["B-PER", "O", "O", "B-LOC"], note: "Same one-label-per-word shape, but the labels mark spans." },
+    { n: "Language modelling", i: "fa-keyboard", inp: ["The", "sky", "is"], out: ["blue"], note: "Predict the next word. Train on any raw text, no human labels needed." },
+    { n: "Speech recognition", i: "fa-microphone", inp: ["frame1", "frame2", "frame3", "frame4"], out: ["hello"], note: "Audio frames in, characters out. Thousands of steps per sentence." }
+  ];
+  const pills = document.getElementById('taskPills');
+  const panel = document.getElementById('taskPanel');
+  function show(k) {
+    const t = T[k];
+    document.querySelectorAll('#taskPills .glossary-term').forEach((p, j) => p.classList.toggle('sel', j === k));
+    panel.innerHTML =
+      '<div style="font-weight:700;color:#0b2a4a;margin-bottom:.7rem;"><i class="fas ' + t.i + '"></i> ' + t.n + '</div>' +
+      '<div style="font-size:.75rem;font-weight:700;color:#7b93a8;letter-spacing:.5px;">INPUT SEQUENCE</div>' +
+      '<div>' + t.inp.map((w, j) => '<span class="word-chip done" style="animation:pop .3s ease ' + (j * .07) + 's both">' + w + '</span>').join('') + '</div>' +
+      '<div style="text-align:center;color:#7b93a8;margin:.4rem 0;"><i class="fas fa-arrow-down"></i></div>' +
+      '<div style="font-size:.75rem;font-weight:700;color:#7b93a8;letter-spacing:.5px;">OUTPUT</div>' +
+      '<div>' + t.out.map((w, j) => '<span class="word-chip on" style="animation:pop .3s ease ' + (0.3 + j * .07) + 's both">' + w + '</span>').join('') + '</div>' +
+      '<p class="italic-note" style="margin-top:.8rem">' + t.note + '</p>';
+  }
+  T.forEach((t, k) => {
+    const b = document.createElement('div');
+    b.className = 'glossary-term'; b.innerHTML = '<i class="fas ' + t.i + '"></i> ' + t.n;
+    b.onclick = () => show(k);
+    pills.appendChild(b);
+  });
+  show(0);
+})();
+
+/* ---------- 4. folded / unrolled ---------- */
+(function () {
+  const g = document.getElementById('unrollG');
+  const words = ["the", "movie", "was", "good"];
+  words.forEach((w, i) => {
+    const x = 70 + i * 155;
+    g.appendChild(sv('rect', { x: x, y: 80, width: 90, height: 56, rx: 12, fill: '#e6f0fa', stroke: '#1a4a6e', 'stroke-width': 2.5 }));
+    g.appendChild(sv('text', { x: x + 45, y: 113, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700, fill: '#0b2a4a' }, 'RNN'));
+    g.appendChild(sv('line', { x1: x + 45, y1: 175, x2: x + 45, y2: 140, stroke: '#1a4a6e', 'stroke-width': 2.5, 'marker-end': 'url(#ar1u)' }));
+    g.appendChild(sv('text', { x: x + 45, y: 193, 'text-anchor': 'middle', 'font-size': 13, fill: '#0b2a4a', 'font-weight': 600 }, w));
+    g.appendChild(sv('line', { x1: x + 45, y1: 78, x2: x + 45, y2: 46, stroke: '#7c3aed', 'stroke-width': 2.5, 'marker-end': 'url(#arPu)' }));
+    g.appendChild(sv('text', { x: x + 45, y: 36, 'text-anchor': 'middle', 'font-size': 11, fill: '#7c3aed', 'font-weight': 600 }, 'y' + (i + 1)));
+    if (i < words.length - 1) {
+      g.appendChild(sv('line', { x1: x + 92, y1: 108, x2: x + 153, y2: 108, stroke: '#b45309', 'stroke-width': 3, 'marker-end': 'url(#ar2u)' }));
+      g.appendChild(sv('text', { x: x + 122, y: 100, 'text-anchor': 'middle', 'font-size': 11, fill: '#b45309', 'font-weight': 700 }, 'h' + (i + 1)));
+    }
+  });
+  g.appendChild(sv('line', { x1: 12, y1: 108, x2: 66, y2: 108, stroke: '#b45309', 'stroke-width': 3, 'marker-end': 'url(#ar2u)' }));
+  g.appendChild(sv('text', { x: 30, y: 100, 'font-size': 11, fill: '#b45309', 'font-weight': 700 }, 'h0=0'));
+  document.querySelectorAll('#foldToggle button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('#foldToggle button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const un = b.dataset.v === 'unrolled';
+      document.getElementById('foldedView').style.display = un ? 'none' : 'block';
+      document.getElementById('unrolledView').style.display = un ? 'block' : 'none';
+    };
+  });
+})();
+
+/* ---------- 5. clickable RNN equation ---------- */
+(function () {
+  const D = {
+    h: ["Hidden state h<sub>t</sub>", "The memory. A fixed-size vector - 256 numbers is typical - holding a summary of everything read up to word t. It is passed to the next step and used to make the prediction."],
+    hp: ["Previous hidden state h<sub>t-1</sub>", "Everything the model knew one word ago. This single arrow is the only route by which the past reaches the present."],
+    x: ["Current input x<sub>t</sub>", "The embedding of the word being read right now. This is the only new information entering the cell."],
+    wx: ["Input weights W<sub>x</sub>", "Decides how a new word is written into the memory. Shape h x d. Shared by every time step, so the model learns one rule that works everywhere."],
+    wh: ["Recurrent weights W<sub>h</sub>", "Decides how the old memory is transformed before the new word is added. This is the matrix applied over and over - and the exact cause of vanishing and exploding gradients."],
+    b: ["Bias b", "A constant added at every step. It shifts the activation and lets a dimension stay switched on by default."],
+    y: ["Output y<sub>t</sub>", "The prediction at this step: a tag, the next word, a sentiment score. Some tasks read it at every step, others only at the last."],
+    wy: ["Output weights W<sub>y</sub>", "Reads an answer out of the memory. Shape |V| x h for language modelling, where |V| is the vocabulary size - often the largest matrix in the whole model."],
+    by: ["Output bias b<sub>y</sub>", "One constant per possible answer. Lets frequent answers start with a head start."]
+  };
+  const info = document.getElementById('rnnEqInfo');
+  function sel(k) {
+    if (!D[k]) return;
+    document.querySelectorAll('#rnnEq .part').forEach(p => p.classList.toggle('sel', p.dataset.k === k));
+    document.querySelectorAll('#symTable tbody tr').forEach(r => r.classList.toggle('hot', r.dataset.k === k));
+    info.innerHTML = '<b>' + D[k][0] + '</b> &mdash; ' + D[k][1];
+    info.style.animation = 'none'; void info.offsetWidth; info.style.animation = 'slideRight .35s ease';
+  }
+  document.querySelectorAll('#rnnEq .part, #symTable tbody tr, #cellSvg .clickable').forEach(el => {
+    el.addEventListener('click', () => sel(el.dataset.k));
+  });
+})();
+
+/* ---------- 6. live forward pass ---------- */
+(function () {
+  const WORDS = ["the", "movie", "was", "not", "good"];
+  const EMB = { the: [0, 0, 0, .10], movie: [0, 0, .80, 0], was: [0, 0, 0, .20], not: [0, 1.20, 0, 0], good: [1.00, 0, 0, 0] };
+  const Wx = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
+  const Wh = [[.5, -2.0, 0, 0], [0, .9, 0, 0], [0, 0, .8, 0], [.2, 0, .1, .5]];
+  const b = [0, 0, 0, 0];
+  const Wy = [1.6, 0, 0, .2];
+  const NAMES = ["polarity", "negation", "topic", "position"];
+  const NOTE = {
+    the: "Only the position dimension moves. Nothing meaningful is stored yet.",
+    movie: "Dimension 3 (topic) rises: the model now knows a film is being discussed.",
+    was: "The topic value decays a little. W<sub>h</sub>[3,3]=0.8 slowly fades old information.",
+    not: "Dimension 2 jumps to +0.83. The negation flag is now ON and it will stay on for the next steps.",
+    good: "The word pushes +1.0 into polarity, but W<sub>h</sub>[1,2] = -2.0 multiplies the negation flag and subtracts 1.67. Result: polarity ends up negative."
+  };
+  const fpW = document.getElementById('fpWords'), fpX = document.getElementById('fpX'), fpH = document.getElementById('fpH');
+  const fpN = document.getElementById('fpNote'), sc = document.getElementById('fpScore'), pr = document.getElementById('fpProb'), lb = document.getElementById('fpLabel');
+  let t = 0, h = [0, 0, 0, 0], timer = null;
+
+  function vecBoxes(el, v, colour) {
+    clear(el);
+    v.forEach((val, i) => {
+      const d = document.createElement('div'); d.className = 'vec-cell';
+      const w = Math.min(50, Math.abs(val) * 50);
+      d.innerHTML = '<span class="lbl">' + NAMES[i] + '</span>' + val.toFixed(2) +
+        '<div class="bar"><i style="' + (val >= 0 ? 'left:50%;' : 'right:50%;left:auto;') + 'width:' + w + '%;background:' + colour + '"></i></div>';
+      el.appendChild(d);
+    });
+  }
+  function drawWords() {
+    clear(fpW);
+    WORDS.forEach((w, i) => {
+      const s = document.createElement('span');
+      s.className = 'word-chip' + (i === t - 1 ? ' on' : (i < t - 1 ? ' done' : ''));
+      s.textContent = w; fpW.appendChild(s);
+    });
+  }
+  function render() {
+    drawWords();
+    if (t === 0) {
+      vecBoxes(fpX, [0, 0, 0, 0], '#1a4a6e'); vecBoxes(fpH, [0, 0, 0, 0], '#b45309');
+      fpN.innerHTML = 'Nothing read yet. h<sub>0</sub> starts as all zeros.';
+      sc.textContent = '0.00'; pr.textContent = '50%'; lb.textContent = '-'; lb.style.color = '#0b2a4a';
+      return;
+    }
+    const w = WORDS[t - 1], x = EMB[w];
+    const nh = [0, 0, 0, 0];
+    for (let i = 0; i < 4; i++) {
+      let s = b[i];
+      for (let j = 0; j < 4; j++) s += Wx[i][j] * x[j] + Wh[i][j] * h[j];
+      nh[i] = Math.tanh(s);
+    }
+    h = nh;
+    vecBoxes(fpX, x, '#1a4a6e'); vecBoxes(fpH, h, '#b45309');
+    fpN.innerHTML = '<b>Step ' + t + ' - "' + w + '"</b> &mdash; ' + NOTE[w];
+    const score = Wy.reduce((a, v, i) => a + v * h[i], 0);
+    const p = 1 / (1 + Math.exp(-score));
+    sc.textContent = score.toFixed(2);
+    pr.textContent = Math.round(p * 100) + '%';
+    if (t === WORDS.length) {
+      lb.textContent = p >= .5 ? 'POSITIVE' : 'NEGATIVE';
+      lb.style.color = p >= .5 ? '#15803d' : '#b91c1c';
+    } else { lb.textContent = 'reading...'; lb.style.color = '#7b93a8'; }
+  }
+  function step() { if (t < WORDS.length) { t++; render(); } }
+  document.getElementById('fpStep').onclick = step;
+  document.getElementById('fpReset').onclick = () => { clearInterval(timer); t = 0; h = [0, 0, 0, 0]; render(); };
+  document.getElementById('fpAuto').onclick = () => {
+    clearInterval(timer); t = 0; h = [0, 0, 0, 0]; render();
+    timer = setInterval(() => { if (t >= WORDS.length) clearInterval(timer); else step(); }, 1100);
+  };
+  render();
+})();
+
+/* ---------- 7. sequence shapes ---------- */
+(function () {
+  const S = [
+    { n: "One to one", i: "fa-square", d: "No recurrence at all - a plain classifier. Shown here only for comparison.", ex: "Image &rarr; label" },
+    { n: "One to many", i: "fa-arrow-right-arrow-left", d: "A single input starts a chain, and the cell keeps producing until it emits a stop symbol.", ex: "Image &rarr; caption; topic word &rarr; generated paragraph" },
+    { n: "Many to one", i: "fa-compress", d: "Read the whole sequence, use only the last hidden state. The most common classification setup.", ex: "Review &rarr; positive / negative" },
+    { n: "Many to many (aligned)", i: "fa-equals", d: "One output per input, produced immediately. Input and output have the same length.", ex: "POS tagging, NER, frame-level speech" },
+    { n: "Encoder - decoder", i: "fa-right-left", d: "One RNN compresses the input into a vector, a second RNN unrolls that vector into a new sequence. Lengths are free.", ex: "Translation, summarisation, question answering" }
+  ];
+  const grid = document.getElementById('shapeGrid'), info = document.getElementById('shapeInfo');
+  S.forEach((s, k) => {
+    const c = document.createElement('div');
+    c.className = 'card clickable';
+    c.innerHTML = '<i class="fas ' + s.i + ' top"></i><h4>' + s.n + '</h4><p>' + s.d + '</p>';
+    c.onclick = () => {
+      document.querySelectorAll('#shapeGrid .card').forEach(x => { x.style.background = '#f0f6fe'; x.style.borderColor = '#e2ecf8'; });
+      c.style.background = '#e6f0fa'; c.style.borderColor = '#1a4a6e';
+      info.innerHTML = '<b>' + s.n + '</b> &mdash; ' + s.ex;
+      info.style.animation = 'none'; void info.offsetWidth; info.style.animation = 'slideRight .35s ease';
+    };
+    grid.appendChild(c);
+  });
+})();
+
+/* ---------- 8. BPTT animation ---------- */
+(function () {
+  const svg = document.getElementById('bpttSvg');
+  const words = ["the", "movie", "was", "good"];
+  const boxes = [], grads = [];
+  words.forEach((w, i) => {
+    const x = 70 + i * 155;
+    const r = sv('rect', { x: x, y: 70, width: 90, height: 52, rx: 12, fill: '#f0f6fe', stroke: '#c9d9e8', 'stroke-width': 2.5 });
+    svg.appendChild(r); boxes.push(r);
+    svg.appendChild(sv('text', { x: x + 45, y: 101, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: '#0b2a4a' }, 'h' + (i + 1)));
+    svg.appendChild(sv('text', { x: x + 45, y: 155, 'text-anchor': 'middle', 'font-size': 13, fill: '#4a6a86', 'font-weight': 600 }, w));
+    if (i < words.length - 1) svg.appendChild(sv('line', { x1: x + 92, y1: 96, x2: x + 152, y2: 96, stroke: '#c9d9e8', 'stroke-width': 3 }));
+    const g = sv('text', { x: x + 45, y: 42, 'text-anchor': 'middle', 'font-size': 11, fill: '#b91c1c', 'font-weight': 700, opacity: 0 }, '');
+    svg.appendChild(g); grads.push(g);
+  });
+  const lossBox = sv('rect', { x: 600, y: 70, width: 80, height: 52, rx: 12, fill: '#fff', stroke: '#c9d9e8', 'stroke-width': 2.5 });
+  svg.appendChild(lossBox);
+  svg.appendChild(sv('text', { x: 640, y: 101, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: '#0b2a4a' }, 'loss'));
+  const stage = document.getElementById('bpttStage'), note = document.getElementById('bpttNote');
+  let running = false;
+  function reset() {
+    boxes.forEach(b => { b.setAttribute('fill', '#f0f6fe'); b.setAttribute('stroke', '#c9d9e8'); });
+    lossBox.setAttribute('fill', '#fff'); lossBox.setAttribute('stroke', '#c9d9e8');
+    grads.forEach(g => g.setAttribute('opacity', 0));
+  }
+  document.getElementById('bpttPlay').onclick = () => {
+    if (running) return; running = true; reset();
+    stage.textContent = 'stage 1 - forward';
+    note.innerHTML = '<b>Forward.</b> Each word updates the memory. Every hidden state is stored, because the backward pass will need all of them.';
+    words.forEach((w, i) => setTimeout(() => {
+      boxes[i].setAttribute('fill', '#e6f0fa'); boxes[i].setAttribute('stroke', '#1a4a6e');
+    }, 400 * i));
+    setTimeout(() => {
+      stage.textContent = 'stage 2 - loss';
+      lossBox.setAttribute('fill', '#fee2e2'); lossBox.setAttribute('stroke', '#b91c1c');
+      note.innerHTML = '<b>Loss.</b> The prediction is compared with the true label. The gap is the error signal.';
+    }, 400 * words.length + 200);
+    setTimeout(() => {
+      stage.textContent = 'stage 3 - backward';
+      note.innerHTML = '<b>Backward.</b> The error walks back through every step, multiplied by W<sub>h</sub> at each hop. Notice how it fades: 1.00, 0.60, 0.36, 0.22. Word 1 barely feels the correction.';
+      const vals = [1.00, 0.60, 0.36, 0.22];
+      for (let k = 0; k < words.length; k++) {
+        setTimeout(() => {
+          const i = words.length - 1 - k;
+          grads[i].textContent = 'grad ' + vals[k].toFixed(2);
+          grads[i].setAttribute('opacity', Math.max(.35, vals[k]));
+          boxes[i].setAttribute('stroke', '#b91c1c');
+        }, 450 * k);
+      }
+      setTimeout(() => { stage.textContent = 'done - weights updated once'; running = false; }, 450 * words.length + 300);
+    }, 400 * words.length + 900);
+  };
+})();
+
+/* ---------- 9b. limitations of standard RNNs ---------- */
+(function () {
+  const L = [
+    { i: "fa-arrow-down-short-wide", n: "Vanishing gradient", d: "Going back k steps multiplies the error signal by W<sub>h</sub> about k times. If those values sit below 1, the signal shrinks towards zero and the link between distant words is never learned. Training looks healthy - the model is simply learning short patterns only." },
+    { i: "fa-arrow-up-wide-short", n: "Exploding gradient", d: "The opposite ending: values above 1 make the signal grow without limit, the update overshoots and the loss turns into NaN. Easier to spot than vanishing, and easier to cure - clip the gradient whenever its norm passes a threshold." },
+    { i: "fa-link-slash", n: "Long-term dependencies", d: "Because the hidden state is overwritten at every word, older information is diluted step after step. Agreement, pronouns and negation across a long clause are exactly what gets lost first." },
+    { i: "fa-hourglass-half", n: "Slow sequential computation", d: "h<sub>t</sub> cannot be computed before h<sub>t-1</sub>. A 500-token document needs 500 steps in strict order, so a GPU sits mostly idle. Long sequences are slow to train and slow to run." }
+  ];
+  const grid = document.getElementById('limGrid'), info = document.getElementById('limInfo');
+  L.forEach(o => {
+    const c = document.createElement('div');
+    c.className = 'card clickable';
+    c.innerHTML = '<i class="fas ' + o.i + ' top"></i><h4>' + o.n + '</h4>';
+    c.onclick = () => {
+      grid.querySelectorAll('.card').forEach(x => { x.style.background = '#f0f6fe'; x.style.borderColor = '#e2ecf8'; });
+      c.style.background = '#e6f0fa'; c.style.borderColor = '#1a4a6e';
+      info.innerHTML = '<b>' + o.n + '</b> &mdash; ' + o.d;
+      info.style.animation = 'none'; void info.offsetWidth; info.style.animation = 'slideRight .35s ease';
+    };
+    grid.appendChild(c);
+  });
+
+  const svg = document.getElementById('distSvg');
+  const W = ["The", "movie", "that", "I", "watched", "three", "weeks", "ago", "with", "my", "friends", "was", "amazing"];
+  let x = 10;
+  const pos = [];
+  W.forEach((w, i) => {
+    const wide = 10 + w.length * 7.6;
+    const hot = (i === 1 || i === 12);
+    svg.appendChild(sv('rect', { x: x, y: 62, width: wide, height: 30, rx: 8, fill: hot ? '#1a4a6e' : '#eef3f9', stroke: hot ? '#1a4a6e' : '#dbe6f0', 'stroke-width': 1.5 }));
+    svg.appendChild(sv('text', { x: x + wide / 2, y: 82, 'text-anchor': 'middle', 'font-size': 11.5, 'font-weight': hot ? 700 : 500, fill: hot ? '#fff' : '#43617c' }, w));
+    pos.push(x + wide / 2);
+    x += wide + 5;
+  });
+  const a = pos[1], b = pos[12];
+  svg.appendChild(sv('path', { d: 'M ' + a + ' 58 C ' + a + ' 8, ' + b + ' 8, ' + b + ' 58', fill: 'none', stroke: '#b45309', 'stroke-width': 2.5, 'stroke-dasharray': '6 4' }));
+  svg.appendChild(sv('text', { x: (a + b) / 2, y: 22, 'text-anchor': 'middle', 'font-size': 12, fill: '#b45309', 'font-weight': 700 }, '10 steps of memory apart'));
+  svg.appendChild(sv('text', { x: (a + b) / 2, y: 112, 'text-anchor': 'middle', 'font-size': 11, fill: '#7b93a8' }, 'the words in between are all irrelevant to the link'));
+})();
+
+/* ---------- 10. LSTM gates ---------- */
+(function () {
+  const G = {
+    forget: { c: '#b45309', n: 'Forget gate f', d: 'Looks at the previous state and the new word and outputs a number between 0 and 1 for every memory slot. 0 wipes the slot, 1 keeps it untouched. Reading a full stop, a language model often lowers f to clear the old sentence.', ids: ['hw1'] },
+    input: { c: '#0e7490', n: 'Input gate i', d: 'Decides how much of the new candidate is actually written. It is a volume knob, not the content itself. Keeping i near 0 means "this word is not worth storing".', ids: [] },
+    cand: { c: '#4d7c0f', n: 'Candidate g', d: 'The proposal: what the cell would like to add, built with tanh so its values sit between -1 and 1. The input gate then decides how much of it survives.', ids: [] },
+    output: { c: '#7c3aed', n: 'Output gate o', d: 'The cell may know many things at once. The output gate exposes only the part needed right now, so h stays a focused view of a much richer memory.', ids: [] }
+  };
+  const leg = document.getElementById('gateLegend'), info = document.getElementById('gateInfo');
+  function sel(k) {
+    const g = G[k];
+    leg.querySelectorAll('.gate-pill').forEach(p => {
+      const on = p.dataset.g === k;
+      p.classList.toggle('sel', on);
+      p.style.background = on ? G[p.dataset.g].c : '#fff';
+      p.style.borderColor = G[p.dataset.g].c;
+      p.style.color = on ? '#fff' : G[p.dataset.g].c;
+    });
+    document.querySelectorAll('#lstmSvg .gateNode rect').forEach(r => r.setAttribute('fill', '#fff'));
+    const node = document.querySelector('#lstmSvg .gateNode[data-g="' + k + '"] rect');
+    if (node) { node.setAttribute('fill', g.c + '22'); node.style.animation = 'pulseGlow 1.2s ease 2'; }
+    info.innerHTML = '<b style="color:#ffd79a">' + g.n + '</b> &mdash; ' + g.d;
+    info.style.animation = 'none'; void info.offsetWidth; info.style.animation = 'slideRight .35s ease';
+  }
+  Object.keys(G).forEach(k => {
+    const p = document.createElement('button');
+    p.className = 'gate-pill'; p.dataset.g = k; p.textContent = G[k].n;
+    p.style.borderColor = G[k].c; p.style.color = G[k].c;
+    p.onclick = () => sel(k); leg.appendChild(p);
+  });
+  document.querySelectorAll('#lstmSvg .gateNode').forEach(n => n.addEventListener('click', () => sel(n.dataset.g)));
+})();
+
+/* ---------- 11. forget gate half life ---------- */
+(function () {
+  const svg = document.getElementById('hlSvg'), s = document.getElementById('hlF'), o = document.getElementById('hlFOut');
+  const half = document.getElementById('hlHalf'), at50 = document.getElementById('hlAt50'), vd = document.getElementById('hlVerdict');
+  const L = 45, R = 620, TOP = 12, BOT = 130, N = 60;
+  function render() {
+    const f = +s.value / 1000; o.textContent = f.toFixed(3);
+    clear(svg);
+    svg.appendChild(sv('line', { x1: L, y1: BOT, x2: R, y2: BOT, stroke: '#c9d9e8', 'stroke-width': 1.5 }));
+    [0, .5, 1].forEach(v => {
+      const y = BOT - v * (BOT - TOP);
+      svg.appendChild(sv('line', { x1: L, y1: y, x2: R, y2: y, stroke: v === .5 ? '#e2b3b3' : '#eef2f7', 'stroke-width': 1, 'stroke-dasharray': v === .5 ? '5 4' : '' }));
+      svg.appendChild(sv('text', { x: L - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#7b93a8' }, v.toFixed(1)));
+    });
+    svg.appendChild(sv('text', { x: (L + R) / 2, y: BOT + 30, 'text-anchor': 'middle', 'font-size': 11, fill: '#7b93a8', 'font-weight': 600 }, 'words later'));
+    let pts = [];
+    for (let n = 0; n <= N; n++) pts.push((L + (R - L) * n / N) + ',' + (BOT - Math.pow(f, n) * (BOT - TOP)));
+    svg.appendChild(sv('polyline', { points: pts.join(' '), fill: 'none', stroke: '#1a4a6e', 'stroke-width': 3 }));
+    const hl = Math.log(.5) / Math.log(f);
+    if (hl <= N) {
+      const x = L + (R - L) * hl / N;
+      svg.appendChild(sv('line', { x1: x, y1: TOP, x2: x, y2: BOT, stroke: '#b45309', 'stroke-width': 2, 'stroke-dasharray': '4 3' }));
+      svg.appendChild(sv('text', { x: x + 6, y: TOP + 14, 'font-size': 11, fill: '#b45309', 'font-weight': 700 }, 'half gone'));
+    }
+    half.textContent = hl < 1000 ? hl.toFixed(1) : '>1000';
+    const v50 = Math.pow(f, 50) * 100;
+    at50.textContent = v50 < .01 ? '~0%' : v50.toFixed(1) + '%';
+    vd.textContent = f > .99 ? 'near-perfect memory' : (f > .9 ? 'long memory' : (f > .6 ? 'short memory' : 'forgets at once'));
+  }
+  s.oninput = render; render();
+})();
+
+/* ---------- 12. agreement walkthrough ---------- */
+(function () {
+  const SEQ = [
+    { w: "The", s: "empty", g: [.9, .1], n: "Nothing to store. The gates stay quiet." },
+    { w: "keys", s: "PLURAL", g: [.9, .95], n: "<b>Input gate opens.</b> The subject is plural - write it into a memory slot." },
+    { w: "to", s: "PLURAL", g: [.99, .05], n: "Forget gate almost 1, input gate almost 0. Protect the slot." },
+    { w: "the", s: "PLURAL", g: [.99, .05], n: "Still protecting. The slot is untouched." },
+    { w: "cabinet", s: "PLURAL", g: [.98, .1], n: "A trap: 'cabinet' is singular, but it is not the subject. The gate refuses to overwrite." },
+    { w: "in", s: "PLURAL", g: [.99, .05], n: "Six words of distance and the value has not moved." },
+    { w: "the", s: "PLURAL", g: [.99, .05], n: "Still safe." },
+    { w: "kitchen", s: "PLURAL", g: [.98, .1], n: "Another singular noun ignored." },
+    { w: "are", s: "PLURAL", g: [.99, .05], n: "<b>Output gate opens.</b> The slot is read: plural subject, so the verb must be 'are', not 'is'." }
+  ];
+  const wEl = document.getElementById('agWords'), sEl = document.getElementById('agSlot'), gEl = document.getElementById('agGates'), nEl = document.getElementById('agNote');
+  let t = 0;
+  function render() {
+    clear(wEl);
+    SEQ.forEach((o, i) => {
+      const c = document.createElement('span');
+      c.className = 'word-chip' + (i === t - 1 ? ' on' : (i < t - 1 ? ' done' : ''));
+      c.textContent = o.w; wEl.appendChild(c);
+    });
+    if (t === 0) {
+      sEl.textContent = 'empty'; sEl.style.color = '#94a3b8';
+      gEl.innerHTML = ''; nEl.innerHTML = 'The subject arrives early. The verb arrives eight words later.'; return;
+    }
+    const o = SEQ[t - 1];
+    sEl.textContent = o.s; sEl.style.color = o.s === 'empty' ? '#94a3b8' : '#0b2a4a';
+    gEl.innerHTML = '<span class="gate-pill" style="border-color:#b45309;color:#b45309;cursor:default">forget f = ' + o.g[0].toFixed(2) + '</span>' +
+                    '<span class="gate-pill" style="border-color:#0e7490;color:#0e7490;cursor:default">input i = ' + o.g[1].toFixed(2) + '</span>';
+    nEl.innerHTML = o.n;
+    nEl.style.animation = 'none'; void nEl.offsetWidth; nEl.style.animation = 'slideRight .3s ease';
+  }
+  document.getElementById('agStep').onclick = () => { if (t < SEQ.length) { t++; render(); } };
+  document.getElementById('agReset').onclick = () => { t = 0; render(); };
+  render();
+})();
+
+/* ---------- 13. GRU mixer ---------- */
+(function () {
+  const svg = document.getElementById('gruSvg'), s = document.getElementById('gruZ'), o = document.getElementById('gruZOut'), n = document.getElementById('gruNote');
+  function bar(x, y, w, h, fill, label, sub) {
+    svg.appendChild(sv('rect', { x: x, y: y, width: Math.max(2, w), height: h, rx: 6, fill: fill }));
+    svg.appendChild(sv('text', { x: x + 4, y: y - 8, 'font-size': 11, fill: '#0b2a4a', 'font-weight': 700 }, label));
+    if (sub) svg.appendChild(sv('text', { x: x + 4, y: y + h + 16, 'font-size': 10, fill: '#7b93a8' }, sub));
+  }
+  function render() {
+    const z = +s.value / 100; o.textContent = z.toFixed(2);
+    clear(svg);
+    const X = 60, W = 500;
+    bar(X, 25, W * (1 - z), 30, '#b45309', 'kept from h_t-1  (1 - z) = ' + (1 - z).toFixed(2));
+    bar(X + W * (1 - z), 25, W * z, 30, '#0e7490', '');
+    svg.appendChild(sv('text', { x: X + W - 4, y: 17, 'text-anchor': 'end', 'font-size': 11, fill: '#0e7490', 'font-weight': 700 }, 'new candidate  z = ' + z.toFixed(2)));
+    svg.appendChild(sv('text', { x: X, y: 90, 'font-size': 12, fill: '#0b2a4a', 'font-weight': 700 }, 'h_t  =  (1 - z) . h_t-1  +  z . h~_t'));
+    bar(X, 105, W, 26, '#e6f0fa', '');
+    bar(X, 105, W * (1 - z), 26, '#b45309');
+    bar(X + W * (1 - z), 105, W * z, 26, '#0e7490');
+    svg.appendChild(sv('text', { x: X, y: 160, 'font-size': 11, fill: '#7b93a8' }, 'The two shares always add up to exactly 1 - that is the whole trick.'));
+    n.innerHTML = z < .15
+      ? '<b>z near 0</b> &mdash; the cell almost ignores the new word and carries the old memory forward untouched. This is how a GRU remembers over long distances.'
+      : (z > .85
+        ? '<b>z near 1</b> &mdash; the old memory is dropped and replaced by the new candidate. Useful at a topic change or a full stop.'
+        : '<b>z = ' + z.toFixed(2) + '</b> &mdash; a blend: ' + Math.round((1 - z) * 100) + '% of the old state survives, ' + Math.round(z * 100) + '% comes from the new word. The gate learns this value separately for every dimension.');
+  }
+  s.oninput = render; render();
+})();
+
+/* ---------- 14. parameter calculator ---------- */
+(function () {
+  const dS = document.getElementById('pcD'), hS = document.getElementById('pcH'), lS = document.getElementById('pcL');
+  const dO = document.getElementById('pcDOut'), hO = document.getElementById('pcHOut'), lO = document.getElementById('pcLOut');
+  const body = document.getElementById('pcBody');
+  function fmt(x) { return x >= 1e6 ? (x / 1e6).toFixed(2) + ' M' : x.toLocaleString('en-US'); }
+  function render() {
+    const d = +dS.value, h = +hS.value, L = +lS.value;
+    dO.textContent = d; hO.textContent = h; lO.textContent = L;
+    const rows = [["Simple RNN", 1], ["GRU", 3], ["LSTM", 4]];
+    const base = rows.map(([n, g]) => {
+      let tot = 0;
+      for (let l = 0; l < L; l++) tot += g * (h * (l === 0 ? d : h) + h * h + h);
+      return tot;
+    });
+    body.innerHTML = rows.map(([n, g], i) =>
+      '<tr><td><strong>' + n + '</strong></td><td>' + g + '</td><td class="mono">' + g + ' x (h.d + h&sup2; + h)</td>' +
+      '<td class="mono"><strong>' + fmt(base[i]) + '</strong></td><td>' + (base[i] / base[0]).toFixed(1) + 'x</td></tr>').join('');
+  }
+  [dS, hS, lS].forEach(s => s.oninput = render);
+  render();
+})();
+
+/* ---------- 15. stacked RNN diagram ---------- */
+(function () {
+  const svg = document.getElementById('archSvg'), info = document.getElementById('archInfo');
+  const words = ["the", "bank", "raised", "rates"];
+  function cell(x, y, fill, stroke, label) {
+    svg.appendChild(sv('rect', { x: x, y: y, width: 78, height: 44, rx: 10, fill: fill, stroke: stroke, 'stroke-width': 2.2 }));
+    svg.appendChild(sv('text', { x: x + 39, y: y + 27, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: '#0b2a4a' }, label));
+  }
+  function arrow(x1, y1, x2, y2, col) {
+    svg.appendChild(sv('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: col, 'stroke-width': 2.5, 'marker-end': 'url(#arGen)' }));
+  }
+  const d = sv('defs'); const m = sv('marker', { id: 'arGen', markerWidth: 9, markerHeight: 9, refX: 7, refY: 3, orient: 'auto' });
+  m.appendChild(sv('path', { d: 'M0,0 L0,6 L8,3 z', fill: '#8aa3b8' })); d.appendChild(m); svg.appendChild(d);
+  words.forEach((w, i) => {
+    const x = 70 + i * 140;
+    svg.appendChild(sv('text', { x: x + 39, y: 232, 'text-anchor': 'middle', 'font-size': 12, fill: '#4a6a86', 'font-weight': 600 }, w));
+    cell(x, 150, '#e6f0fa', '#1a4a6e', 'layer 1');
+    cell(x, 60, '#eef0fb', '#7c3aed', 'layer 2');
+    arrow(x + 39, 148, x + 39, 108, '#8aa3b8');
+    arrow(x + 39, 208, x + 39, 196, '#8aa3b8');
+    arrow(x + 39, 58, x + 39, 30, '#8aa3b8');
+    if (i < words.length - 1) { arrow(x + 80, 172, x + 136, 172, '#b45309'); arrow(x + 80, 82, x + 136, 82, '#b45309'); }
+  });
+  info.innerHTML = '<b>Stacked RNN</b> &mdash; the orange arrows carry memory forward in time, the grey ones carry information upward between layers. Two or three layers is the usual sweet spot; beyond that the model stops improving and only gets slower.';
+})();
+
+</script>
+</body>
+</html>
+

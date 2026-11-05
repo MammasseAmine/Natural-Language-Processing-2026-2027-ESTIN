@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chapter 07 – Feedforward Neural Networks</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family:'Inter', sans-serif;
+  background:#f4f7fc;
+  color:#1e293b;
+  min-height:100vh;
+  line-height:1.6;
+}
+
+.presentation-card {
+  width:100%;
+  background:#ffffff;
+  box-shadow:0 4px 24px rgba(0,20,40,0.06);
+  overflow:hidden;
+}
+
+/* ---------- HEADER ---------- */
+.hero {
+  background:linear-gradient(145deg,#0b2a4a 0%,#1a4a6e 100%);
+  padding:2rem 3rem;
+  color:#fff;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.hero-nav {
+  position:absolute;
+  z-index:2;
+  top:50%;
+  transform:translateY(-50%);
+  display:grid;
+  width:52px;
+  height:52px;
+  place-items:center;
+  border:1px solid rgba(255,255,255,0.34);
+  border-radius:50%;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  font-size:24px;
+  text-decoration:none;
+  transition:background 0.2s ease, transform 0.2s ease;
+}
+.hero-nav:hover, .hero-nav:focus-visible {
+  background:rgba(255,255,255,0.18);
+  transform:translateY(-50%) scale(1.05);
+}
+.hero-nav:focus-visible {
+  outline:3px solid #8ec6ef;
+  outline-offset:3px;
+}
+.hero-nav.previous { left:14px; }
+.hero-nav.next { right:14px; }
+.hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight:700; letter-spacing:-0.02em; margin-bottom:0.4rem; position:relative; z-index:2; }
+.hero .chapter-badge {
+  display:inline-block;
+  background:rgba(255,255,255,0.15);
+  backdrop-filter:blur(4px);
+  padding:0.3rem 1.5rem;
+  border-radius:100px;
+  font-size:0.95rem; font-weight:500; letter-spacing:0.5px;
+  border:1px solid rgba(255,255,255,0.15);
+  margin-top:0.5rem; position:relative; z-index:2;
+}
+
+/* ---------- CONTENT ---------- */
+.content { padding:2.5rem 3rem 3rem; width:100%; }
+
+.section-title {
+  font-size:1.35rem; font-weight:700;
+  margin:2.4rem 0 1.2rem;
+  display:flex; align-items:center; gap:0.75rem;
+  color:#0b2a4a;
+}
+.section-title:first-of-type { margin-top:0; }
+.section-title i { color:#1a4a6e; font-size:1.4rem; width:2rem; text-align:center; }
+.title-line { flex:1; height:2px; background:linear-gradient(90deg,#dce5ef,transparent); margin-left:0.5rem; }
+
+h3.sub { font-weight:600; color:#0b2a4a; margin:1.4rem 0 0.6rem; display:flex; align-items:center; gap:0.5rem; }
+p { margin-bottom:0.9rem; }
+.muted { color:#5f7d97; font-style:italic; text-align:center; }
+.small { font-size:0.9rem; }
+
+/* ---------- ANIMATIONS ---------- */
+.fade-up { opacity:0; transform:translateY(20px); transition:opacity .7s ease, transform .7s ease; }
+.fade-up.visible { opacity:1; transform:translateY(0); }
+
+.draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse, .draw-svg polyline {
+  stroke-dasharray:1200; stroke-dashoffset:1200;
+  transition:stroke-dashoffset 1.6s ease-in-out;
+}
+.draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+.draw-svg.visible line, .draw-svg.visible ellipse, .draw-svg.visible polyline { stroke-dashoffset:0; }
+
+/* ---------- GENERIC BOXES ---------- */
+.grid { display:flex; flex-wrap:wrap; gap:1.2rem; margin:1.2rem 0 1.6rem; }
+.card {
+  flex:1; min-width:230px;
+  background:#f8faff; border:1px solid #e9edf2;
+  border-radius:1rem; padding:1.2rem;
+}
+.card h4 { color:#0b2a4a; margin:0.5rem 0 0.3rem; font-size:1rem; }
+.card i.big { color:#1a4a6e; font-size:1.4rem; }
+.card p { font-size:0.9rem; margin:0; }
+
+.tcard { cursor:pointer; transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+.tcard:hover { transform:translateY(-3px); border-color:#c9d6e5; box-shadow:0 6px 16px rgba(11,42,74,0.07); }
+.tcard .more { display:none; margin-top:0.6rem; padding-top:0.6rem; border-top:1px dashed #dce5ef; color:#0b2a4a; }
+.tcard.open .more { display:block; animation:slideDown .35s ease; }
+.tcard .tap { display:block; margin-top:0.6rem; font-size:0.74rem; color:#a3b4c6; letter-spacing:0.3px; }
+.tcard.open .tap { display:none; }
+@keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+
+.panel {  background:#f8faff; border:1px solid #e9edf2;
+  border-radius:1rem; padding:1.5rem; margin:1.2rem 0 1.8rem;
+}
+.keybox {
+  background:#e6f0fa; border-radius:1rem; padding:1.5rem;
+  border-left:5px solid #1a4a6e; margin:1.2rem 0 1.8rem;
+}
+.warnbox {
+  background:#fef9f0; border:1px solid #f0e0c0;
+  border-radius:1rem; padding:1.2rem 1.5rem; margin:1.2rem 0 1.8rem;
+}
+.formula {
+  font-family:'Courier New', monospace; background:#0b2a4a; color:#dbeafe;
+  border-radius:0.6rem; padding:0.8rem 1.2rem; display:inline-block;
+  font-size:1.05rem; letter-spacing:0.5px;
+}
+
+/* ---------- BUTTONS / CHIPS ---------- */
+.btnrow { display:flex; flex-wrap:wrap; gap:0.6rem; margin-bottom:1.1rem; }
+.chip {
+  background:#fff; border:1px solid #dce5ef; color:#0b2a4a;
+  border-radius:30px; padding:0.4rem 1.1rem;
+  font-size:0.9rem; font-weight:500; cursor:pointer;
+  font-family:inherit; transition:all .25s ease;
+}
+.chip:hover { border-color:#1a4a6e; transform:translateY(-2px); }
+.chip.active { background:#0b2a4a; color:#fff; border-color:#0b2a4a; }
+
+.btn {
+  background:#0b2a4a; color:#fff; border:none;
+  border-radius:0.6rem; padding:0.55rem 1.3rem;
+  font-family:inherit; font-size:0.92rem; font-weight:500;
+  cursor:pointer; transition:all .2s ease;
+}
+.btn:hover { background:#1a4a6e; transform:translateY(-1px); }
+.btn.ghost { background:#fff; color:#0b2a4a; border:1px solid #dce5ef; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+/* ---------- SLIDERS ---------- */
+.slider-row { display:flex; align-items:center; gap:0.8rem; margin-bottom:0.55rem; font-size:0.9rem; }
+.slider-row label { width:5.5rem; font-weight:600; color:#0b2a4a; }
+.slider-row input[type=range] { flex:1; accent-color:#1a4a6e; min-width:110px; }
+.slider-row .val {
+  width:3.6rem; text-align:right; font-family:'Courier New',monospace;
+  font-weight:700; color:#1a4a6e;
+}
+
+/* ---------- BARS ---------- */
+.bar-wrap { display:flex; align-items:center; gap:0.7rem; margin-bottom:0.5rem; font-size:0.9rem; }
+.bar-name { width:6.5rem; font-weight:600; color:#0b2a4a; }
+.bar-track { flex:1; background:#e9edf2; border-radius:20px; height:22px; overflow:hidden; }
+.bar-fill {
+  height:100%; border-radius:20px;
+  background:linear-gradient(90deg,#1a4a6e,#3d7ea6);
+  transition:width .5s cubic-bezier(.34,1.3,.64,1);
+}
+.bar-val { width:4rem; text-align:right; font-family:'Courier New',monospace; font-weight:700; color:#1a4a6e; }
+
+/* ---------- FLIP CARDS ---------- */
+.flip-grid { display:flex; flex-wrap:wrap; gap:1rem; margin:1.2rem 0 1.6rem; }
+.flip { flex:1; min-width:180px; height:170px; perspective:900px; cursor:pointer; }
+.flip-inner { position:relative; width:100%; height:100%; transition:transform .65s; transform-style:preserve-3d; }
+.flip.flipped .flip-inner { transform:rotateY(180deg); }
+.flip-face {
+  position:absolute; inset:0; backface-visibility:hidden;
+  border-radius:1rem; padding:1rem; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  border:1px solid #e9edf2;
+}
+.flip-front { background:#f8faff; }
+.flip-front i { font-size:1.6rem; color:#1a4a6e; margin-bottom:0.5rem; }
+.flip-front h4 { color:#0b2a4a; font-size:1rem; }
+.flip-front span { font-size:0.75rem; color:#94a3b8; margin-top:0.4rem; }
+.flip-back { background:#0b2a4a; color:#dbeafe; transform:rotateY(180deg); font-size:0.85rem; }
+
+/* ---------- TOGGLE / SPLIT ---------- */
+.split { display:flex; flex-wrap:wrap; gap:1.2rem; }
+.split > div { flex:1; min-width:270px; border-radius:1rem; padding:1.3rem; border:1px solid #e9edf2; }
+.split .old { background:#fdf6f6; border-color:#f0d8d8; }
+.split .new { background:#f2f9f4; border-color:#cfe8d8; }
+.split h4 { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.7rem; color:#0b2a4a; }
+.split ul { list-style:none; }
+.split li { padding:0.35rem 0; font-size:0.9rem; display:flex; gap:0.5rem; align-items:baseline; border-bottom:1px solid rgba(0,0,0,0.04); }
+.split li i { width:1rem; color:#1a4a6e; }
+
+/* ---------- STEPPER ---------- */
+.step-box {
+  background:#fff; border:1px solid #dce5ef; border-left:5px solid #1a4a6e;
+  border-radius:0.8rem; padding:1rem 1.2rem; margin-top:1rem;
+  min-height:96px;
+}
+.step-box h4 { color:#0b2a4a; margin-bottom:0.4rem; }
+.step-box .math { font-family:'Courier New',monospace; font-size:0.9rem; color:#1a4a6e; display:block; margin-top:0.4rem; }
+.dots { display:flex; gap:0.4rem; justify-content:center; margin-top:0.9rem; }
+.dot { width:9px; height:9px; border-radius:50%; background:#dce5ef; transition:all .3s; }
+.dot.on { background:#1a4a6e; transform:scale(1.35); }
+
+/* ---------- SVG INTERACTIVE ---------- */
+.svg-hold { display:flex; justify-content:center; margin:1.2rem 0; overflow-x:auto; }
+.node { cursor:pointer; transition:all .25s ease; }
+.node:hover circle { fill:#1a4a6e; }
+.node:hover text { fill:#fff; }
+.pulse { animation:pulseGlow 1.2s ease-in-out infinite; }
+@keyframes pulseGlow {
+  0%,100% { opacity:1; }
+  50% { opacity:0.35; }
+}
+.edge-live { transition:stroke-width .3s, stroke .3s, opacity .3s; }
+
+.legend { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; font-size:0.82rem; color:#5f7d97; margin-top:0.4rem; }
+.legend span { display:flex; align-items:center; gap:0.35rem; }
+.swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+@media (max-width:768px) {
+  .hero { padding:1.8rem 1.2rem; }
+  .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+  .content { padding:1.8rem 1.2rem; }
+  .slider-row label { width:4.4rem; font-size:0.82rem; }
+}
+</style>
+</head>
+<body>
+<div class="presentation-card">
+
+  <header class="hero">
+    <a class="hero-nav previous" href="Chapter_07.html" aria-label="Previous chapter" title="Previous chapter">
+      <i class="fas fa-chevron-left" aria-hidden="true"></i>
+    </a>
+    <a class="hero-nav next" href="Recurrent_Neural_Networks.html" aria-label="Next lesson" title="Next lesson">
+      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </a>
+    <h1>Feedforward Neural Networks</h1>
+    <div class="chapter-badge">The smallest deep model – and it lives inside every Transformer</div>
+  </header>
+
+  <div class="content">
+
+    <!-- ============ 1. BIG IDEA ============ -->
+    <div class="section-title fade-up"><i class="fas fa-arrow-right-long"></i> One Direction, No Loops <span class="title-line"></span></div>
+
+    <div class="fade-up">
+      <p>A <strong>Feedforward Neural Network</strong> (FNN), also called a <strong>Multi-Layer Perceptron</strong> (MLP), is the simplest deep model. Numbers enter on the left, pass through layers, and leave on the right. Nothing ever goes backwards during prediction, and nothing loops. In graph terms it is a <em>directed acyclic graph</em>.</p>
+      <p>It is worth your time for one reason: <strong>it never went away</strong>. Transformers, BERT and GPT all contain feedforward layers inside them. Learn this chapter well and half of the Transformer is already familiar.</p>
+    </div>
+
+    <div class="svg-hold fade-up">
+      <svg width="560" height="270" viewBox="0 0 560 270" xmlns="http://www.w3.org/2000/svg" id="flowSvg">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#94a3b8"/>
+          </marker>
+        </defs>
+        <text x="80"  y="26" font-size="12" font-weight="700" fill="#0b2a4a" text-anchor="middle">INPUT</text>
+        <text x="280" y="26" font-size="12" font-weight="700" fill="#0b2a4a" text-anchor="middle">HIDDEN</text>
+        <text x="480" y="26" font-size="12" font-weight="700" fill="#0b2a4a" text-anchor="middle">OUTPUT</text>
+        <g id="edgeLayer" stroke="#c9d6e5" stroke-width="1.2" opacity="0.75"></g>
+        <g id="nodeLayer"></g>
+        <g id="dotLayer"></g>
+        <text x="280" y="258" font-size="11" fill="#94a3b8" text-anchor="middle">signal travels left → right only</text>
+      </svg>
+    </div>
+    <p class="muted fade-up small">Click any layer name below to see what it does.</p>
+    <div class="btnrow fade-up" style="justify-content:center;">
+      <button class="chip active" data-layer="0">Input layer</button>
+      <button class="chip" data-layer="1">Hidden layer</button>
+      <button class="chip" data-layer="2">Output layer</button>
+    </div>
+    <div class="step-box fade-up" id="layerInfo"></div>
+
+    <!-- ============ 2. OLD VS NEW ============ -->
+    <div class="section-title fade-up"><i class="fas fa-shuffle"></i> Hand-Made Features vs Learned Features <span class="title-line"></span></div>
+    <p class="fade-up">In Chapter 6 you built a CRF by writing features yourself. A neural network removes that job.</p>
+
+    <div class="split fade-up">
+      <div class="old">
+        <h4><i class="fas fa-pen-ruler"></i> The old way – you design the features</h4>
+        <p class="small" style="margin-bottom:0.6rem;">You wrote rules such as <em>word ends in “-ing”</em>, <em>previous word is “the”</em>, <em>word is capitalised</em>. Hundreds of yes/no switches, invented by hand.</p>
+        <ul>
+          <li><i class="fas fa-clock"></i> Slow to build, and needs a language expert for every language</li>
+          <li><i class="fas fa-table-cells"></i> Sparse: almost every value is zero</li>
+          <li><i class="fas fa-equals"></i> The model can only add weighted scores – purely linear</li>
+          <li><i class="fas fa-eye-slash"></i> A feature you forgot simply does not exist for the model</li>
+        </ul>
+      </div>
+      <div class="new">
+        <h4><i class="fas fa-wand-magic-sparkles"></i> The neural way – the network designs them</h4>
+        <p class="small" style="margin-bottom:0.6rem;">You give raw dense word vectors. Hidden layers invent their own internal features while training, and combine them in non-linear ways.</p>
+        <ul>
+          <li><i class="fas fa-hands-clapping"></i> No feature engineering by hand</li>
+          <li><i class="fas fa-share-nodes"></i> Dense vectors: similar words share information</li>
+          <li><i class="fas fa-code-branch"></i> Captures interactions like “capitalised <em>and</em> not first word”</li>
+          <li><i class="fas fa-globe"></i> The same architecture serves many languages and tasks</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ============ 3. WORDS TO NUMBERS ============ -->
+    <div class="section-title fade-up"><i class="fas fa-arrow-right-arrow-left"></i> Step Zero: Words Must Become Numbers <span class="title-line"></span></div>
+    <p class="fade-up">A network only eats numbers. Before anything else, text has to be turned into a vector. Pick one to compare:</p>
+    <div class="btnrow fade-up">
+      <button class="chip active" data-rep="bow">Bag of Words</button>
+      <button class="chip" data-rep="tfidf">TF-IDF</button>
+      <button class="chip" data-rep="emb">Word Embeddings</button>
+    </div>
+    <div class="panel fade-up" id="repPanel"></div>
+
+    <!-- ============ 4. ONE NEURON ============ -->
+    <div class="section-title fade-up"><i class="fas fa-circle-nodes"></i> Inside a Single Neuron <span class="title-line"></span></div>
+    <p class="fade-up">Every neuron does the same two things: <strong>add up weighted inputs</strong>, then <strong>bend the result</strong> with an activation function.</p>
+    <div class="fade-up" style="text-align:center; margin-bottom:1rem;">
+      <span class="formula">z = (w₁·x₁ + w₂·x₂ + w₃·x₃) + b &nbsp;&nbsp;→&nbsp;&nbsp; a = f(z)</span>
+    </div>
+
+    <div class="grid fade-up">
+      <div class="card"><i class="fas fa-right-to-bracket big"></i><h4>Inputs (x)</h4><p>The numbers describing your data – one slot per feature.</p></div>
+      <div class="card"><i class="fas fa-weight-hanging big"></i><h4>Weights (w)</h4><p>How much each input matters. Learned automatically during training.</p></div>
+      <div class="card"><i class="fas fa-arrows-up-down big"></i><h4>Bias (b)</h4><p>A free shift. It lets the neuron fire even when all inputs are zero, moving the decision boundary.</p></div>
+      <div class="card"><i class="fas fa-wave-square big"></i><h4>Activation f</h4><p>The bend. Without it the whole deep network collapses into one linear equation.</p></div>
+    </div>
+
+    <!-- ============ 5. ACTIVATIONS ============ -->
+    <div class="section-title fade-up"><i class="fas fa-wave-square"></i> Activation Functions: The Bend <span class="title-line"></span></div>
+    <p class="fade-up">Stack ten linear layers and you still only get a line. The activation is what makes depth worth anything. Click each one – the curve draws itself.</p>
+
+    <div class="btnrow fade-up">
+      <button class="chip active" data-fn="step">Step</button>
+      <button class="chip" data-fn="sigmoid">Sigmoid</button>
+      <button class="chip" data-fn="tanh">Tanh</button>
+      <button class="chip" data-fn="relu">ReLU</button>
+      <button class="chip" data-fn="leaky">Leaky ReLU</button>
+      <button class="chip" data-fn="gelu">GELU</button>
+    </div>
+
+    <div class="split fade-up">
+      <div style="background:#fff;border-color:#dce5ef;min-width:300px;">
+        <svg width="100%" height="250" viewBox="0 0 440 250" xmlns="http://www.w3.org/2000/svg" id="actSvg">
+          <g id="grid" stroke="#eef2f7" stroke-width="1"></g>
+          <line id="axX" stroke="#94a3b8" stroke-width="1.2"/>
+          <line id="axY" stroke="#94a3b8" stroke-width="1.2"/>
+          <text id="lblY" font-size="10" fill="#94a3b8"></text>
+          <text id="lblY0" font-size="10" fill="#94a3b8"></text>
+          <path id="curve" fill="none" stroke="#1a4a6e" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="background:#f8faff;min-width:270px;">
+        <h4 id="fnName" style="color:#0b2a4a;font-size:1.1rem;margin-bottom:0.5rem;"></h4>
+        <div class="formula small" id="fnFormula" style="font-size:0.9rem;"></div>
+        <p class="small" style="margin:0.8rem 0 0.3rem;"><strong>Range:</strong> <span id="fnRange"></span></p>
+        <p class="small" style="margin:0 0 0.6rem;"><strong>Used for:</strong> <span id="fnUse"></span></p>
+        <ul id="fnPts" style="list-style:none;font-size:0.88rem;"></ul>
+      </div>
+    </div>
+
+    <div class="warnbox fade-up">
+      <p style="margin:0;"><i class="fas fa-triangle-exclamation" style="color:#c99a2e;"></i> <strong>Vanishing gradients.</strong> Look at the flat tails of sigmoid and tanh. Where the curve is flat, the slope is almost zero, so almost no learning signal travels back through that neuron. Deep networks built on sigmoid learn painfully slowly. ReLU has a constant slope of 1 on the positive side – that single fact is why deep learning took off.</p>
+    </div>
+    <div class="warnbox fade-up" style="background:#f2f9f4;border-color:#cfe8d8;">
+      <p style="margin:0;"><i class="fas fa-microscope" style="color:#3f8a5c;"></i> <strong>Key insight for NLP:</strong> BERT and GPT do not use plain ReLU inside their feedforward sub-layers – they use <strong>GELU</strong>. GELU keeps ReLU’s non-saturating growth but rounds off the corner at zero, and it scores better on most NLP benchmarks.</p>
+    </div>
+
+    <!-- ============ 6. SOFTMAX ============ -->
+    <div class="section-title fade-up"><i class="fas fa-percent"></i> Softmax: Turning Scores into Probabilities <span class="title-line"></span></div>
+    <p class="fade-up">The last layer produces raw scores called <em>logits</em>. They can be any number, negative or huge. Softmax squeezes a whole set of them into positive values that add up to exactly 1.</p>
+    <div class="fade-up" style="text-align:center;margin-bottom:1rem;"><span class="formula">softmax(zᵢ) = e^zᵢ ÷ Σₖ e^zₖ</span></div>
+
+    <div class="panel fade-up">
+      <div class="slider-row"><label>Positive</label><input type="range" id="l0" min="-4" max="6" step="0.1" value="2.0"><span class="val" id="l0v">2.0</span></div>
+      <div class="slider-row"><label>Neutral</label><input type="range" id="l1" min="-4" max="6" step="0.1" value="0.5"><span class="val" id="l1v">0.5</span></div>
+      <div class="slider-row"><label>Negative</label><input type="range" id="l2" min="-4" max="6" step="0.1" value="-1.0"><span class="val" id="l2v">-1.0</span></div>
+      <hr style="border:none;border-top:1px dashed #dce5ef;margin:0.9rem 0;">
+      <div class="bar-wrap"><span class="bar-name">Positive</span><div class="bar-track"><div class="bar-fill" id="b0"></div></div><span class="bar-val" id="p0"></span></div>
+      <div class="bar-wrap"><span class="bar-name">Neutral</span><div class="bar-track"><div class="bar-fill" id="b1"></div></div><span class="bar-val" id="p1"></span></div>
+      <div class="bar-wrap"><span class="bar-name">Negative</span><div class="bar-track"><div class="bar-fill" id="b2"></div></div><span class="bar-val" id="p2"></span></div>
+      <p class="small" style="margin:0.7rem 0 0;color:#5f7d97;">Push one slider far right and watch the others collapse toward zero. Softmax is a competition – one class can only gain if the others lose.</p>
+    </div>
+
+    <!-- ============ 7. FORWARD PASS ============ -->
+    <div class="section-title fade-up"><i class="fas fa-forward-step"></i> A Full Forward Pass, Step by Step <span class="title-line"></span></div>
+    <p class="fade-up">Sentence: <strong>“not a great movie”</strong>. Three features tell us which words appeared. Walk through the whole calculation.</p>
+
+    <div class="panel fade-up">
+      <div class="svg-hold" style="margin-top:0;">
+        <svg width="520" height="220" viewBox="0 0 520 220" xmlns="http://www.w3.org/2000/svg" id="fpSvg">
+          <g id="fpEdges" stroke="#dce5ef" stroke-width="1.5"></g>
+          <g id="fpNodes"></g>
+        </svg>
+      </div>
+      <div class="step-box" id="fpBox"></div>
+      <div class="dots" id="fpDots"></div>
+      <div class="btnrow" style="justify-content:center;margin-top:0.9rem;margin-bottom:0;">
+        <button class="btn ghost" id="fpPrev"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn" id="fpNext">Next <i class="fas fa-arrow-right"></i></button>
+        <button class="btn ghost" id="fpReset"><i class="fas fa-rotate-left"></i> Restart</button>
+      </div>
+    </div>
+
+    <!-- ============ 8. LEARNING ============ -->
+    <div class="section-title fade-up"><i class="fas fa-graduation-cap"></i> How the Network Learns <span class="title-line"></span></div>
+    <p class="fade-up">Prediction is the easy half. Learning means fixing the weights, and it takes three ingredients: a <strong>loss</strong> that measures the mistake, <strong>backpropagation</strong> to find who is to blame, and <strong>gradient descent</strong> to make the correction.</p>
+
+    <h3 class="sub fade-up"><i class="fas fa-ruler"></i> 1. The loss: cross-entropy</h3>
+    <p class="fade-up">For classification we use <strong>cross-entropy loss</strong>. It looks only at the probability the model gave to the <em>correct</em> answer, and punishes low confidence very hard.</p>
+    <div class="fade-up" style="text-align:center;margin-bottom:1rem;"><span class="formula">Loss = − ln( p<sub>correct</sub> )</span></div>
+    <div class="panel fade-up">
+      <div class="slider-row"><label>p correct</label><input type="range" id="ce" min="1" max="99" step="1" value="60"><span class="val" id="cev">0.60</span></div>
+      <div class="bar-wrap"><span class="bar-name">Loss</span><div class="bar-track" style="height:26px;"><div class="bar-fill" id="ceBar" style="background:linear-gradient(90deg,#1a4a6e,#c0504d);"></div></div><span class="bar-val" id="ceOut"></span></div>
+      <p class="small" id="ceNote" style="margin:0.6rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <h3 class="sub fade-up"><i class="fas fa-arrow-left-long"></i> 2. Backpropagation: assigning blame</h3>
+    <p class="fade-up">The loss is one number at the far right. Backpropagation carries it <em>backwards</em> through the network with the <strong>chain rule</strong>, working out how much each individual weight contributed to the error. Press play to watch the signal reverse.</p>
+    <div class="svg-hold fade-up">
+      <svg width="520" height="180" viewBox="0 0 520 180" xmlns="http://www.w3.org/2000/svg" id="bpSvg">
+        <g id="bpEdges" stroke="#dce5ef" stroke-width="1.4"></g>
+        <g id="bpNodes"></g>
+        <g id="bpDots"></g>
+      </svg>
+    </div>
+    <div class="btnrow fade-up" style="justify-content:center;">
+      <button class="chip active" id="bpFwd"><i class="fas fa-play"></i> Forward pass</button>
+      <button class="chip" id="bpBack"><i class="fas fa-backward"></i> Backward pass</button>
+    </div>
+    <p class="muted small fade-up" id="bpMsg">Forward: inputs travel right and produce a prediction.</p>
+
+    <h3 class="sub fade-up"><i class="fas fa-mountain-sun"></i> 3. Gradient descent: rolling downhill</h3>
+    <p class="fade-up">Now update each weight in the opposite direction of its gradient. The <strong>learning rate</strong> decides the size of each step. Too small and you crawl; too large and you bounce past the bottom forever. Optimisers such as <strong>SGD</strong> and <strong>Adam</strong> do exactly this, Adam adapting the step size per weight.</p>
+    <div class="panel fade-up">
+      <div class="svg-hold" style="margin:0;">
+        <svg width="440" height="230" viewBox="0 0 440 230" xmlns="http://www.w3.org/2000/svg" id="gdSvg">
+          <path id="gdCurve" fill="none" stroke="#c9d6e5" stroke-width="2.5"/>
+          <g id="gdTrail"></g>
+          <circle id="gdBall" r="9" fill="#0b2a4a"/>
+          <text x="220" y="222" font-size="10" fill="#94a3b8" text-anchor="middle">weight value →</text>
+          <text x="14" y="30" font-size="10" fill="#94a3b8">loss</text>
+        </svg>
+      </div>
+      <div class="slider-row"><label>Learn rate</label><input type="range" id="lr" min="1" max="115" step="1" value="20"><span class="val" id="lrv">0.20</span></div>
+      <div class="btnrow" style="justify-content:center;margin-bottom:0;">
+        <button class="btn" id="gdStep"><i class="fas fa-shoe-prints"></i> Take a step</button>
+        <button class="btn ghost" id="gdRun"><i class="fas fa-play"></i> Run 15 steps</button>
+        <button class="btn ghost" id="gdReset"><i class="fas fa-rotate-left"></i> Reset</button>
+      </div>
+      <p class="small" id="gdMsg" style="text-align:center;margin:0.7rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <!-- ============ 9. DEPTH ============ -->
+    <div class="section-title fade-up"><i class="fas fa-layer-group"></i> Why Add More Layers? <span class="title-line"></span></div>
+    <p class="fade-up">The <strong>universal approximation theorem</strong> says one hidden layer with enough neurons can copy almost any function. In practice that layer would need to be absurdly wide. Extra layers reach the same accuracy with far fewer neurons, because each layer builds on the shapes found by the one before. Click each card to see what a layer typically discovers in a text task.</p>
+    <div class="flip-grid fade-up">
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face flip-front"><i class="fas fa-font"></i><h4>Layer 1</h4><span>click</span></div>
+        <div class="flip-face flip-back">Simple signals: single words, capital letters, word length, suffixes.</div>
+      </div></div>
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face flip-front"><i class="fas fa-link"></i><h4>Layer 2</h4><span>click</span></div>
+        <div class="flip-face flip-back">Combinations: “not” + a positive word, negation, short phrases.</div>
+      </div></div>
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face flip-front"><i class="fas fa-lightbulb"></i><h4>Layer 3</h4><span>click</span></div>
+        <div class="flip-face flip-back">Abstract meaning: sarcasm, topic, overall sentiment of the sentence.</div>
+      </div></div>
+      <div class="flip"><div class="flip-inner">
+        <div class="flip-face flip-front"><i class="fas fa-flag-checkered"></i><h4>Output</h4><span>click</span></div>
+        <div class="flip-face flip-back">One score per class, then softmax turns the scores into probabilities.</div>
+      </div></div>
+    </div>
+
+    <!-- ============ 9b. PARAMETER COUNT ============ -->
+    <div class="section-title fade-up"><i class="fas fa-hashtag"></i> Counting the Weights You Must Learn <span class="title-line"></span></div>
+    <p class="fade-up">Every connection is one number the model has to learn from data, plus one bias per unit. The count is easy to work out, and it grows frighteningly fast.</p>
+    <div class="fade-up" style="text-align:center;margin-bottom:1rem;">
+      <span class="formula">parameters of one layer = (inputs × units) weights + (units) biases</span>
+    </div>
+
+    <div class="panel fade-up">
+      <h3 class="sub" style="margin-top:0;"><i class="fas fa-sliders"></i> Build a network and count its parameters</h3>
+      <p class="small" style="color:#5f7d97;margin-bottom:0.9rem;">Change the sizes. The number at the bottom is what the model must actually learn from data.</p>
+      <div class="split" style="align-items:flex-start;">
+        <div style="border:none;background:transparent;padding:0;min-width:250px;">
+          <div class="slider-row"><label>Embedding</label><input type="range" id="pcDim" min="25" max="500" step="25" value="300"><span class="val" id="pcDimV">300</span></div>
+          <div class="slider-row"><label>Window</label><input type="range" id="pcWin" min="1" max="9" step="1" value="5"><span class="val" id="pcWinV">5</span></div>
+          <div class="slider-row"><label>Hidden</label><input type="range" id="pcHid" min="25" max="1000" step="25" value="500"><span class="val" id="pcHidV">500</span></div>
+          <div class="slider-row"><label>Classes</label><input type="range" id="pcOut" min="2" max="20" step="1" value="3"><span class="val" id="pcOutV">3</span></div>
+        </div>
+        <div style="border:none;background:transparent;padding:0;min-width:265px;">
+          <div class="formula" id="pcReadout" style="font-size:0.82rem;line-height:1.95;display:block;width:100%;"></div>
+        </div>
+      </div>
+      <div class="bar-wrap" style="margin-top:1.1rem;"><span class="bar-name">Layer 1</span><div class="bar-track"><div class="bar-fill" id="pcB1"></div></div><span class="bar-val" id="pcV1"></span></div>
+      <div class="bar-wrap"><span class="bar-name">Layer 2</span><div class="bar-track"><div class="bar-fill" id="pcB2" style="background:linear-gradient(90deg,#7c9cb8,#a8c1d6);"></div></div><span class="bar-val" id="pcV2"></span></div>
+      <p class="small" id="pcMsg" style="margin:0.7rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <div class="keybox fade-up">
+      <p style="margin:0;"><i class="fas fa-magnifying-glass-chart"></i> A realistic NLP model with 300-dimensional embeddings, a 5-word window and 500 hidden units already carries <strong>(1500 × 500) + 500 = 750 500 parameters in its first layer alone</strong>. Widening the hidden layer costs you linearly, and widening the input costs you just as much – which is why extra depth is usually cheaper than extra width.</p>
+    </div>
+
+    <!-- ============ 9c. REGULARIZATION ============ -->
+    <div class="section-title fade-up"><i class="fas fa-shield-halved"></i> Regularization Techniques <span class="title-line"></span></div>
+    <p class="fade-up">With that many weights, a network can simply memorise the training set. It scores beautifully on data it has seen and badly on anything new – that is <strong>overfitting</strong>. Regularization is any trick that stops it.</p>
+
+    <div class="grid fade-up">
+      <div class="card tcard">
+        <i class="fas fa-droplet big"></i><h4>Dropout</h4>
+        <p>Randomly zeros neuron outputs during training with probability <em>p</em>. Neurons can no longer rely on one another, so they stop co-adapting. At test time nothing is dropped and the weights are scaled by (1−p).</p>
+        <p class="more"><strong>Typical:</strong> p = 0.1 – 0.5 for hidden layers.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+      <div class="card tcard">
+        <i class="fas fa-minus big"></i><h4>Weight Decay (L2)</h4>
+        <p>Adds λₖθₖ² to the loss, which pushes every weight toward zero. Large weights become expensive, so the model prefers smooth, simple solutions.</p>
+        <p class="more"><strong>In practice:</strong> use AdamW, which decouples weight decay from the gradient update properly.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+      <div class="card tcard">
+        <i class="fas fa-hand big"></i><h4>Early Stopping</h4>
+        <p>Watch the validation loss and stop the moment it stops improving. The simplest method here, and very often the most effective one.</p>
+        <p class="more"><strong>Typical:</strong> a patience of 5–10 epochs before you call it off.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+      <div class="card tcard">
+        <i class="fas fa-shuffle big"></i><h4>Data Augmentation</h4>
+        <p>Make more training data out of what you have: synonym replacement, back-translation, random deletion or insertion of words.</p>
+        <p class="more"><strong>Best for:</strong> small NLP datasets, where extra examples matter most.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+      <div class="card tcard">
+        <i class="fas fa-layer-group big"></i><h4>Batch Normalization</h4>
+        <p>Rescales the inputs of a layer to zero mean and unit variance, computed across the whole mini-batch. Mainly a stability aid.</p>
+        <p class="more"><strong>Note:</strong> common in computer vision, rare in NLP – batch statistics behave badly on sequences of different lengths.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+      <div class="card tcard">
+        <i class="fas fa-table-columns big"></i><h4>Layer Normalization</h4>
+        <p>Normalizes across the features of each example on its own, so one sentence never depends on the others in the batch.</p>
+        <p class="more"><strong>Note:</strong> the standard in NLP and Transformers – it handles variable-length sequences and any batch size, even a batch of one.</p>
+        <span class="tap">click for the practical setting</span>
+      </div>
+    </div>
+
+    <h3 class="sub fade-up"><i class="fas fa-droplet"></i> Dropout in action</h3>
+    <p class="fade-up">Each training step uses a different random subnetwork. Move <em>p</em> and press the button a few times.</p>
+    <div class="panel fade-up">
+      <div class="svg-hold" style="margin-top:0;">
+        <svg width="440" height="180" viewBox="0 0 440 180" xmlns="http://www.w3.org/2000/svg" id="doSvg">
+          <g id="doEdges" stroke="#dce5ef" stroke-width="1.2"></g>
+          <g id="doNodes"></g>
+        </svg>
+      </div>
+      <div class="slider-row"><label>p (drop)</label><input type="range" id="doP" min="0" max="70" step="5" value="30"><span class="val" id="doPV">0.30</span></div>
+      <div class="btnrow" style="justify-content:center;margin:0.8rem 0 0;">
+        <button class="btn" id="doBtn"><i class="fas fa-dice"></i> New training step</button>
+        <button class="btn ghost" id="doTest"><i class="fas fa-flask"></i> Test time</button>
+      </div>
+      <p class="small" id="doMsg" style="text-align:center;margin:0.7rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <h3 class="sub fade-up"><i class="fas fa-chart-line"></i> Early stopping: find the turning point</h3>
+    <p class="fade-up">Training loss falls forever – that is not the number to trust. Validation loss falls, bottoms out, then climbs as memorisation begins. Slide to pick the epoch where you would stop.</p>
+    <div class="panel fade-up">
+      <div class="svg-hold" style="margin-top:0;">
+        <svg width="470" height="250" viewBox="0 0 470 250" xmlns="http://www.w3.org/2000/svg" id="esSvg">
+          <g id="esGrid" stroke="#eef2f7" stroke-width="1"></g>
+          <path id="esTrain" fill="none" stroke="#7c9cb8" stroke-width="2.5"/>
+          <path id="esVal" fill="none" stroke="#c0504d" stroke-width="2.5"/>
+          <line id="esBest" stroke="#3f8a5c" stroke-width="1.6" stroke-dasharray="5 4"/>
+          <line id="esLine" stroke="#0b2a4a" stroke-width="2"/>
+          <circle id="esDotT" r="5" fill="#7c9cb8"/>
+          <circle id="esDotV" r="5" fill="#c0504d"/>
+          <text x="255" y="243" font-size="10" fill="#94a3b8" text-anchor="middle">epochs →</text>
+          <text x="8" y="26" font-size="10" fill="#94a3b8">loss</text>
+        </svg>
+      </div>
+      <div class="legend" style="margin-bottom:0.8rem;">
+        <span><i class="swatch" style="background:#7c9cb8"></i> training loss</span>
+        <span><i class="swatch" style="background:#c0504d"></i> validation loss</span>
+        <span><i class="swatch" style="background:#3f8a5c"></i> best epoch</span>
+      </div>
+      <div class="slider-row"><label>Stop at</label><input type="range" id="esEp" min="1" max="40" step="1" value="8"><span class="val" id="esEpV">8</span></div>
+      <p class="small" id="esMsg" style="text-align:center;margin:0.7rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <!-- ============ 10. STRENGTHS / LIMITS ============ -->
+    <div class="section-title fade-up"><i class="fas fa-scale-balanced"></i> Strengths and Hard Limits <span class="title-line"></span></div>
+    <div class="split fade-up">
+      <div class="new">
+        <h4><i class="fas fa-circle-check"></i> Good at</h4>
+        <ul>
+          <li><i class="fas fa-cube"></i> Simple architecture, easy to implement</li>
+          <li><i class="fas fa-bolt"></i> Fast to train compared with big sequence models</li>
+          <li><i class="fas fa-infinity"></i> Universal approximation: can fit nearly any function</li>
+          <li><i class="fas fa-table"></i> Structured, fixed-length features</li>
+          <li><i class="fas fa-tags"></i> Solid baseline for topic labelling, language ID, spam filtering</li>
+        </ul>
+      </div>
+      <div class="old">
+        <h4><i class="fas fa-circle-xmark"></i> Cannot do</h4>
+        <ul>
+          <li><i class="fas fa-list-ol"></i> Model order or dependencies between words in a sequence</li>
+          <li><i class="fas fa-brain"></i> Remember anything – there is no memory mechanism</li>
+          <li><i class="fas fa-file-lines"></i> Handle long texts well</li>
+          <li><i class="fas fa-ruler-horizontal"></i> Accept variable input length – the size is fixed in advance</li>
+          <li><i class="fas fa-trophy"></i> Match Transformers on modern NLP benchmarks</li>
+        </ul>
+      </div>
+    </div>
+    <div class="keybox fade-up">
+      <p style="margin:0;font-weight:500;"><i class="fas fa-signs-post"></i> <strong>The one limitation that drives the rest of the course.</strong> A feedforward network takes a fixed-size input and has no memory, but language is a sequence of any length with long-distance links. Recurrent networks answer this by carrying a hidden state forward. Attention and Transformers answer it by letting every word look directly at every other word. Both keep the neuron, the activation, the softmax and backpropagation exactly as you learned them here.</p>
+    </div>
+
+    <!-- ============ 11. INSIDE TRANSFORMERS ============ -->
+    <div class="section-title fade-up"><i class="fas fa-cubes-stacked"></i> Feedforward Layers Inside BERT and GPT <span class="title-line"></span></div>
+    <p class="fade-up">Every encoder layer of BERT follows the same four-step recipe. Click a block to see its job.</p>
+
+    <div class="svg-hold fade-up">
+      <svg width="330" height="300" viewBox="0 0 330 300" xmlns="http://www.w3.org/2000/svg" id="bertSvg"></svg>
+    </div>
+    <div class="step-box fade-up" id="bertBox"></div>
+    <p class="fade-up" style="margin-top:1rem;">Remove the feedforward sub-layers and BERT loses most of its representational capacity. Attention alone only mixes information between positions – it does not transform it.</p>
+
+    <h3 class="sub fade-up"><i class="fas fa-calculator"></i> Count the parameters yourself</h3>
+    <p class="fade-up">GPT-style blocks expand the hidden size by four inside the feedforward sub-layer – for example hidden 4096 → feedforward 16384 → back to 4096. That expansion is where most of the weights live.</p>
+    <div class="panel fade-up">
+      <div class="slider-row"><label>Hidden d</label><input type="range" id="dm" min="512" max="8192" step="256" value="4096"><span class="val" id="dmv">4096</span></div>
+      <div class="slider-row"><label>FFN size</label><input type="range" id="dff" min="1" max="8" step="1" value="4"><span class="val" id="dffv">×4</span></div>
+      <p class="small" style="margin:0.4rem 0 0.8rem;color:#5f7d97;">Feedforward width: <strong id="dffAbs">16384</strong> · per Transformer block</p>
+      <div class="bar-wrap"><span class="bar-name">Attention</span><div class="bar-track"><div class="bar-fill" id="attBar" style="background:linear-gradient(90deg,#7c9cb8,#a8c1d6);"></div></div><span class="bar-val" id="attVal"></span></div>
+      <div class="bar-wrap"><span class="bar-name">Feedforward</span><div class="bar-track"><div class="bar-fill" id="ffBar"></div></div><span class="bar-val" id="ffVal"></span></div>
+      <p class="small" id="paramMsg" style="margin:0.7rem 0 0;color:#5f7d97;"></p>
+    </div>
+
+    <div class="keybox fade-up">
+      <p style="margin:0;font-weight:500;font-size:1.05rem;"><i class="fas fa-quote-left"></i> Attention decides <strong>what</strong> information should be used. The feedforward network decides <strong>how</strong> that information is transformed.</p>
+    </div>
+    <p class="fade-up">Many students assume attention does most of the work in a large language model. In reality the feedforward layers hold most of the parameters, burn a large share of the compute, and carry much of the model’s stored knowledge. One more detail worth remembering: inside a Transformer the feedforward sub-layer is a 2-layer network applied <em>independently to every position</em> – the same weights, reused at each token.</p>
+
+    <!-- ============ 14. TAKEAWAY ============ -->
+    <div class="section-title fade-up"><i class="fas fa-key"></i> Key Takeaway <span class="title-line"></span></div>
+    <div class="keybox fade-up">
+      <p style="margin:0;font-weight:500;font-size:1.05rem;">The feedforward network is the smallest deep model, and every later architecture – RNN, LSTM, Transformer – is built from the same four ideas you met here: <strong>a weighted sum, a non-linearity, a loss, and gradient descent</strong>. What changes later is how information moves between positions. What never changes is the neuron.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =============== SCROLL ANIMATION =============== */
+const io = new IntersectionObserver(es => {
+  es.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+document.querySelectorAll('.fade-up, .draw-svg').forEach(el => io.observe(el));
+
+const NS = "http://www.w3.org/2000/svg";
+function mk(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/* =============== 1. FLOW NETWORK =============== */
+(function () {
+  const inp = [70, 130, 190], hid = [60, 110, 160, 210], out = [95, 165];
+  const eL = document.getElementById('edgeLayer');
+  const nL = document.getElementById('nodeLayer');
+  const dL = document.getElementById('dotLayer');
+  const paths = [];
+
+  inp.forEach(y1 => hid.forEach(y2 => {
+    eL.appendChild(mk('line', { x1: 96, y1: y1, x2: 256, y2: y2 }));
+    paths.push(`M96,${y1} L256,${y2}`);
+  }));
+  hid.forEach(y1 => out.forEach(y2 => {
+    eL.appendChild(mk('line', { x1: 304, y1: y1, x2: 456, y2: y2 }));
+    paths.push(`M304,${y1} L456,${y2}`);
+  }));
+
+  function node(x, y, fill, label, grp) {
+    const g = mk('g', { class: 'nodegrp', 'data-g': grp });
+    g.appendChild(mk('circle', { cx: x, cy: y, r: 18, fill: fill, stroke: '#0b2a4a', 'stroke-width': 1.6 }));
+    const t = mk('text', { x: x, y: y + 4, 'font-size': 10, 'text-anchor': 'middle', fill: '#0b2a4a', 'font-weight': 600 });
+    t.textContent = label; g.appendChild(t); nL.appendChild(g);
+  }
+  inp.forEach((y, i) => node(78, y, '#e6f0fa', 'x' + (i + 1), 0));
+  hid.forEach((y, i) => node(280, y, '#cfe0f2', 'h' + (i + 1), 1));
+  out.forEach((y, i) => node(474, y, '#0b2a4a', '', 2));
+  nL.querySelectorAll('[data-g="2"] text').forEach((t, i) => { t.setAttribute('fill', '#fff'); t.textContent = 'y' + (i + 1); });
+
+  // travelling dots
+  for (let i = 0; i < 8; i++) {
+    const p = paths[Math.floor(Math.random() * paths.length)];
+    const c = mk('circle', { r: 3.5, fill: '#3d7ea6' });
+    const am = mk('animateMotion', { dur: (1.6 + Math.random() * 1.4) + 's', repeatCount: 'indefinite', path: p, begin: (i * 0.28) + 's' });
+    c.appendChild(am); dL.appendChild(c);
+  }
+
+  const info = [
+    { t: 'Input layer', i: 'fa-right-to-bracket', d: 'Holds the numbers that describe one example. In NLP this is a word vector, a bag-of-words count vector, or a TF-IDF vector. It does no computation at all – it just holds values. Its size is fixed the moment you design the model.' },
+    { t: 'Hidden layer', i: 'fa-layer-group', d: 'Where the real work happens. Each hidden neuron computes a weighted sum of everything before it, adds a bias, and applies an activation. These layers invent their own features. More layers = more abstract features.' },
+    { t: 'Output layer', i: 'fa-right-from-bracket', d: 'One neuron per possible answer. For sentiment with 3 classes you get 3 neurons. Softmax is applied here to turn the raw scores into probabilities that sum to 1.' }
+  ];
+  const box = document.getElementById('layerInfo');
+  function show(k) {
+    box.innerHTML = `<h4><i class="fas ${info[k].i}"></i> ${info[k].t}</h4><p style="margin:0;font-size:0.92rem;">${info[k].d}</p>`;
+    nL.querySelectorAll('.nodegrp').forEach(g => {
+      g.classList.toggle('pulse', g.dataset.g == k);
+    });
+  }
+  document.querySelectorAll('[data-layer]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-layer]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); show(+b.dataset.layer);
+  }));
+  show(0);
+})();
+
+/* =============== 2. WORD REPRESENTATIONS =============== */
+(function () {
+  const reps = {
+    bow: {
+      t: 'Bag of Words', i: 'fa-basket-shopping',
+      d: 'Count how many times each vocabulary word appears. Word order is thrown away completely – “dog bites man” and “man bites dog” give the identical vector.',
+      ex: 'vocabulary = [good, bad, movie, not]<br>"not a good movie" → [ 1, 0, 1, 1 ]',
+      good: 'Very simple and fast.', bad: 'Huge, mostly zeros, and blind to order and to meaning.'
+    },
+    tfidf: {
+      t: 'TF-IDF', i: 'fa-scale-unbalanced',
+      d: 'Same idea as bag of words, but each count is reweighted. Words that appear in almost every document (“the”, “is”) get pushed down; rare, informative words get pushed up.',
+      ex: 'weight = term frequency × log( N / documents containing the word )',
+      good: 'Highlights the words that actually distinguish a document.', bad: 'Still sparse, still ignores order, still no idea that “film” and “movie” are related.'
+    },
+    emb: {
+      t: 'Word Embeddings', i: 'fa-vector-square',
+      d: 'Each word becomes a short dense vector of real numbers, learned from data. Words used in similar contexts end up close together in the space, so knowledge transfers between them.',
+      ex: 'movie → [0.21, −0.84, 0.55, … ] &nbsp;(300 numbers)<br>film &nbsp;→ [0.19, −0.79, 0.58, … ] &nbsp;≈ almost the same place',
+      good: 'Dense, compact, and carries meaning. This is what modern models feed to the network.', bad: 'One fixed vector per word type, so “bank” gets a single blended meaning.'
+    }
+  };
+  const p = document.getElementById('repPanel');
+  function show(k) {
+    const r = reps[k];
+    p.innerHTML = `<h4 style="color:#0b2a4a;margin-bottom:0.5rem;"><i class="fas ${r.i}"></i> ${r.t}</h4>
+      <p style="font-size:0.93rem;">${r.d}</p>
+      <div class="formula small" style="font-size:0.85rem;line-height:1.7;">${r.ex}</div>
+      <p class="small" style="margin:0.9rem 0 0.2rem;"><i class="fas fa-plus" style="color:#3f8a5c;"></i> ${r.good}</p>
+      <p class="small" style="margin:0;"><i class="fas fa-minus" style="color:#c0504d;"></i> ${r.bad}</p>`;
+  }
+  document.querySelectorAll('[data-rep]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-rep]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); show(b.dataset.rep);
+  }));
+  show('bow');
+})();
+
+/* =============== ACTIVATION MATH (shared) =============== */
+const ACT = {
+  step:    x => x >= 0 ? 1 : 0,
+  sigmoid: x => 1 / (1 + Math.exp(-x)),
+  tanh:    x => Math.tanh(x),
+  relu:    x => Math.max(0, x),
+  leaky:   x => x > 0 ? x : 0.01 * x,
+  gelu:    x => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x * x * x)))
+};
+
+/* =============== 4. ACTIVATION EXPLORER =============== */
+(function () {
+  const META = {
+    step: { n: 'Step Function', f: 'f(x) = 1 if x ≥ 0 &nbsp;·&nbsp; f(x) = 0 if x &lt; 0', r: '{0, 1}', u: 'The original perceptron, 1958. Historical only.',
+      p: ['Perfectly simple: fire or stay silent.', 'Slope is zero everywhere, so gradient descent has nothing to follow.', 'Cannot be trained by backpropagation – this is why it was abandoned.'], yr: [-0.4, 1.4], xr: 5 },
+    sigmoid: { n: 'Sigmoid (Logistic)', f: 'σ(x) = 1 / (1 + e^(−x))', r: '(0, 1)', u: 'Binary classification output, and gates inside LSTMs.',
+      p: ['Output reads naturally as a probability.', 'Smooth, so it has a usable gradient everywhere.', 'Saturates at both ends → vanishing gradients.', 'Not zero-centred, which slows training.'], yr: [-0.4, 1.4], xr: 6 },
+    tanh: { n: 'Tanh', f: 'tanh(x) = (e^x − e^(−x)) / (e^x + e^(−x))', r: '(−1, 1)', u: 'Hidden layers of older RNNs.',
+      p: ['Zero-centred, so gradients are better behaved than sigmoid.', 'Stronger gradient near zero than sigmoid.', 'Still saturates at both tails → still vanishing gradients.'], yr: [-1.4, 1.4], xr: 4 },
+    relu: { n: 'ReLU', f: 'ReLU(x) = max(0, x)', r: '[0, ∞)', u: 'The default hidden-layer choice in most deep networks.',
+      p: ['Extremely cheap: one comparison.', 'Constant slope of 1 for positive x → no vanishing gradient.', 'Produces sparse activations, which helps.', 'Dying ReLU: a neuron stuck at negative input outputs 0 forever and stops learning.'], yr: [-1, 5], xr: 5 },
+    leaky: { n: 'Leaky ReLU', f: 'f(x) = x if x &gt; 0 &nbsp;·&nbsp; f(x) = 0.01x otherwise', r: '(−∞, ∞)', u: 'A drop-in replacement when ReLU units keep dying.',
+      p: ['Keeps a small slope on the negative side.', 'Solves the dying ReLU problem.', 'Adds a hyperparameter (the leak) you may need to tune.'], yr: [-1, 5], xr: 5 },
+    gelu: { n: 'GELU', f: 'GELU(x) ≈ 0.5x · (1 + tanh[ √(2/π) (x + 0.044715x³) ])', r: '(−0.17, ∞)', u: 'The feedforward sub-layers of BERT, GPT and most modern Transformers.',
+      p: ['Smooth: no sharp corner at zero.', 'Combines ReLU’s non-saturating growth with sigmoid-like smoothness.', 'Small negative values are kept instead of being deleted.', 'Beats ReLU on most NLP benchmarks.'], yr: [-1, 5], xr: 5 }
+  };
+  const PX0 = 45, PX1 = 425, PY0 = 25, PY1 = 215;
+  const svg = document.getElementById('actSvg');
+  const curve = document.getElementById('curve');
+  const grid = document.getElementById('grid');
+
+  function draw(key) {
+    const m = META[key], xr = m.xr, [y0, y1] = m.yr;
+    const sx = x => PX0 + (x + xr) / (2 * xr) * (PX1 - PX0);
+    const sy = y => PY1 - (y - y0) / (y1 - y0) * (PY1 - PY0);
+
+    grid.innerHTML = '';
+    for (let i = 0; i <= 6; i++) {
+      const gx = PX0 + i * (PX1 - PX0) / 6;
+      grid.appendChild(mk('line', { x1: gx, y1: PY0, x2: gx, y2: PY1 }));
+    }
+    for (let i = 0; i <= 4; i++) {
+      const gy = PY0 + i * (PY1 - PY0) / 4;
+      grid.appendChild(mk('line', { x1: PX0, y1: gy, x2: PX1, y2: gy }));
+    }
+    const ax = document.getElementById('axX'), ay = document.getElementById('axY');
+    const zeroY = Math.min(PY1, Math.max(PY0, sy(0)));
+    ax.setAttribute('x1', PX0); ax.setAttribute('x2', PX1); ax.setAttribute('y1', zeroY); ax.setAttribute('y2', zeroY);
+    ay.setAttribute('x1', sx(0)); ay.setAttribute('x2', sx(0)); ay.setAttribute('y1', PY0); ay.setAttribute('y2', PY1);
+    const lY = document.getElementById('lblY'), lY0 = document.getElementById('lblY0');
+    lY.setAttribute('x', 8); lY.setAttribute('y', PY0 + 8); lY.textContent = y1.toFixed(1);
+    lY0.setAttribute('x', 8); lY0.setAttribute('y', PY1); lY0.textContent = y0.toFixed(1);
+
+    let d = '';
+    const N = 240;
+    for (let i = 0; i <= N; i++) {
+      const x = -xr + 2 * xr * i / N;
+      let y = ACT[key](x);
+      y = Math.min(y1, Math.max(y0, y));
+      d += (i ? ' L' : 'M') + sx(x).toFixed(1) + ',' + sy(y).toFixed(1);
+    }
+    curve.setAttribute('d', d);
+    const len = curve.getTotalLength();
+    curve.style.transition = 'none';
+    curve.style.strokeDasharray = len; curve.style.strokeDashoffset = len;
+    void curve.getBoundingClientRect();
+    curve.style.transition = 'stroke-dashoffset 1.1s ease-in-out';
+    curve.style.strokeDashoffset = 0;
+
+    document.getElementById('fnName').textContent = m.n;
+    document.getElementById('fnFormula').innerHTML = m.f;
+    document.getElementById('fnRange').textContent = m.r;
+    document.getElementById('fnUse').textContent = m.u;
+    document.getElementById('fnPts').innerHTML = m.p.map(t =>
+      `<li style="padding:0.3rem 0;border-bottom:1px solid #eceff5;display:flex;gap:0.5rem;"><i class="fas fa-angle-right" style="color:#1a4a6e;"></i><span>${t}</span></li>`).join('');
+  }
+  document.querySelectorAll('[data-fn]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-fn]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); draw(b.dataset.fn);
+  }));
+  draw('step');
+})();
+
+/* =============== 5. SOFTMAX =============== */
+(function () {
+  const ls = ['l0', 'l1', 'l2'];
+  function upd() {
+    const z = ls.map(id => parseFloat(document.getElementById(id).value));
+    ls.forEach((id, i) => document.getElementById(id + 'v').textContent = z[i].toFixed(1));
+    const mx = Math.max(...z);
+    const ex = z.map(v => Math.exp(v - mx));
+    const s = ex.reduce((a, b) => a + b, 0);
+    ex.forEach((e, i) => {
+      const p = e / s;
+      document.getElementById('b' + i).style.width = (p * 100).toFixed(1) + '%';
+      document.getElementById('p' + i).textContent = (p * 100).toFixed(1) + '%';
+    });
+  }
+  ls.forEach(id => document.getElementById(id).addEventListener('input', upd));
+  upd();
+})();
+
+/* =============== 6. FORWARD PASS STEPPER =============== */
+(function () {
+  const eG = document.getElementById('fpEdges'), nG = document.getElementById('fpNodes');
+  const inY = [55, 110, 165], hdY = [80, 140], ouY = [80, 140];
+  const nodes = {};
+  function node(id, x, y, lab) {
+    const g = mk('g', {});
+    const c = mk('circle', { cx: x, cy: y, r: 21, fill: '#f1f5f9', stroke: '#c9d6e5', 'stroke-width': 1.6 });
+    const t = mk('text', { x: x, y: y + 4, 'font-size': 10, 'text-anchor': 'middle', fill: '#0b2a4a', 'font-weight': 700 });
+    t.textContent = lab; g.appendChild(c); g.appendChild(t); nG.appendChild(g);
+    nodes[id] = { c: c, t: t };
+  }
+  inY.forEach((y, i) => eG.appendChild(mk('line', { x1: 111, y1: y, x2: 199, y2: hdY[0] })));
+  inY.forEach((y, i) => eG.appendChild(mk('line', { x1: 111, y1: y, x2: 199, y2: hdY[1] })));
+  hdY.forEach(y => ouY.forEach(y2 => eG.appendChild(mk('line', { x1: 271, y1: y, x2: 359, y2: y2 }))));
+
+  const labels = ['not=1', 'great=0', 'movie=1'];
+  inY.forEach((y, i) => { node('i' + i, 90, y, ''); nodes['i' + i].t.textContent = ['1', '0', '1'][i]; 
+    const l = mk('text', { x: 60, y: y + 4, 'font-size': 9.5, 'text-anchor': 'end', fill: '#5f7d97' }); l.textContent = labels[i]; nG.appendChild(l); });
+  hdY.forEach((y, i) => node('h' + i, 220, y, '?'));
+  ouY.forEach((y, i) => node('o' + i, 380, y, '?'));
+  ['Negative', 'Positive'].forEach((s, i) => {
+    const l = mk('text', { x: 410, y: ouY[i] + 4, 'font-size': 9.5, fill: '#5f7d97' }); l.textContent = s; nG.appendChild(l);
+  });
+  const hL = mk('text', { x: 220, y: 195, 'font-size': 9.5, 'text-anchor': 'middle', fill: '#94a3b8' }); hL.textContent = 'hidden (ReLU)'; nG.appendChild(hL);
+  const iL = mk('text', { x: 90, y: 205, 'font-size': 9.5, 'text-anchor': 'middle', fill: '#94a3b8' }); iL.textContent = 'input x'; nG.appendChild(iL);
+  const oL = mk('text', { x: 380, y: 195, 'font-size': 9.5, 'text-anchor': 'middle', fill: '#94a3b8' }); oL.textContent = 'output'; nG.appendChild(oL);
+
+  const STEPS = [
+    { t: 'Encode the sentence', i: 'fa-keyboard',
+      d: 'Three features: does the word appear, yes or no. “not a great movie” contains <em>not</em> and <em>movie</em> but not <em>great</em>.',
+      m: 'x = [ 1, 0, 1 ]', set: { } },
+    { t: 'Hidden layer: weighted sums', i: 'fa-plus-minus',
+      d: 'Each hidden neuron multiplies every input by its own weight and adds a bias.',
+      m: 'z₁ = 0.9(1) + (−0.4)(0) + 0.7(1) + 0.1 = 1.70<br>z₂ = (−0.8)(1) + 1.1(0) + (−0.5)(1) + 0.2 = −1.10',
+      set: { h0: '1.70', h1: '-1.10' }, hi: ['h0', 'h1'] },
+    { t: 'Apply ReLU', i: 'fa-wave-square',
+      d: 'ReLU keeps positive values and flattens negatives to zero. Neuron 2 goes completely silent.',
+      m: 'h = [ max(0, 1.70), max(0, −1.10) ] = [ 1.70, 0 ]',
+      set: { h0: '1.70', h1: '0' }, hi: ['h1'] },
+    { t: 'Output layer: raw scores', i: 'fa-chart-simple',
+      d: 'The hidden values are combined again, once per class. These are logits, not probabilities yet.',
+      m: 'o_neg = 1.2(1.70) + (−0.9)(0) = 2.04<br>o_pos = (−1.0)(1.70) + 1.3(0) = −1.70',
+      set: { o0: '2.04', o1: '-1.70' }, hi: ['o0', 'o1'] },
+    { t: 'Softmax', i: 'fa-percent',
+      d: 'Exponentiate and normalise so the two scores become probabilities that add to 1.',
+      m: 'e^2.04 = 7.69 · e^(−1.70) = 0.18 · sum = 7.87<br>P(neg) = 7.69/7.87 = 0.977 · P(pos) = 0.023',
+      set: { o0: '98%', o1: '2%' }, hi: ['o0'] },
+    { t: 'Prediction', i: 'fa-flag-checkered',
+      d: 'The model answers <strong>Negative</strong> with 97.7% confidence. If the true label really is negative, cross-entropy loss = −ln(0.977) = 0.023 – a very small mistake, so the weights barely change.',
+      m: 'predicted class = Negative',
+      set: { o0: '98%', o1: '2%' }, hi: ['o0'] }
+  ];
+
+  let k = 0;
+  const box = document.getElementById('fpBox'), dots = document.getElementById('fpDots');
+  dots.innerHTML = STEPS.map((_, i) => `<span class="dot"></span>`).join('');
+
+  function render() {
+    const s = STEPS[k];
+    box.innerHTML = `<h4><i class="fas ${s.i}"></i> Step ${k + 1}: ${s.t}</h4><p style="margin:0;font-size:0.92rem;">${s.d}</p><span class="math">${s.m}</span>`;
+    dots.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === k));
+    // reset visuals
+    Object.keys(nodes).forEach(id => {
+      nodes[id].c.setAttribute('fill', '#f1f5f9');
+      nodes[id].c.setAttribute('stroke', '#c9d6e5');
+      nodes[id].t.setAttribute('fill', '#0b2a4a');
+    });
+    ['h0', 'h1', 'o0', 'o1'].forEach(id => nodes[id].t.textContent = '?');
+    // accumulate values from all steps up to k
+    for (let j = 0; j <= k; j++) {
+      const st = STEPS[j].set || {};
+      for (const id in st) nodes[id].t.textContent = st[id];
+    }
+    (STEPS[k].hi || []).forEach(id => {
+      nodes[id].c.setAttribute('fill', '#0b2a4a');
+      nodes[id].c.setAttribute('stroke', '#0b2a4a');
+      nodes[id].t.setAttribute('fill', '#fff');
+    });
+    if (k === 0) ['i0', 'i1', 'i2'].forEach(id => {
+      nodes[id].c.setAttribute('fill', '#0b2a4a'); nodes[id].t.setAttribute('fill', '#fff');
+    });
+    document.getElementById('fpPrev').disabled = (k === 0);
+    document.getElementById('fpNext').disabled = (k === STEPS.length - 1);
+  }
+  document.getElementById('fpNext').onclick = () => { if (k < STEPS.length - 1) { k++; render(); } };
+  document.getElementById('fpPrev').onclick = () => { if (k > 0) { k--; render(); } };
+  document.getElementById('fpReset').onclick = () => { k = 0; render(); };
+  render();
+})();
+
+/* =============== 7. CROSS ENTROPY =============== */
+(function () {
+  const s = document.getElementById('ce');
+  function upd() {
+    const p = parseInt(s.value) / 100;
+    const L = -Math.log(p);
+    document.getElementById('cev').textContent = p.toFixed(2);
+    document.getElementById('ceOut').textContent = L.toFixed(2);
+    document.getElementById('ceBar').style.width = Math.min(100, L / 4.6 * 100) + '%';
+    let msg;
+    if (p > 0.9) msg = 'Confident and correct. Loss is near zero, so the weights barely move.';
+    else if (p > 0.5) msg = 'Correct but unsure. A moderate push to the weights.';
+    else if (p > 0.15) msg = 'The model is losing. Loss climbs quickly and the update is large.';
+    else msg = 'Confidently wrong – the worst case. Loss explodes toward infinity as p approaches 0.';
+    document.getElementById('ceNote').textContent = msg;
+  }
+  s.addEventListener('input', upd); upd();
+})();
+
+/* =============== 8. BACKPROP ANIMATION =============== */
+(function () {
+  const eG = document.getElementById('bpEdges'), nG = document.getElementById('bpNodes'), dG = document.getElementById('bpDots');
+  const A = [50, 100, 150], B = [45, 90, 135], C = [90];
+  const fwd = [], bwd = [];
+  A.forEach(y1 => B.forEach(y2 => {
+    eG.appendChild(mk('line', { x1: 111, y1: y1, x2: 249, y2: y2 }));
+    fwd.push(`M111,${y1} L249,${y2}`); bwd.push(`M249,${y2} L111,${y1}`);
+  }));
+  B.forEach(y1 => C.forEach(y2 => {
+    eG.appendChild(mk('line', { x1: 291, y1: y1, x2: 409, y2: y2 }));
+    fwd.push(`M291,${y1} L409,${y2}`); bwd.push(`M409,${y2} L291,${y1}`);
+  }));
+  function nd(x, y, f) { nG.appendChild(mk('circle', { cx: x, cy: y, r: 20, fill: f, stroke: '#0b2a4a', 'stroke-width': 1.5 })); }
+  A.forEach(y => nd(90, y, '#e6f0fa'));
+  B.forEach(y => nd(270, y, '#cfe0f2'));
+  nd(430, 90, '#0b2a4a');
+  const lt = mk('text', { x: 430, y: 140, 'font-size': 10, 'text-anchor': 'middle', fill: '#0b2a4a', 'font-weight': 700 });
+  lt.textContent = 'loss'; nG.appendChild(lt);
+
+  function animate(dir) {
+    dG.innerHTML = '';
+    const src = dir === 'f' ? fwd : bwd;
+    const col = dir === 'f' ? '#3d7ea6' : '#c0504d';
+    src.forEach((p, i) => {
+      const c = mk('circle', { r: 4, fill: col });
+      c.appendChild(mk('animateMotion', { dur: '1.5s', repeatCount: 'indefinite', path: p, begin: (i * 0.1) + 's' }));
+      dG.appendChild(c);
+    });
+    document.getElementById('bpMsg').textContent = dir === 'f'
+      ? 'Forward: inputs travel right and produce a prediction.'
+      : 'Backward: the error travels left. The chain rule splits the blame across every weight it touches, layer by layer, until each weight knows its own gradient.';
+    document.getElementById('bpFwd').classList.toggle('active', dir === 'f');
+    document.getElementById('bpBack').classList.toggle('active', dir === 'b');
+  }
+  document.getElementById('bpFwd').onclick = () => animate('f');
+  document.getElementById('bpBack').onclick = () => animate('b');
+  animate('f');
+})();
+
+/* =============== 9. GRADIENT DESCENT =============== */
+(function () {
+  const X0 = 40, X1 = 420, Y0 = 25, Y1 = 200;
+  const WMIN = -4, WMAX = 10, LMAX = 50;
+  const L = w => (w - 3) * (w - 3) + 1;
+  const dL = w => 2 * (w - 3);
+  const sx = w => X0 + (w - WMIN) / (WMAX - WMIN) * (X1 - X0);
+  const sy = l => Y1 - Math.min(l, LMAX) / LMAX * (Y1 - Y0);
+
+  let d = '';
+  for (let i = 0; i <= 120; i++) {
+    const w = WMIN + (WMAX - WMIN) * i / 120;
+    d += (i ? ' L' : 'M') + sx(w).toFixed(1) + ',' + sy(L(w)).toFixed(1);
+  }
+  document.getElementById('gdCurve').setAttribute('d', d);
+
+  const ball = document.getElementById('gdBall'), trail = document.getElementById('gdTrail');
+  const msg = document.getElementById('gdMsg'), lrS = document.getElementById('lr');
+  let w = -3, n = 0;
+
+  function place() {
+    ball.setAttribute('cx', sx(w)); ball.setAttribute('cy', sy(L(w)) - 9);
+    const lr = parseInt(lrS.value) / 100;
+    document.getElementById('lrv').textContent = lr.toFixed(2);
+    let note = `step ${n} · w = ${w.toFixed(2)} · loss = ${L(w).toFixed(2)}`;
+    if (Math.abs(w - 3) < 0.15) note += ' – arrived at the minimum.';
+    else if (Math.abs(w) > 40) note += ' – diverging! The learning rate is too big.';
+    msg.textContent = note;
+  }
+  function step() {
+    const lr = parseInt(lrS.value) / 100;
+    trail.appendChild(mk('circle', { cx: sx(w), cy: sy(L(w)) - 9, r: 3.5, fill: '#94a3b8', opacity: 0.6 }));
+    w = w - lr * dL(w); n++;
+    if (!isFinite(w) || Math.abs(w) > 1e4) w = Math.sign(w) * 1e4;
+    place();
+  }
+  function reset() { w = -3; n = 0; trail.innerHTML = ''; place(); }
+  document.getElementById('gdStep').onclick = step;
+  document.getElementById('gdRun').onclick = () => { let i = 0; const t = setInterval(() => { step(); if (++i >= 15) clearInterval(t); }, 160); };
+  document.getElementById('gdReset').onclick = reset;
+  lrS.addEventListener('input', place);
+  ball.style.transition = 'all .25s ease';
+  reset();
+})();
+
+/* =============== 9b. PARAMETER CALCULATOR =============== */
+(function () {
+  const S = ['pcDim', 'pcWin', 'pcHid', 'pcOut'];
+  function upd() {
+    const dim = +document.getElementById('pcDim').value;
+    const win = +document.getElementById('pcWin').value;
+    const hid = +document.getElementById('pcHid').value;
+    const out = +document.getElementById('pcOut').value;
+    S.forEach(id => document.getElementById(id + 'V').textContent = document.getElementById(id).value);
+
+    const inp = dim * win;
+    const p1 = inp * hid + hid;
+    const p2 = hid * out + out;
+    const tot = p1 + p2;
+    const n = v => v.toLocaleString('en-US').replace(/,/g, ' ');
+
+    document.getElementById('pcReadout').innerHTML =
+      `input &nbsp;: ${win} words × ${dim} = <strong>${n(inp)}</strong><br>` +
+      `shape &nbsp;: ${n(inp)} → ${hid} → ${out}<br>` +
+      `layer 1: ${n(inp)}×${hid} + ${hid} = ${n(p1)}<br>` +
+      `layer 2: ${hid}×${out} + ${out} = ${n(p2)}<br>` +
+      `<span style="color:#93c5fd">total &nbsp;: ${n(tot)} parameters</span>`;
+
+    const mx = Math.max(p1, p2);
+    document.getElementById('pcB1').style.width = (p1 / mx * 100) + '%';
+    document.getElementById('pcB2').style.width = (p2 / mx * 100) + '%';
+    document.getElementById('pcV1').textContent = p1 >= 1e6 ? (p1 / 1e6).toFixed(2) + 'M' : (p1 / 1e3).toFixed(0) + 'K';
+    document.getElementById('pcV2').textContent = p2 >= 1e6 ? (p2 / 1e6).toFixed(2) + 'M' : (p2 / 1e3).toFixed(1) + 'K';
+
+    const share = (p1 / tot * 100).toFixed(1);
+    document.getElementById('pcMsg').innerHTML =
+      `The first layer holds <strong>${share}%</strong> of the weights, because it faces the widest input. ` +
+      (tot > 500000
+        ? 'At this size you need a lot of labelled text before the model stops memorising and starts generalising.'
+        : 'Small enough to train on a modest dataset.');
+  }
+  S.forEach(id => document.getElementById(id).addEventListener('input', upd));
+  upd();
+})();
+
+/* =============== 9c. REGULARIZATION =============== */
+document.querySelectorAll('.tcard').forEach(c =>
+  c.addEventListener('click', () => c.classList.toggle('open')));
+
+/* --- dropout demo --- */
+(function () {
+  const eG = document.getElementById('doEdges'), nG = document.getElementById('doNodes');
+  const cols = [
+    { x: 60,  ys: [45, 90, 135], lab: 'input' },
+    { x: 180, ys: [30, 65, 100, 135], lab: 'hidden 1' },
+    { x: 300, ys: [30, 65, 100, 135], lab: 'hidden 2' },
+    { x: 400, ys: [82], lab: 'output' }
+  ];
+  const cells = [];
+  for (let c = 0; c < cols.length - 1; c++)
+    cols[c].ys.forEach((y1, i) => cols[c + 1].ys.forEach((y2, j) => {
+      const l = mk('line', { x1: cols[c].x + 14, y1: y1, x2: cols[c + 1].x - 14, y2: y2 });
+      l.dataset.a = c + '-' + i; l.dataset.b = (c + 1) + '-' + j; eG.appendChild(l);
+    }));
+  cols.forEach((col, c) => {
+    col.ys.forEach((y, i) => {
+      const cir = mk('circle', { cx: col.x, cy: y, r: 13, fill: c === 3 ? '#0b2a4a' : '#cfe0f2', stroke: '#0b2a4a', 'stroke-width': 1.4 });
+      cir.style.transition = 'all .35s ease';
+      nG.appendChild(cir); cells.push({ el: cir, key: c + '-' + i, drop: c === 1 || c === 2 });
+    });
+    const t = mk('text', { x: col.x, y: 168, 'font-size': 9.5, 'text-anchor': 'middle', fill: '#94a3b8' });
+    t.textContent = col.lab; nG.appendChild(t);
+  });
+
+  const pS = document.getElementById('doP'), msg = document.getElementById('doMsg');
+  function apply(dropping) {
+    const p = +pS.value / 100;
+    document.getElementById('doPV').textContent = p.toFixed(2);
+    const off = new Set();
+    cells.forEach(c => {
+      const gone = dropping && c.drop && Math.random() < p;
+      if (gone) off.add(c.key);
+      c.el.setAttribute('fill', gone ? '#f1f5f9' : (c.key.startsWith('3') ? '#0b2a4a' : '#cfe0f2'));
+      c.el.setAttribute('stroke', gone ? '#dce5ef' : '#0b2a4a');
+      c.el.setAttribute('opacity', gone ? 0.45 : 1);
+    });
+    eG.querySelectorAll('line').forEach(l => {
+      const dead = off.has(l.dataset.a) || off.has(l.dataset.b);
+      l.setAttribute('opacity', dead ? 0.12 : 0.85);
+    });
+    const kept = 8 - off.size;
+    msg.innerHTML = dropping
+      ? `Training step: <strong>${off.size}</strong> of 8 hidden neurons switched off, <strong>${kept}</strong> still learning. Press again – a different subnetwork every time.`
+      : `Test time: every neuron is back on, and the outgoing weights are multiplied by (1 − p) = <strong>${(1 - p).toFixed(2)}</strong> so the totals stay the same size as during training.`;
+  }
+  document.getElementById('doBtn').onclick = () => apply(true);
+  document.getElementById('doTest').onclick = () => apply(false);
+  pS.addEventListener('input', () => apply(true));
+  apply(true);
+})();
+
+/* --- early stopping chart --- */
+(function () {
+  const X0 = 45, X1 = 450, Y0 = 25, Y1 = 210, E = 40, LMIN = 0.1, LMAX = 1.9;
+  const tr = e => 0.15 + 1.6 * Math.exp(-e / 6);
+  const va = e => 0.42 + 1.6 * Math.exp(-e / 5.5) + 0.012 * Math.pow(Math.max(0, e - 13), 1.3);
+  const sx = e => X0 + (e - 1) / (E - 1) * (X1 - X0);
+  const sy = l => Y1 - (Math.min(LMAX, l) - LMIN) / (LMAX - LMIN) * (Y1 - Y0);
+
+  const grid = document.getElementById('esGrid');
+  for (let i = 0; i <= 5; i++) {
+    const gy = Y0 + i * (Y1 - Y0) / 5;
+    grid.appendChild(mk('line', { x1: X0, y1: gy, x2: X1, y2: gy }));
+  }
+  function path(f) {
+    let d = '';
+    for (let i = 0; i <= 160; i++) { const e = 1 + (E - 1) * i / 160; d += (i ? ' L' : 'M') + sx(e).toFixed(1) + ',' + sy(f(e)).toFixed(1); }
+    return d;
+  }
+  ['esTrain', 'esVal'].forEach((id, i) => {
+    const p = document.getElementById(id);
+    p.setAttribute('d', path(i ? va : tr));
+    const len = p.getTotalLength();
+    p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+    p.style.transition = 'stroke-dashoffset 1.6s ease-in-out ' + (i * 0.25) + 's';
+    setTimeout(() => { p.style.strokeDashoffset = 0; }, 300);
+  });
+
+  let best = 1;
+  for (let e = 1; e <= E; e++) if (va(e) < va(best)) best = e;
+  const bl = document.getElementById('esBest');
+  bl.setAttribute('x1', sx(best)); bl.setAttribute('x2', sx(best));
+  bl.setAttribute('y1', Y0); bl.setAttribute('y2', Y1);
+
+  const s = document.getElementById('esEp'), line = document.getElementById('esLine');
+  const dT = document.getElementById('esDotT'), dV = document.getElementById('esDotV');
+  function upd() {
+    const e = +s.value;
+    document.getElementById('esEpV').textContent = e;
+    line.setAttribute('x1', sx(e)); line.setAttribute('x2', sx(e));
+    line.setAttribute('y1', Y0); line.setAttribute('y2', Y1);
+    dT.setAttribute('cx', sx(e)); dT.setAttribute('cy', sy(tr(e)));
+    dV.setAttribute('cx', sx(e)); dV.setAttribute('cy', sy(va(e)));
+    const gap = va(e) - tr(e);
+    let verdict;
+    if (e < best - 4) verdict = 'Too early – both losses are still falling. The model has more to learn.';
+    else if (Math.abs(e - best) <= 3) verdict = `Right here. Epoch ${best} is the bottom of the validation curve – this is where early stopping saves the best weights.`;
+    else verdict = 'Too late – training loss keeps dropping but validation loss is rising. The model is memorising the training set.';
+    document.getElementById('esMsg').innerHTML =
+      `train ${tr(e).toFixed(2)} · validation ${va(e).toFixed(2)} · gap <strong>${gap.toFixed(2)}</strong><br>${verdict}`;
+  }
+  s.addEventListener('input', upd); upd();
+})();
+
+/* =============== 10. FLIP CARDS =============== */
+document.querySelectorAll('.flip').forEach(f => f.addEventListener('click', () => f.classList.toggle('flipped')));
+
+/* =============== 11. BERT BLOCK =============== */
+(function () {
+  const svg = document.getElementById('bertSvg');
+  const blocks = [
+    { y: 15, t: 'Multi-Head Self-Attention', k: 0, c: '#cfe0f2' },
+    { y: 85, t: 'Add & Normalize', k: 1, c: '#e6f0fa' },
+    { y: 155, t: 'Feedforward Network', k: 2, c: '#0b2a4a' },
+    { y: 225, t: 'Add & Normalize', k: 3, c: '#e6f0fa' }
+  ];
+  const info = [
+    { t: 'Multi-Head Self-Attention', d: 'Every token looks at every other token and decides which ones matter. This is the part that moves information <em>between</em> positions. It mixes, but it does not transform deeply.' },
+    { t: 'Add & Normalize', d: 'A residual connection adds the block?s input back to its output, so gradients have a short path home. Layer normalisation then rescales the values to keep training stable.' },
+    { t: 'Feedforward Network', d: 'Exactly the model from this chapter: two linear layers with GELU in between, applied independently at each position. It expands the hidden size (often ×4), transforms, then compresses back. Most of the block’s parameters live here.' },
+    { t: 'Add & Normalize', d: 'The same residual-plus-normalisation trick again, closing the block. The output has the same shape as the input, which is why blocks can be stacked 12, 24 or 96 times.' }
+  ];
+  blocks.forEach(b => {
+    const g = mk('g', { class: 'node', 'data-k': b.k, style: 'cursor:pointer' });
+    g.appendChild(mk('rect', { x: 25, y: b.y, width: 280, height: 46, rx: 10, fill: b.c, stroke: '#0b2a4a', 'stroke-width': 1.6 }));
+    const t = mk('text', { x: 165, y: b.y + 28, 'font-size': 12.5, 'text-anchor': 'middle', 'font-weight': 600, fill: b.k === 2 ? '#fff' : '#0b2a4a' });
+    t.textContent = b.t; g.appendChild(t); svg.appendChild(g);
+    if (b.y < 225) {
+      svg.appendChild(mk('line', { x1: 165, y1: b.y + 46, x2: 165, y2: b.y + 68, stroke: '#94a3b8', 'stroke-width': 2 }));
+      svg.appendChild(mk('polygon', { points: `160,${b.y + 62} 170,${b.y + 62} 165,${b.y + 70}`, fill: '#94a3b8' }));
+    }
+    g.addEventListener('click', () => {
+      document.getElementById('bertBox').innerHTML =
+        `<h4><i class="fas fa-cube"></i> ${info[b.k].t}</h4><p style="margin:0;font-size:0.92rem;">${info[b.k].d}</p>`;
+      svg.querySelectorAll('rect').forEach(r => r.setAttribute('stroke-width', 1.6));
+      g.querySelector('rect').setAttribute('stroke-width', 4);
+    });
+  });
+  document.getElementById('bertBox').innerHTML =
+    `<h4><i class="fas fa-hand-pointer"></i> Click a block above</h4><p style="margin:0;font-size:0.92rem;">Each BERT encoder layer repeats these four steps, and the whole stack repeats the layer many times over.</p>`;
+})();
+
+/* =============== 12. PARAMETER COUNTER =============== */
+(function () {
+  const dm = document.getElementById('dm'), dff = document.getElementById('dff');
+  function fmt(n) { return n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : (n / 1e3).toFixed(0) + 'K'; }
+  function upd() {
+    const d = parseInt(dm.value), mult = parseInt(dff.value), f = d * mult;
+    document.getElementById('dmv').textContent = d;
+    document.getElementById('dffv').textContent = '×' + mult;
+    document.getElementById('dffAbs').textContent = f.toLocaleString();
+    const att = 4 * d * d;        // Q, K, V and output projections
+    const ffn = 2 * d * f;        // up-projection and down-projection
+    const mx = Math.max(att, ffn);
+    document.getElementById('attBar').style.width = (att / mx * 100) + '%';
+    document.getElementById('ffBar').style.width = (ffn / mx * 100) + '%';
+    document.getElementById('attVal').textContent = fmt(att);
+    document.getElementById('ffVal').textContent = fmt(ffn);
+    const pct = (ffn / (ffn + att) * 100).toFixed(0);
+    document.getElementById('paramMsg').innerHTML =
+      `With an expansion of ×${mult}, the feedforward sub-layer holds <strong>${pct}%</strong> of this block’s weights. Slide the expansion down to ×2 and the two halves become equal – the standard ×4 is what makes feedforward the heavier half.`;
+  }
+  dm.addEventListener('input', upd); dff.addEventListener('input', upd); upd();
+})();
+</script>
+</body>
+</html>
