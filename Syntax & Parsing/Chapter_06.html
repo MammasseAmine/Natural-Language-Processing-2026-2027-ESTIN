@@ -1,0 +1,314 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 06 – Syntax &amp; Parsing</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+    <style>
+        :root {
+            --navy: #0b3b63;
+            --navy-deep: #083253;
+            --blue: #4e9ad8;
+            --ink: #092f52;
+            --muted: #4c6e91;
+            --line: #d9e6f2;
+            --soft-blue: #e8f2fc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            background: #fff;
+            color: var(--ink);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hero {
+            min-height: 207px;
+            position: relative;
+            overflow: hidden;
+            padding: 12px 24px 30px;
+            text-align: center;
+            color: #fff;
+            background: linear-gradient(145deg, var(--navy-deep), var(--navy));
+        }
+
+        .hero-nav {
+            position: absolute;
+            z-index: 2;
+            top: 55px;
+            display: grid;
+            width: 52px;
+            height: 52px;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, .34);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .08);
+            color: #fff;
+            font-size: 24px;
+            text-decoration: none;
+            transition: background .2s ease, transform .2s ease;
+        }
+
+        .hero-nav:hover,
+        .hero-nav:focus-visible {
+            background: rgba(255, 255, 255, .18);
+            transform: scale(1.05);
+        }
+
+        .hero-nav:focus-visible {
+            outline: 3px solid #8ec6ef;
+            outline-offset: 3px;
+        }
+
+        .hero-nav.previous { left: 14px; }
+        .hero-nav.next { right: 14px; }
+
+        .hero::before,
+        .hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(117, 177, 224, .18);
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 270px;
+            height: 270px;
+            left: -96px;
+            bottom: -130px;
+        }
+
+        .hero::after {
+            width: 290px;
+            height: 290px;
+            right: -78px;
+            top: -170px;
+        }
+
+        .chapter-badge {
+            position: relative;
+            z-index: 1;
+            display: inline-block;
+            padding: 8px 20px;
+            border: 1px solid rgba(255, 255, 255, .22);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .12);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+        }
+
+        h1 {
+            position: relative;
+            z-index: 1;
+            margin-top: 14px;
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            line-height: 1.08;
+            letter-spacing: -.055em;
+        }
+
+        .hero p {
+            position: relative;
+            z-index: 1;
+            margin: 18px auto 0;
+            color: #dcecf9;
+            font-size: 15px;
+        }
+
+        main {
+            width: min(975px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 44px 0 64px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            margin-bottom: 25px;
+            color: var(--ink);
+            font-size: 25px;
+            letter-spacing: -.035em;
+        }
+
+        .section-heading i {
+            color: #17659b;
+            font-size: 22px;
+        }
+
+        .section-heading::after {
+            content: '';
+            height: 2px;
+            flex: 1;
+            margin-left: 4px;
+            background: linear-gradient(90deg, #bcd3e7, transparent);
+        }
+
+        .topics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .topic-card {
+            display: flex;
+            min-height: 323px;
+            flex-direction: column;
+            padding: 22px 18px 17px;
+            border: 1px solid var(--line);
+            border-top: 4px solid var(--blue);
+            border-radius: 0 0 19px 19px;
+            background: linear-gradient(160deg, #fff 0%, #f8fbff 100%);
+            box-shadow: 0 12px 24px rgba(23, 76, 119, .08);
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-5px);
+            border-color: #b7d1e8;
+            box-shadow: 0 16px 30px rgba(23, 76, 119, .14);
+        }
+
+        .topic-icon {
+            display: grid;
+            width: 52px;
+            height: 52px;
+            place-items: center;
+            margin-bottom: 16px;
+            border: 1px solid #c9e0f7;
+            border-radius: 14px;
+            background: var(--soft-blue);
+            color: #073961;
+            font-size: 21px;
+        }
+
+        .lesson-label {
+            align-self: flex-start;
+            margin-bottom: 10px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eff6fc;
+            color: #0b5285;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .6px;
+        }
+
+        .topic-card h2 {
+            margin-bottom: 8px;
+            color: #06335b;
+            font-size: 17px;
+            line-height: 1.25;
+            letter-spacing: -.025em;
+        }
+
+        .topic-card p {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .open-course {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 43px;
+            margin-top: auto;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #125078;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+            box-shadow: 0 6px 12px rgba(18, 80, 120, .18);
+            transition: background .2s ease, transform .2s ease;
+        }
+
+        .open-course:hover,
+        .open-course:focus-visible {
+            background: #083b60;
+            transform: translateY(-2px);
+        }
+
+        .open-course:focus-visible {
+            outline: 3px solid #8ec6ef;
+            outline-offset: 3px;
+        }
+
+        footer {
+            padding: 0 20px 28px;
+            color: #7891a9;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        @media (max-width: 850px) {
+            .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 540px) {
+            .hero { min-height: 195px; padding-top: 12px; }
+            .hero p { font-size: 14px; line-height: 1.45; }
+            main { width: min(100% - 28px, 420px); padding-top: 32px; }
+            .section-heading { font-size: 21px; }
+            .topics { grid-template-columns: 1fr; gap: 16px; }
+            .topic-card { min-height: 290px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="../Program/Programs.html" aria-label="Return to course program" style="position:fixed;top:18px;left:18px;z-index:10;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(255,255,255,.35);border-radius:10px;background:rgba(11,42,74,.88);color:#fff;font:600 13px 'Inter',sans-serif;text-decoration:none;box-shadow:0 5px 14px rgba(0,0,0,.16);"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Program</a>
+    <header class="hero">
+        <a class="hero-nav previous" href="../" aria-label="Previous chapter" title="Previous chapter">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <a class="hero-nav next" href="Constituency_Parsing.html" aria-label="Next lesson" title="Next lesson">
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </a>
+        <div class="chapter-badge">CHAPTER 06</div>
+        <h1>Syntax &amp; Parsing</h1>
+        <p>Explore how NLP systems uncover structure and meaning in sentences.</p>
+    </header>
+
+    <main>
+        <h2 class="section-heading"><i class="fa-solid fa-book-open" aria-hidden="true"></i>Course Topics</h2>
+
+        <section class="topics" aria-label="Chapter 06 lessons">
+            <article class="topic-card">
+                <div class="topic-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></div>
+                <div class="lesson-label">LESSON 01</div>
+                <h2>Constituency Parsing</h2>
+                <p>Learn how sentences become nested phrase structures, from words to complete parse trees.</p>
+                <a class="open-course" href="Constituency_Parsing.html"> <span aria-hidden="true">&#8594;</span> Open Course</a>
+            </article>
+
+            <article class="topic-card">
+                <div class="topic-icon"><i class="fa-solid fa-code-branch" aria-hidden="true"></i></div>
+                <div class="lesson-label">LESSON 02</div>
+                <h2>Dependency Parsing</h2>
+                <p>Discover head-dependent relationships and read who did what to whom at a glance.</p>
+                <a class="open-course" href="Dependency_Parsing.html"> <span aria-hidden="true">&#8594;</span> Open Course</a>
+            </article>
+
+            <article class="topic-card">
+                <div class="topic-icon"><i class="fa-solid fa-table-cells" aria-hidden="true"></i></div>
+                <div class="lesson-label">LESSON 03</div>
+                <h2>CKY Parsing</h2>
+                <p>See dynamic programming build a sentence tree by combining smaller spans in a chart.</p>
+                <a class="open-course" href="Interactive%20CKY%20Parser%20Demo.html"> <span aria-hidden="true">&#8594;</span> Open Course</a>
+            </article>
+
+        </section>
+    </main>
+
+</body>
+</html>
+

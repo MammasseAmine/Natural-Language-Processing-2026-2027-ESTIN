@@ -1,0 +1,510 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 06 – Interactive CKY Parser Demo</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI, sans-serif;
+}
+
+body{
+    background:#f5f6fb;
+    color:#222;
+    padding:30px;
+}
+
+.header{
+    position:relative;
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.header-nav{
+    position:absolute;
+    top:50%;
+    display:grid;
+    width:52px;
+    height:52px;
+    place-items:center;
+    border:1px solid #9aa9bc;
+    border-radius:50%;
+    background:#fff;
+    color:#334155;
+    font-size:28px;
+    line-height:1;
+    text-decoration:none;
+    transform:translateY(-50%);
+    transition:background .2s ease, color .2s ease, transform .2s ease;
+}
+.header-nav:hover,
+.header-nav:focus-visible{
+    background:#334155;
+    color:#fff;
+    transform:translateY(-50%) scale(1.05);
+}
+.header-nav:focus-visible{ outline:3px solid #a5b4fc; outline-offset:3px; }
+.header-nav.previous{ left:0; }
+.header-nav.next{ right:0; }
+
+.badge{
+    display:inline-block;
+    padding:6px 14px;
+    background:#efe6ff;
+    color:#7c3aed;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+}
+
+h1{
+    margin-top:10px;
+    font-size:48px;
+    color:#111827;
+}
+
+.subtitle{
+    margin-top:10px;
+    color:#64748b;
+    font-size:20px;
+}
+
+.card{
+    background:white;
+    border-radius:20px;
+    box-shadow:0 8px 25px rgba(0,0,0,.08);
+    overflow:hidden;
+}
+
+.top{
+    padding:20px;
+    background:#f4f1ff;
+    border-bottom:1px solid #ddd;
+}
+
+.input-row{
+    display:flex;
+    gap:10px;
+}
+
+input{
+    flex:1;
+    padding:14px;
+    border:1px solid #ccc;
+    border-radius:10px;
+    font-size:16px;
+}
+
+button{
+    border:none;
+    cursor:pointer;
+    transition: opacity 0.2s;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+.run{
+    background:#7c3aed;
+    color:white;
+    padding:10px 18px;
+    border-radius:10px;
+    font-size:16px;
+}
+
+.prev{
+    background:#3b82f6;
+    color:white;
+    padding:10px 18px;
+    border-radius:10px;
+    font-size:16px;
+}
+
+.next{
+    background:#10b981;
+    color:white;
+    padding:10px 18px;
+    border-radius:10px;
+    font-size:16px;
+}
+
+.presets{
+    margin-top:15px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.preset{
+    background:white;
+    border:1px solid #ddd;
+    padding:8px 12px;
+    border-radius:8px;
+}
+
+.info{
+    padding:15px 20px;
+    background:#fafafa;
+    border-bottom:1px solid #ddd;
+}
+
+.explanation{
+    padding:15px 20px;
+    background:#fff8ef;
+    border-bottom:1px solid #ddd;
+    font-size:18px;
+}
+
+.chart-container{
+    padding:25px;
+    overflow:auto;
+}
+
+.chart{
+    display:grid;
+    gap:8px;
+}
+
+.cell{
+    min-width:120px;
+    min-height:70px;
+    border:2px solid #d7dbe7;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:white;
+    transition:.3s;
+    text-align:center;
+    padding:10px;
+    font-weight:600;
+}
+
+.active{
+    border-color:#7c3aed;
+    background:#f3e8ff;
+    transform:scale(1.03);
+}
+
+.legend{
+    margin-top:20px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.panel{
+    background:white;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 5px 15px rgba(0,0,0,.06);
+}
+
+pre{
+    white-space:pre-wrap;
+    font-size:14px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <a class="header-nav previous" href="Dependency_Parsing.html" aria-label="Previous lesson" title="Previous lesson">&#8249;</a>
+    <a class="header-nav next" href="../Neural Networks for NLP/Chapter_07.html" aria-label="Chapter overview" title="Chapter overview">&#8250;</a>
+    <div class="badge">NLP • Parsing</div>
+    <h1>Interactive CKY Parser Demo</h1>
+    <div class="subtitle">
+        Watch the CKY algorithm fill its parse chart step by step.
+    </div>
+</div>
+
+<div class="card">
+
+    <div class="top">
+
+        <div class="input-row">
+            <!-- Added oninput to reset the chart when user types -->
+            <input id="sentence" value="the dog chases a cat" oninput="resetChart()">
+
+            <button class="run" onclick="autoRun()">
+                ▶ Auto-Run
+            </button>
+            <button class="prev" onclick="prevStep()">
+                ⏮ Prev
+            </button>
+            <button class="next" onclick="nextStep()">
+                ⏭ Next
+            </button>
+        </div>
+
+        <div class="presets">
+            <button class="preset" onclick="loadSentence('the dog chases a cat')">
+                the dog chases a cat
+            </button>
+            <button class="preset" onclick="loadSentence('a cat sees the dog')">
+                a cat sees the dog
+            </button>
+            <button class="preset" onclick="loadSentence('the cat sees a dog')">
+                the cat sees a dog
+            </button>
+        </div>
+
+    </div>
+
+    <div class="info">
+        Total Cells: <span id="cellsCount">0</span> |
+        Step: <span id="stepCounter">0/0</span>
+    </div>
+
+    <div class="explanation" id="explanation">
+        Press Auto-Run or Next to begin CKY parsing.
+    </div>
+
+    <div class="chart-container">
+        <div id="chart"></div>
+    </div>
+
+</div>
+
+<div class="legend">
+
+    <div class="panel">
+        <h2>Grammar (CNF)</h2>
+<pre>
+S  → NP VP
+NP → Det N
+VP → V NP
+
+Det → the
+Det → a
+
+N → dog
+N → cat
+
+V → chases
+V → sees
+</pre>
+    </div>
+
+    <div class="panel">
+        <h2>CKY Process</h2>
+        <p>1. Fill diagonal using lexical rules.</p>
+        <p>2. Combine adjacent constituents.</p>
+        <p>3. Apply binary productions.</p>
+        <p>4. Build larger spans.</p>
+        <p>5. If S appears at the top cell, the sentence is accepted.</p>
+    </div>
+
+</div>
+
+<script>
+const lexicon = {
+    "the": ["Det"],
+    "a": ["Det"],
+    "dog": ["N"],
+    "cat": ["N"],
+    "chases": ["V"],
+    "sees": ["V"]
+};
+
+const binaryRules = [
+    ["NP", "Det", "N"],
+    ["VP", "V", "NP"],
+    ["S", "NP", "VP"]
+];
+
+let steps = [];
+let currentStep = 0;
+let autoPlayTimer = null;
+let lastSentence = "";
+
+function loadSentence(text){
+    document.getElementById("sentence").value = text;
+    resetChart();
+}
+
+function resetChart() {
+    stopAutoPlay();
+    steps = [];
+    lastSentence = "";
+    document.getElementById("chart").innerHTML = "";
+    document.getElementById("cellsCount").innerText = "0";
+    document.getElementById("stepCounter").innerText = "0/0";
+    document.getElementById("explanation").innerText = "Press Auto-Run or Next to begin.";
+}
+
+function stopAutoPlay() {
+    if (autoPlayTimer) {
+        clearTimeout(autoPlayTimer);
+        autoPlayTimer = null;
+    }
+}
+
+function createChart(words) {
+    const chart = document.getElementById("chart");
+    chart.innerHTML = "";
+    const n = words.length;
+
+    chart.style.display = "grid";
+    chart.style.gridTemplateColumns = `repeat(${n}, 130px)`;
+
+    for(let r=0; r<n; r++){
+        for(let c=0; c<n; c++){
+            const div = document.createElement("div");
+            if(c < r) div.style.visibility = "hidden";
+            div.className = "cell";
+            div.id = `cell-${r}-${c}`;
+            chart.appendChild(div);
+        }
+    }
+    document.getElementById("cellsCount").innerText = n * (n + 1) / 2;
+}
+
+// Computes all steps for the CKY algorithm
+function computeCKY(sentence) {
+    steps = [];
+    const words = sentence.split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 0) return;
+    
+    createChart(words);
+    const n = words.length;
+    let table = Array.from({length: n}, () => Array.from({length: n}, () => []));
+
+    // Lexical Rules
+    for(let i=0; i<n; i++){
+        const tags = lexicon[words[i]] || [];
+        table[i][i] = tags;
+        steps.push({
+            row: i, col: i,
+            value: tags.join(", "),
+            text: `Lexical insertion:\n"${words[i]}" → ${tags.length > 0 ? tags.join(", ") : "Unknown"}`
+        });
+    }
+
+    // Binary Rules
+    for(let span=2; span<=n; span++){
+        for(let start=0; start<=n-span; start++){
+            let end = start+span-1;
+            let found = [];
+
+            for(let split=start; split<end; split++){
+                const left = table[start][split];
+                const right = table[split+1][end];
+
+                for(const rule of binaryRules){
+                    const A=rule[0], B=rule[1], C=rule[2];
+                    if(left.includes(B) && right.includes(C)){
+                        found.push(A);
+                        steps.push({
+                            row: start, col: end,
+                            value: A,
+                            text: `${B} + ${C} → ${A}`
+                        });
+                    }
+                }
+            }
+            table[start][end] = [...new Set(found)];
+        }
+    }
+}
+
+function checkAndCompute() {
+    const sentence = document.getElementById("sentence").value.trim().toLowerCase();
+    if (sentence !== lastSentence || steps.length === 0) {
+        lastSentence = sentence;
+        computeCKY(sentence);
+        currentStep = 0;
+    }
+}
+
+// Navigation Controls
+function autoRun() {
+    stopAutoPlay();
+    checkAndCompute();
+    if (steps.length === 0) return;
+    
+    // Restart if we are at the end
+    if (currentStep >= steps.length - 1) {
+        currentStep = 0;
+    }
+    playAuto();
+}
+
+function playAuto() {
+    renderBoard(currentStep);
+    if (currentStep < steps.length - 1) {
+        currentStep++;
+        autoPlayTimer = setTimeout(playAuto, 800);
+    }
+}
+
+function nextStep() {
+    stopAutoPlay();
+    checkAndCompute();
+    if (steps.length === 0) return;
+    
+    // Move forward if not at the end, unless we just initialized
+    if (currentStep < steps.length - 1 && document.getElementById("stepCounter").innerText !== "0/0") {
+        currentStep++;
+    }
+    renderBoard(currentStep);
+}
+
+function prevStep() {
+    stopAutoPlay();
+    checkAndCompute();
+    if (steps.length === 0) return;
+
+    // Move backwards
+    if (currentStep > 0) {
+        currentStep--;
+    }
+    renderBoard(currentStep);
+}
+
+// Function to render exactly up to a specific step (enables reliable backwards navigation)
+function renderBoard(stepIndex) {
+    if (steps.length === 0) return;
+
+    // Clear board visually
+    document.querySelectorAll(".cell").forEach(cell => {
+        cell.innerHTML = "";
+        cell.classList.remove("active");
+    });
+
+    // Replay steps up to current
+    for (let i = 0; i <= stepIndex; i++) {
+        let s = steps[i];
+        let cell = document.getElementById(`cell-${s.row}-${s.col}`);
+        if (cell) {
+            if (cell.innerHTML !== "") {
+                if (!cell.innerHTML.includes(s.value)) {
+                    cell.innerHTML += ", " + s.value;
+                }
+            } else {
+                cell.innerHTML = s.value;
+            }
+        }
+    }
+
+    // Highlight current active step
+    let currentS = steps[stepIndex];
+    let activeCell = document.getElementById(`cell-${currentS.row}-${currentS.col}`);
+    if (activeCell) activeCell.classList.add("active");
+
+    // Update UI info
+    document.getElementById("explanation").innerText = currentS.text;
+    document.getElementById("stepCounter").innerText = `${stepIndex + 1}/${steps.length}`;
+}
+</script>
+
+</body>
+</html>

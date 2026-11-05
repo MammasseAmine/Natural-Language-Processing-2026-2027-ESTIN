@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chapter 06 – Dependency Parsing</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    font-family:'Inter', sans-serif;
+    background:#f4f7fc;
+    color:#1e293b;
+    min-height:100vh;
+    line-height:1.6;
+}
+
+.presentation-card {
+    width:100%;
+    background:#fff;
+    box-shadow:0 4px 24px rgba(0,20,40,.06);
+    overflow:hidden;
+}
+
+/* ---------- HEADER ---------- */
+.hero {
+    background:linear-gradient(145deg,#0b2a4a 0%,#1a4a6e 100%);
+    padding:2rem 3rem;
+    color:#fff;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+}
+  .hero-nav {
+    position:absolute;
+    z-index:2;
+    top:50%;
+    display:grid;
+    width:52px;
+    height:52px;
+    place-items:center;
+    border:1px solid rgba(255,255,255,.34);
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:24px;
+    text-decoration:none;
+    transform:translateY(-50%);
+    transition:background .2s ease, transform .2s ease;
+  }
+  .hero-nav:hover,
+  .hero-nav:focus-visible {
+    background:rgba(255,255,255,.18);
+    transform:translateY(-50%) scale(1.05);
+  }
+  .hero-nav:focus-visible { outline:3px solid #8ec6ef; outline-offset:3px; }
+  .hero-nav.previous { left:14px; }
+  .hero-nav.next { right:14px; }
+.hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight:700; letter-spacing:-.02em; margin-bottom:.4rem; position:relative; }
+.hero .chapter-badge {
+    display:inline-block; background:rgba(255,255,255,.15); backdrop-filter:blur(4px);
+    padding:.3rem 1.5rem; border-radius:100px; font-size:.95rem; font-weight:500;
+    letter-spacing:.5px; border:1px solid rgba(255,255,255,.15); margin-top:.5rem; position:relative;
+}
+.hero-arcs { position:absolute; inset:0; opacity:.16; }
+.hero-arcs path { fill:none; stroke:#fff; stroke-width:1.5; stroke-dasharray:600; stroke-dashoffset:600; animation:heroDraw 2.6s ease forwards; }
+.hero-arcs path:nth-child(2){animation-delay:.25s}
+.hero-arcs path:nth-child(3){animation-delay:.5s}
+.hero-arcs path:nth-child(4){animation-delay:.75s}
+.hero-arcs path:nth-child(5){animation-delay:1s}
+@keyframes heroDraw { to { stroke-dashoffset:0; } }
+
+/* ---------- CONTENT ---------- */
+.content { padding:2.5rem 3rem 3rem; width:100%; }
+
+.section-title {
+    font-size:1.35rem; font-weight:700; margin-bottom:1.2rem;
+    display:flex; align-items:center; gap:.75rem; color:#0b2a4a; margin-top:2.6rem;
+}
+.section-title:first-child { margin-top:0; }
+.section-title i { color:#1a4a6e; font-size:1.4rem; width:2rem; text-align:center; }
+.title-line { flex:1; height:2px; background:linear-gradient(90deg,#dce5ef,transparent); margin-left:.5rem; }
+
+h3.sub { font-weight:600; color:#0b2a4a; margin:1.4rem 0 .6rem; font-size:1.05rem; display:flex; align-items:center; gap:.5rem; }
+p { margin-bottom:.7rem; }
+.muted { color:#5f7d97; font-size:.92rem; }
+.center { text-align:center; }
+em.term { font-style:normal; font-weight:600; color:#1a4a6e; }
+code, .mono { font-family:'JetBrains Mono',monospace; font-size:.86em; background:#eef3fa; padding:.1rem .38rem; border-radius:5px; color:#0b2a4a; }
+
+/* ---------- ANIMATIONS ---------- */
+.fade-up { opacity:0; transform:translateY(20px); transition:opacity .7s ease, transform .7s ease; }
+.fade-up.visible { opacity:1; transform:translateY(0); }
+
+.draw-svg path,.draw-svg circle,.draw-svg rect,.draw-svg line,.draw-svg ellipse,.draw-svg polyline {
+    stroke-dasharray:1200; stroke-dashoffset:1200; transition:stroke-dashoffset 1.6s ease-in-out;
+}
+.draw-svg.visible path,.draw-svg.visible circle,.draw-svg.visible rect,
+.draw-svg.visible line,.draw-svg.visible ellipse,.draw-svg.visible polyline { stroke-dashoffset:0; }
+
+@keyframes pop { 0%{transform:scale(.85);opacity:0} 60%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+.pop { animation:pop .35s ease forwards; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+.shake { animation:shake .35s ease; }
+
+/* ---------- GENERIC BLOCKS ---------- */
+.panel { background:#f8faff; border:1px solid #e9edf2; border-radius:1rem; padding:1.4rem; }
+.grid { display:flex; flex-wrap:wrap; gap:1.2rem; }
+.grid > * { flex:1; min-width:230px; }
+
+.callout { background:#e6f0fa; border-radius:1rem; padding:1.3rem 1.5rem; border-left:5px solid #1a4a6e; margin:1.2rem 0; }
+.callout.warm { background:#fef9f0; border-left-color:#c98a1f; }
+.callout.good { background:#eefaf1; border-left-color:#15803d; }
+.callout h4 { color:#0b2a4a; margin-bottom:.3rem; }
+
+.btn {
+    border:1px solid #cfdcea; background:#fff; color:#0b2a4a; font-family:inherit;
+    font-size:.88rem; font-weight:600; padding:.45rem 1rem; border-radius:100px;
+    cursor:pointer; transition:all .22s ease;
+}
+.btn:hover { border-color:#1a4a6e; background:#eef4fb; transform:translateY(-1px); }
+.btn.active { background:#0b2a4a; color:#fff; border-color:#0b2a4a; }
+.btn-row { display:flex; flex-wrap:wrap; gap:.6rem; margin:.9rem 0; align-items:center; }
+
+table.tbl { width:100%; border-collapse:collapse; font-size:.92rem; margin:.8rem 0 1.2rem; }
+table.tbl th { background:#0b2a4a; color:#fff; text-align:left; padding:.6rem .8rem; font-weight:600; }
+table.tbl td { padding:.55rem .8rem; border-bottom:1px solid #e9edf2; }
+table.tbl tr:nth-child(even) td { background:#f8faff; }
+
+.dep-stage { background:#fff; border:1px solid #e9edf2; border-radius:1rem; padding:.6rem; overflow-x:auto; }
+svg text { font-family:'Inter',sans-serif; }
+</style>
+</head>
+<body>
+<div class="presentation-card">
+
+<header class="hero">
+  <a class="hero-nav previous" href="Constituency_Parsing.html" aria-label="Previous lesson" title="Previous lesson">
+    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+  </a>
+  <a class="hero-nav next" href="Interactive%20CKY%20Parser%20Demo.html" aria-label="Next lesson" title="Next lesson">
+    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+  </a>
+    <h1>Dependency Parsing</h1>
+    <div class="chapter-badge">One arrow per word. One label per arrow. Meaning almost for free.</div>
+    
+</header>
+
+<div class="content">
+
+<!-- ============ 1. THE BIG IDEA ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-question-circle"></i> The question this chapter asks
+    <span class="title-line"></span>
+</div>
+
+<div class="fade-up">
+    <p>In the previous course we asked: <em class="term">how do words group into phrases?</em> That gave us trees made of boxes inside boxes.</p>
+    <p>This one asks a sharper question: <strong>which word depends on which?</strong> We draw one arrow per word and put a label on every arrow. When we finish, the meaning of the sentence is almost already there.</p>
+</div>
+
+<div class="callout fade-up">
+    <h4><i class="fas fa-bullseye"></i> Definition</h4>
+    <p style="margin:0;"><strong>Dependency parsing</strong> is the task of finding the grammatical structure of a sentence by linking words in pairs. Each link joins a <em class="term">head</em> (the word in charge) to a <em class="term">dependent</em> (the word that modifies or completes it). All the links together form one rooted tree over the words.</p>
+</div>
+
+<h3 class="sub fade-up"><i class="fas fa-exchange-alt"></i> Two ways to look at the same sentence</h3>
+<div class="fade-up">
+    <div class="btn-row">
+        <button class="btn active" data-view="dep" onclick="switchView('dep')">Dependency view</button>
+        <button class="btn" data-view="con" onclick="switchView('con')">Constituency view</button>
+    </div>
+    <div id="viewDep">
+        <div class="dep-stage" data-dep='{"tokens":["ROOT","The","student","reads","a","book"],"arcs":[{"h":0,"d":3,"l":"root"},{"h":2,"d":1,"l":"det"},{"h":3,"d":2,"l":"nsubj"},{"h":5,"d":4,"l":"det"},{"h":3,"d":5,"l":"obj"}]}'></div>
+        <p class="muted center" style="margin-top:.6rem;">5 words, 5 arrows. The verb <code>reads</code> is the top word. Who does what to whom is readable at a glance.</p>
+    </div>
+    <div id="viewCon" style="display:none;">
+        <div class="dep-stage center">
+            <svg viewBox="0 0 620 250" width="100%" style="max-width:620px">
+                <g stroke="#1a4a6e" stroke-width="1.6" fill="none">
+                    <line x1="310" y1="34" x2="170" y2="66"/><line x1="310" y1="34" x2="450" y2="66"/>
+                    <line x1="170" y1="86" x2="110" y2="122"/><line x1="170" y1="86" x2="230" y2="122"/>
+                    <line x1="450" y1="86" x2="380" y2="122"/><line x1="450" y1="86" x2="520" y2="122"/>
+                    <line x1="520" y1="142" x2="470" y2="178"/><line x1="520" y1="142" x2="570" y2="178"/>
+                    <line x1="110" y1="142" x2="110" y2="208"/><line x1="230" y1="142" x2="230" y2="208"/>
+                    <line x1="380" y1="142" x2="380" y2="208"/>
+                    <line x1="470" y1="198" x2="470" y2="208"/><line x1="570" y1="198" x2="570" y2="208"/>
+                </g>
+                <g font-size="13" font-weight="700" fill="#0b2a4a" text-anchor="middle">
+                    <text x="310" y="26">S</text><text x="170" y="80">NP</text><text x="450" y="80">VP</text>
+                    <text x="110" y="136">Det</text><text x="230" y="136">N</text>
+                    <text x="380" y="136">V</text><text x="520" y="136">NP</text>
+                    <text x="470" y="192">Det</text><text x="570" y="192">N</text>
+                </g>
+                <g font-size="13" fill="#1a4a6e" text-anchor="middle">
+                    <text x="110" y="224">The</text><text x="230" y="224">student</text>
+                    <text x="380" y="224">reads</text><text x="470" y="224">a</text><text x="570" y="224">book</text>
+                </g>
+            </svg>
+        </div>
+        <p class="muted center" style="margin-top:.6rem;">Same sentence, but the tree adds new nodes (S, NP, VP) that are not words. To find the subject you must first walk down the branches.</p>
+    </div>
+</div>
+
+<div class="grid fade-up" style="margin-top:1.4rem;">
+    <div class="panel">
+        <h4 style="color:#0b2a4a"><i class="fas fa-cubes"></i> Constituency tree</h4>
+        <p class="muted" style="margin:.3rem 0 0;">Builds <strong>phrases</strong>. Words sit only at the bottom. Extra nodes are invented. Good for showing how a sentence is put together.</p>
+    </div>
+    <div class="panel" style="background:#eef4fb;">
+        <h4 style="color:#0b2a4a"><i class="fas fa-arrows-alt-h"></i> Dependency tree</h4>
+        <p class="muted" style="margin:.3rem 0 0;">Builds <strong>word-to-word links</strong>. Nothing is invented: <em>n</em> words give exactly <em>n</em> arrows. Good for showing who did what to whom.</p>
+    </div>
+</div>
+
+<h3 class="sub fade-up"><i class="fas fa-plug"></i> Why an NLP pipeline cares</h3>
+<p class="fade-up">Most later tasks (relation extraction, sentiment targets, question answering) need <strong>predicate-argument structure</strong> (the verb and its participants), not phrase borders. A dependency tree hands you that directly: the verb is the head, and its arguments hang off it with named arrows. From a constituency tree you must first apply extra head rules to recover the same facts.</p>
+
+<!-- ============ 2. THE ARC ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-share-alt"></i> The arc: head, dependent, label
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">A dependency tree is made of one thing repeated: the <strong>arc</strong>. Learn the arc and you have learned the whole data structure. Formally an arc is a triple <code>(head, dependent, label)</code>, and the arrow always points <strong>from head to dependent</strong>.</p>
+
+<div class="fade-up panel" style="margin-top:1rem;">
+    <p class="muted center" style="margin-bottom:.4rem;"><i class="fas fa-hand-pointer"></i> Click any part of the picture.</p>
+    <div class="center">
+        <svg viewBox="0 0 620 210" width="100%" style="max-width:620px" id="anatomySvg">
+            <path id="anaArc" d="M300 132 C 300 55, 130 55, 130 130" fill="none" stroke="#1a4a6e" stroke-width="3" style="cursor:pointer"/>
+            <polygon id="anaHead" points="130,138 122,122 138,122" fill="#1a4a6e" style="cursor:pointer"/>
+            <text id="anaLabel" x="215" y="50" text-anchor="middle" font-size="17" font-weight="700" fill="#b45309" style="cursor:pointer">nsubj</text>
+            <rect id="anaDep" x="78" y="140" width="104" height="34" rx="8" fill="#eef4fb" stroke="#cfdcea" style="cursor:pointer"/>
+            <text x="130" y="163" text-anchor="middle" font-size="16" font-weight="600" fill="#0b2a4a" pointer-events="none">student</text>
+            <rect id="anaHd" x="250" y="140" width="100" height="34" rx="8" fill="#0b2a4a" style="cursor:pointer"/>
+            <text x="300" y="163" text-anchor="middle" font-size="16" font-weight="600" fill="#fff" pointer-events="none">reads</text>
+            <text x="130" y="192" text-anchor="middle" font-size="11" fill="#5f7d97">DEPENDENT</text>
+            <text x="300" y="192" text-anchor="middle" font-size="11" fill="#5f7d97">HEAD</text>
+            <text x="400" y="163" font-size="13" fill="#5f7d97">triple = (reads, student, nsubj)</text>
+        </svg>
+    </div>
+    <div class="callout" style="margin-bottom:0;">
+        <h4 id="anaTitle"><i class="fas fa-hand-pointer"></i> Pick a part</h4>
+        <p id="anaText" style="margin:0;">The curve, the arrowhead, the label, the light box and the dark box each have a job. Click one to read it.</p>
+    </div>
+</div>
+
+<h3 class="sub fade-up"><i class="fas fa-book"></i> The five words you must know</h3>
+<div class="grid fade-up">
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-crown"></i> Head</h4><p class="muted" style="margin:.3rem 0 0;">The governing word. It controls the pair and decides what the phrase behaves like.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-link"></i> Dependent</h4><p class="muted" style="margin:.3rem 0 0;">The word that modifies or completes its head.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-tag"></i> Relation</h4><p class="muted" style="margin:.3rem 0 0;">The name of the grammatical job: subject, object, determiner…</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-anchor"></i> Root</h4><p class="muted" style="margin:.3rem 0 0;">The one word with no head. Usually the main verb.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-long-arrow-alt-right"></i> Arc</h4><p class="muted" style="margin:.3rem 0 0;">The directed edge itself, drawn head → dependent.</p></div>
+</div>
+
+<!-- ============ 3. FINDING THE HEAD ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-search"></i> How do you decide which word is the head?
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">There is no single universal rule, but four tests settle most cases. Try them on the pair <strong>"red car"</strong>.</p>
+
+<div class="btn-row fade-up" id="headTestBtns">
+    <button class="btn active" onclick="headTest(0,this)">1 · Survival</button>
+    <button class="btn" onclick="headTest(1,this)">2 · Category</button>
+    <button class="btn" onclick="headTest(2,this)">3 · Agreement</button>
+    <button class="btn" onclick="headTest(3,this)">4 · Selection</button>
+</div>
+<div class="panel fade-up" id="headTestBox" style="min-height:110px;"></div>
+
+<div class="callout warm fade-up">
+    <h4><i class="fas fa-exclamation-triangle"></i> The one honest disagreement</h4>
+    <p>In <em>"in the garden"</em>, is the head the preposition <em>in</em> or the noun <em>garden</em>?</p>
+    <div class="btn-row" style="margin-bottom:.4rem;">
+        <button class="btn active" onclick="prepView('ud',this)">Universal Dependencies</button>
+        <button class="btn" onclick="prepView('old',this)">Older schemes</button>
+    </div>
+    <div id="prepUD">
+        <div class="dep-stage" data-dep='{"tokens":["in","the","garden"],"arcs":[{"h":2,"d":0,"l":"case"},{"h":2,"d":1,"l":"det"}]}'></div>
+        <p style="margin:.6rem 0 0;"><strong>garden</strong> is the head. UD's rule: <strong>content words are heads, function words are dependents</strong>. That single decision is what makes trees comparable across languages that have no prepositions at all.</p>
+    </div>
+    <div id="prepOLD" style="display:none;">
+        <div class="dep-stage" data-dep='{"tokens":["in","the","garden"],"arcs":[{"h":0,"d":2,"l":"pobj"},{"h":2,"d":1,"l":"det"}]}'></div>
+        <p style="margin:.6rem 0 0;"><strong>in</strong> is the head. This looks fine for English, but it breaks down for languages that mark the same meaning with a case ending instead of a separate word.</p>
+    </div>
+</div>
+
+<!-- ============ 4. WHAT MAKES A LEGAL TREE ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-check-double"></i> What makes a set of arcs a legal tree
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Not every drawing of arrows is a dependency tree. Four rules must hold. Click each card to see what a broken version looks like.</p>
+
+<div class="grid fade-up" id="rulesGrid"></div>
+
+<div class="callout good fade-up">
+    <h4><i class="fas fa-calculator"></i> A useful consequence</h4>
+    <p style="margin:0;">If a sentence has <em>n</em> words, a legal tree has exactly <em>n</em> arcs: one per word, counting the arc from ROOT. So a parser never has to decide <em>how many</em> arrows to draw, only <em>where</em> they go. That is why parsing can be written as: pick one head for every word.</p>
+</div>
+
+<!-- ============ 5. PROJECTIVITY ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-water"></i> Projective vs non-projective
+    <span class="title-line"></span>
+</div>
+
+<div class="grid fade-up">
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-check"></i> Projective</h4><p class="muted" style="margin:.3rem 0 0;">Every arc can be drawn above the sentence <strong>without crossing another arc</strong>. Equivalent test: every word sits under its head with no outsiders in between.</p></div>
+    <div class="panel" style="background:#fef9f0;border-color:#f0e0c0;"><h4 style="color:#0b2a4a"><i class="fas fa-times"></i> Non-projective</h4><p class="muted" style="margin:.3rem 0 0;">At least two arcs cross. This happens when a word is pulled far from its head. It is common in Czech, Arabic, German, Latin, and in spoken language everywhere.</p></div>
+</div>
+
+<div class="panel fade-up" style="margin-top:1.2rem;">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn active" onclick="projView('p',this)">Projective example</button>
+        <button class="btn" onclick="projView('n',this)">Non-projective example</button>
+        <button class="btn" style="margin-left:auto;background:#fff7ed;border-color:#f0d3a0;" onclick="toggleCross()"><i class="fas fa-crosshairs"></i> <span id="crossBtnTxt">Check for crossings</span></button>
+    </div>
+    <div id="projP">
+        <div class="dep-stage" id="projPStage" data-dep='{"tokens":["She","eats","an","apple"],"arcs":[{"h":1,"d":0,"l":"nsubj"},{"h":3,"d":2,"l":"det"},{"h":1,"d":3,"l":"obj"}]}'></div>
+    </div>
+    <div id="projN" style="display:none;">
+        <div class="dep-stage" id="projNStage" data-dep='{"tokens":["A","hearing","is","scheduled","on","the","issue","today"],"arcs":[{"h":1,"d":0,"l":"det"},{"h":3,"d":1,"l":"nsubj:pass"},{"h":3,"d":2,"l":"aux:pass"},{"h":6,"d":4,"l":"case"},{"h":6,"d":5,"l":"det"},{"h":1,"d":6,"l":"nmod"},{"h":3,"d":7,"l":"advmod"}]}'></div>
+        <p class="muted" style="margin-top:.6rem;"><em>on the issue</em> belongs to <strong>hearing</strong>, but it appears after <strong>scheduled</strong>. The arc <code>hearing → issue</code> and the arc <code>scheduled → today</code> must cross.</p>
+    </div>
+    <p id="crossMsg" class="center" style="margin:.6rem 0 0;font-weight:600;color:#5f7d97;">Press the button to test the arcs.</p>
+</div>
+
+<div class="callout warm fade-up">
+    <h4><i class="fas fa-lightbulb"></i> Why this word matters so much</h4>
+    <p style="margin:0;">The fast parsing algorithms you will meet in a moment can only produce <strong>projective</strong> trees. If your language needs crossings, you must either repair the tree afterwards (pseudo-projective parsing), add special transitions (swap), or switch to a graph-based parser, which has no such limit. English is about 99% projective; Czech is closer to 77%. So the choice of algorithm really is a choice about which languages you can serve.</p>
+</div>
+
+<!-- ============ 6. THE LABELS ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-tags"></i> Universal Dependencies: the label set
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up"><strong>Universal Dependencies (UD)</strong> gives the same ~37 labels to 100+ languages. That means you can train on one language and transfer to another, and score everything on one scale. Below are the labels you will actually meet most days.</p>
+
+<div class="fade-up">
+    <div class="btn-row" id="labelFilter">
+        <button class="btn active" onclick="filterLabels('all',this)">All</button>
+        <button class="btn" onclick="filterLabels('Core argument',this)">Core arguments</button>
+        <button class="btn" onclick="filterLabels('Modifier',this)">Modifiers</button>
+        <button class="btn" onclick="filterLabels('Function word',this)">Function words</button>
+        <button class="btn" onclick="filterLabels('Clause',this)">Clauses</button>
+        <button class="btn" onclick="filterLabels('Other',this)">Other</button>
+    </div>
+    <div id="labelChips" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;"></div>
+    <div class="panel" id="labelDetail" style="min-height:170px;"></div>
+</div>
+
+<div class="callout fade-up">
+    <h4><i class="fas fa-exclamation-circle"></i> The distinction that trips students up: <code>obj</code> vs <code>obl</code></h4>
+    <p>An <strong>object</strong> is a bare noun phrase the verb needs. An <strong>oblique</strong> is a noun phrase attached through a preposition, and it is usually optional.</p>
+    <div class="btn-row">
+        <button class="btn" onclick="dropTest('obj')">Try removing "the book"</button>
+        <button class="btn" onclick="dropTest('obl')">Try removing "in the garden"</button>
+    </div>
+    <div class="dep-stage" data-dep='{"tokens":["She","read","the","book","in","the","garden"],"arcs":[{"h":3,"d":2,"l":"det"},{"h":1,"d":0,"l":"nsubj"},{"h":1,"d":3,"l":"obj"},{"h":6,"d":4,"l":"case"},{"h":6,"d":5,"l":"det"},{"h":1,"d":6,"l":"obl"}]}'></div>
+    <p id="dropMsg" class="center" style="margin:.6rem 0 0;font-weight:600;color:#5f7d97;">Removing an object usually breaks the sentence. Removing an oblique rarely does.</p>
+</div>
+
+<!-- ============ 8. ALGORITHMS ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-cogs"></i> How parsers actually build the tree
+    <span class="title-line"></span>
+</div>
+
+<h3 class="sub fade-up"><i class="fas fa-shoe-prints"></i> Transition-based parsing, step by step</h3>
+<p class="fade-up">The parser holds three things: a <strong>stack</strong> of words it is still working on, a <strong>buffer</strong> of words it has not read yet, and the <strong>arcs</strong> it has already committed to. It repeats one of three moves (this version is called <em>arc-standard</em>):</p>
+
+<div class="grid fade-up" style="margin-bottom:1rem;">
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-arrow-right"></i> SHIFT</h4><p class="muted" style="margin:.3rem 0 0;">Move the next buffer word onto the stack. "I am not ready to decide yet."</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-arrow-left"></i> LEFT-ARC(<em>l</em>)</h4><p class="muted" style="margin:.3rem 0 0;">The top of the stack is head of the word below it. Add the arc, delete the lower word.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-arrow-right"></i> RIGHT-ARC(<em>l</em>)</h4><p class="muted" style="margin:.3rem 0 0;">The word below is head of the top word. Add the arc, delete the top word.</p></div>
+</div>
+
+<div class="panel fade-up">
+    <div class="btn-row" style="margin-top:0;">
+        <button class="btn" onclick="tbStep(-1)"><i class="fas fa-step-backward"></i> Back</button>
+        <button class="btn active" onclick="tbStep(1)">Next <i class="fas fa-step-forward"></i></button>
+        <button class="btn" id="tbPlayBtn" onclick="tbPlay()"><i class="fas fa-play"></i> Play</button>
+        <button class="btn" onclick="tbReset()"><i class="fas fa-undo"></i> Reset</button>
+        <span class="muted" style="margin-left:auto;">Step <strong id="tbNum">0</strong> / 10</span>
+    </div>
+    <div id="tbAction" class="callout" style="margin:.4rem 0 1rem;padding:.7rem 1.1rem;"><strong>Initialise.</strong> ROOT sits on the stack, every word waits in the buffer.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+        <div style="flex:1;min-width:210px;">
+            <div class="muted" style="font-weight:600;font-size:.8rem;letter-spacing:.06em;">STACK</div>
+            <div id="tbStack" style="display:flex;flex-wrap:wrap;gap:.4rem;min-height:44px;background:#eef4fb;border-radius:.7rem;padding:.5rem;"></div>
+        </div>
+        <div style="flex:1;min-width:210px;">
+            <div class="muted" style="font-weight:600;font-size:.8rem;letter-spacing:.06em;">BUFFER</div>
+            <div id="tbBuffer" style="display:flex;flex-wrap:wrap;gap:.4rem;min-height:44px;background:#fef9f0;border-radius:.7rem;padding:.5rem;"></div>
+        </div>
+    </div>
+    <div class="muted" style="font-weight:600;font-size:.8rem;letter-spacing:.06em;margin-top:.9rem;">TREE SO FAR</div>
+    <div class="dep-stage" id="tbTree"></div>
+</div>
+
+<div class="callout warm fade-up">
+    <h4><i class="fas fa-brain"></i> Where the learning happens</h4>
+    <p style="margin:0;">Notice that nothing above says <em>which</em> move to take. That is the machine-learning part: a classifier looks at the current stack and buffer and predicts the next move. Old parsers used a linear model over hand-written features (top-of-stack word, its part of speech, the next buffer word…). Modern ones feed the same configuration to a neural network. Training data is made by replaying gold trees to recover the correct move sequence. This is called an <strong>oracle</strong>.</p>
+</div>
+
+<!-- ============ 9. WHY DEPENDENCIES WON ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-trophy"></i> Why dependencies won
+    <span class="title-line"></span>
+</div>
+
+<p class="fade-up">Constituency parsing dominated the 1990s. Dependency parsing dominates today. Four reasons.</p>
+
+<div class="grid fade-up">
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-shuffle"></i> Free word order stops being a problem</h4><p class="muted" style="margin:.3rem 0 0;">In Arabic, Russian, Latin or Turkish the subject can appear almost anywhere. A phrase-structure grammar needs a new rule for every order. An arc does not care about position: <code>nsubj</code> is <code>nsubj</code> whether the subject comes before or after the verb.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-comment-dots"></i> Meaning is one step away</h4><p class="muted" style="margin:.3rem 0 0;">"Who did what to whom" is read straight off the arcs around the verb. From a constituency tree you must first apply head-percolation rules to recover the same information.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-bolt"></i> Speed</h4><p class="muted" style="margin:.3rem 0 0;">A transition-based parser runs in linear time, <strong>O(n)</strong>. CKY constituency parsing is <strong>O(n³·|G|)</strong>. On web-scale corpora that gap decides what is possible at all.</p></div>
+    <div class="panel"><h4 style="color:#0b2a4a"><i class="fas fa-globe"></i> One scheme for all languages</h4><p class="muted" style="margin:.3rem 0 0;">Universal Dependencies gives the same label set to 100+ languages. Train on one, transfer to another, and compare every result on one scale.</p></div>
+</div>
+
+<!-- ============ 11. WHERE IT IS USED ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-industry"></i> Where dependency trees are used
+    <span class="title-line"></span>
+</div>
+
+<div class="fade-up" style="display:flex;flex-wrap:wrap;gap:1rem;" id="appGrid"></div>
+
+<!-- ============ 13. TAKEAWAY ============ -->
+<div class="section-title fade-up">
+    <i class="fas fa-key"></i> Key takeaway
+    <span class="title-line"></span>
+</div>
+
+<div class="fade-up callout" style="border-left-width:5px;">
+    <p style="font-weight:500;font-size:1.05rem;margin:0;">
+        A dependency tree says one thing about every word: <strong>who is my head, and what job do I do for it?</strong>
+        Answer that <em>n</em> times and you have the syntax of the sentence. No invented nodes, no phrase boxes, and the meaning sitting one step away.
+    </p>
+</div>
+
+</div><!-- /content -->
+</div><!-- /presentation-card -->
+
+<style>
+.draw-svg.visible polygon { stroke-dashoffset:0; }
+.draw-svg polygon { transition:opacity .8s ease .5s; opacity:0; }
+.draw-svg.visible polygon { opacity:1; }
+.arcg { transition:all .25s ease; cursor:default; }
+.arcg.hl path { stroke:#b45309 !important; stroke-width:3.6 !important; }
+.arcg.hl text { fill:#b45309 !important; font-weight:700; }
+.arcg.bad path { stroke:#dc2626 !important; stroke-width:3.2 !important; }
+.arcg.bad text { fill:#dc2626 !important; }
+.arcg.dim { opacity:.22; }
+.tok { background:#fff; border:1px solid #cfdcea; border-radius:.5rem; padding:.25rem .7rem; font-weight:600; font-size:.9rem; }
+.tok.top { background:#0b2a4a; color:#fff; border-color:#0b2a4a; }
+.chip { border:1px solid #cfdcea; background:#fff; border-radius:100px; padding:.28rem .85rem; font-size:.83rem;
+        font-weight:600; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:all .2s ease; color:#0b2a4a; }
+.chip:hover { background:#eef4fb; transform:translateY(-2px); }
+.chip.on { background:#0b2a4a; color:#fff; border-color:#0b2a4a; }
+.appcard { flex:1; min-width:220px; background:#f0f6fe; border-radius:1rem; padding:1.1rem; transition:transform .25s ease, box-shadow .25s ease; }
+.appcard:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(11,42,74,.09); }
+@media (max-width:768px){ .content{padding:1.8rem 1.2rem;} .hero{padding:1.8rem 1.2rem;} .hero h1{font-size: clamp(2.2rem, 4vw, 3.2rem);} }
+</style>
+
+<script>
+/* ================= DEPENDENCY GRAPH RENDERER ================= */
+function tokW(t){ return Math.max(42, t.length*9.6 + 22); }
+
+function buildDep(tokens, arcs, opt){
+  opt = opt || {};
+  var gap = 34, x = 20, cx = [], w = [];
+  tokens.forEach(function(t){ var ww = tokW(t); w.push(ww); cx.push(x + ww/2); x += ww + gap; });
+  var totalW = x + 8;
+
+  /* nesting level: an arc always sits above every arc it covers */
+  var lv = arcs.map(function(){ return 1; });
+  var order = arcs.map(function(a,i){ return i; }).sort(function(p,q){
+    return Math.abs(arcs[p].h-arcs[p].d) - Math.abs(arcs[q].h-arcs[q].d);
+  });
+  order.forEach(function(i){
+    var a1 = Math.min(arcs[i].h,arcs[i].d), b1 = Math.max(arcs[i].h,arcs[i].d), m = 1;
+    arcs.forEach(function(b,j){
+      if(j===i) return;
+      var a2 = Math.min(b.h,b.d), b2 = Math.max(b.h,b.d);
+      if(a2>=a1 && b2<=b1 && (b2-a2) < (b1-a1)) m = Math.max(m, lv[j]+1);
+    });
+    lv[i] = m;
+  });
+  /* two arcs over the same pair of words get stacked, not overlaid */
+  var seen = {};
+  arcs.forEach(function(a,i){
+    var k = Math.min(a.h,a.d)+':'+Math.max(a.h,a.d);
+    if(seen[k] === undefined) seen[k] = 0; else { seen[k]++; lv[i] += seen[k]; }
+  });
+  var hOf = function(i){ return 34 + 30*(lv[i]-1); };
+  var maxH = 34; arcs.forEach(function(a,i){ maxH = Math.max(maxH, hOf(i)); });
+
+  var H = maxH + 108, top = H - 62;
+  var s = '<svg class="draw-svg" viewBox="0 0 '+totalW+' '+H+'" width="'+totalW+'" style="max-width:100%;height:auto">';
+
+  /* layer 1: every curve and arrowhead */
+  arcs.forEach(function(a,i){
+    var hx = cx[a.h], dx = cx[a.d], ah = hOf(i);
+    s += '<g class="arcg" data-i="'+i+'">';
+    s += '<path d="M '+hx+' '+top+' C '+hx+' '+(top-ah)+', '+dx+' '+(top-ah)+', '+dx+' '+(top-4)+'" fill="none" stroke="#1a4a6e" stroke-width="2"/>';
+    s += '<polygon points="'+(dx-5)+','+(top-10)+' '+(dx+5)+','+(top-10)+' '+dx+','+top+'" fill="#1a4a6e"/>';
+    s += '</g>';
+  });
+
+  /* layer 2: the words */
+  tokens.forEach(function(t,i){
+    var isRoot = (t === 'ROOT');
+    s += '<rect x="'+(cx[i]-w[i]/2)+'" y="'+(top+10)+'" width="'+w[i]+'" height="30" rx="7" fill="'+(isRoot?'#0b2a4a':'#eef4fb')+'"/>';
+    s += '<text x="'+cx[i]+'" y="'+(top+30)+'" text-anchor="middle" font-size="14" font-weight="600" fill="'+(isRoot?'#fff':'#0b2a4a')+'">'+t+'</text>';
+    s += '<text x="'+cx[i]+'" y="'+(top+54)+'" text-anchor="middle" font-size="10" fill="#94a3b8">'+i+'</text>';
+  });
+
+  /* layer 3: labels last, each with a white halo, so nothing can cross them */
+  arcs.forEach(function(a,i){
+    var ah = hOf(i), mx = (cx[a.h]+cx[a.d])/2, my = top - ah*0.80 - 9;
+    s += '<g class="arcg" data-i="'+i+'"><text x="'+mx+'" y="'+my+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b45309" stroke="#ffffff" stroke-width="4.5" paint-order="stroke" font-family="JetBrains Mono, monospace">'+a.l+'</text></g>';
+  });
+
+  return s + '</svg>';
+}
+
+function renderStage(el){
+  var d = JSON.parse(el.dataset.dep);
+  el.innerHTML = buildDep(d.tokens, d.arcs);
+  var svg = el.querySelector('svg'); if(svg) obs.observe(svg);
+}
+function clearMarks(el){ el.querySelectorAll('.arcg').forEach(function(g){ g.classList.remove('hl','bad','dim'); }); }
+function markArcs(el, idx, cls){
+  clearMarks(el);
+  el.querySelectorAll('.arcg').forEach(function(g){
+    if(idx.indexOf(+g.dataset.i) >= 0) g.classList.add(cls); else g.classList.add('dim');
+  });
+}
+
+/* ================= SCROLL ANIMATION ================= */
+var obs = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold:0.15, rootMargin:'0px 0px -40px 0px' });
+
+/* ================= 1. VIEW SWITCH ================= */
+function switchView(v){
+  document.getElementById('viewDep').style.display = v==='dep' ? '' : 'none';
+  document.getElementById('viewCon').style.display = v==='con' ? '' : 'none';
+  document.querySelectorAll('[data-view]').forEach(function(b){ b.classList.toggle('active', b.dataset.view===v); });
+}
+
+/* ================= 2. ARC ANATOMY ================= */
+var ANA = {
+  anaHd:   ['Head (governor)','<strong>reads</strong> is in charge. It decides what the pair behaves like, it carries tense and agreement, and it is the word that <em>selects</em> a subject in the first place. A head may have many dependents.'],
+  anaDep:  ['Dependent (modifier)','<strong>student</strong> completes the verb. A dependent has exactly <strong>one</strong> head, never two. That single rule is what keeps the structure a tree instead of a tangle.'],
+  anaArc:  ['The arc','One curved line = one grammatical fact. A sentence of <em>n</em> words gets exactly <em>n</em> arcs, counting the one from the invisible ROOT. Nothing else is stored.'],
+  anaHead: ['Arrow direction','The arrowhead sits on the <strong>dependent</strong>. Direction is not decoration: reversing it changes "reads governs student" into "student governs reads", which is a different (and wrong) analysis.'],
+  anaLabel:['The label','<code>nsubj</code> names the job the dependent does for its head. Without labels you only know <em>that</em> two words are related; with them you know <em>how</em>. This is the difference between UAS and LAS at test time.']
+};
+Object.keys(ANA).forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener('click', function(){
+    document.getElementById('anaTitle').innerHTML = '<i class="fas fa-circle-dot"></i> ' + ANA[id][0];
+    var t = document.getElementById('anaText'); t.innerHTML = ANA[id][1];
+    t.parentElement.classList.remove('pop'); void t.parentElement.offsetWidth; t.parentElement.classList.add('pop');
+  });
+});
+
+/* ================= 3. HEAD TESTS ================= */
+var HT = [
+ ['Survival','Drop one word and see if the phrase still works.<br><br><span style="color:#15803d;font-weight:600">✔ "a car"</span> &nbsp;&nbsp; <span style="color:#dc2626;font-weight:600">✘ "a red"</span><br><br>The phrase survives without <em>red</em> but not without <em>car</em>. → <strong>car is the head.</strong>'],
+ ['Category','The head decides what the whole phrase <em>is</em>.<br><br>"red car" behaves like a noun: it can be a subject, an object, it takes a determiner. It does not behave like an adjective. → <strong>car is the head.</strong>'],
+ ['Agreement','The head carries the number, person and gender that the rest of the sentence must match.<br><br>"The red car <strong>is</strong> here" / "The red cars <strong>are</strong> here". The verb follows <em>car</em>, not <em>red</em>. → <strong>car is the head.</strong>'],
+ ['Selection','The head is the word that <em>requires</em> the other.<br><br>A verb requires an object; the object does not require that particular verb. A noun can take an adjective; the adjective cannot stand alone waiting for a noun. → <strong>the selector is the head.</strong>']
+];
+function headTest(i, btn){
+  document.querySelectorAll('#headTestBtns .btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  var box = document.getElementById('headTestBox');
+  box.innerHTML = '<h4 style="color:#0b2a4a;margin-bottom:.4rem;">Test '+(i+1)+': '+HT[i][0]+'</h4><p style="margin:0;">'+HT[i][1]+'</p>';
+  box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+}
+headTest(0, null);
+
+/* ================= 3b. PREPOSITION VIEW ================= */
+function prepView(v, btn){
+  document.getElementById('prepUD').style.display  = v==='ud'  ? '' : 'none';
+  document.getElementById('prepOLD').style.display = v==='old' ? '' : 'none';
+  btn.parentElement.querySelectorAll('.btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+/* ================= 4. WELL-FORMEDNESS RULES ================= */
+var RULES = [
+ { t:'Single root', ic:'fa-anchor',
+   ok:'Exactly one word is attached to ROOT. Every sentence has one top word.',
+   bad:'Here both <em>saw</em> and <em>ran</em> claim ROOT. Two roots means two sentences, not one.',
+   tok:['ROOT','He','saw','and','ran'],
+   good:[{h:0,d:2,l:'root'},{h:2,d:1,l:'nsubj'},{h:4,d:3,l:'cc'},{h:2,d:4,l:'conj'}],
+   err:[{h:0,d:2,l:'root'},{h:2,d:1,l:'nsubj'},{h:4,d:3,l:'cc'},{h:0,d:4,l:'root'}], be:[3] },
+ { t:'Single head', ic:'fa-user-lock',
+   ok:'Every word except the root has exactly one incoming arrow.',
+   bad:'Two arrows point at <em>book</em>. A word cannot serve two masters, so this is a graph, not a tree.',
+   tok:['She','read','the','book'],
+   good:[{h:1,d:0,l:'nsubj'},{h:3,d:2,l:'det'},{h:1,d:3,l:'obj'}],
+   err:[{h:1,d:0,l:'nsubj'},{h:3,d:2,l:'det'},{h:1,d:3,l:'obj'},{h:0,d:3,l:'obj'}], be:[3] },
+ { t:'Connected', ic:'fa-link',
+   ok:'You can walk from ROOT to every word by following arrows.',
+   bad:'<em>today</em> has no head at all. It is an island, unreachable from ROOT.',
+   tok:['ROOT','He','left','today'],
+   good:[{h:0,d:2,l:'root'},{h:2,d:1,l:'nsubj'},{h:2,d:3,l:'advmod'}],
+   err:[{h:0,d:2,l:'root'},{h:2,d:1,l:'nsubj'}], be:[] },
+ { t:'Acyclic', ic:'fa-rotate',
+   ok:'No path of arrows ever returns to where it started.',
+   bad:'<em>dogs</em> → <em>bark</em> → <em>dogs</em>. Following the arrows loops forever, so no word can be the top.',
+   tok:['Dogs','bark','loudly'],
+   good:[{h:1,d:0,l:'nsubj'},{h:1,d:2,l:'advmod'}],
+   err:[{h:1,d:0,l:'nsubj'},{h:0,d:1,l:'?'},{h:1,d:2,l:'advmod'}], be:[0,1] }
+];
+(function(){
+  var g = document.getElementById('rulesGrid');
+  RULES.forEach(function(r,i){
+    var d = document.createElement('div');
+    d.className = 'panel'; d.style.minWidth = '280px';
+    d.innerHTML = '<h4 style="color:#0b2a4a"><i class="fas '+r.ic+'"></i> '+(i+1)+'. '+r.t+'</h4>'+
+      '<div class="dep-stage" id="ruleStage'+i+'" style="margin:.6rem 0;border:none;background:transparent;padding:0;"></div>'+
+      '<p class="muted" id="ruleTxt'+i+'" style="margin:0 0 .6rem;">'+r.ok+'</p>'+
+      '<button class="btn" id="ruleBtn'+i+'" onclick="ruleFlip('+i+')"><i class="fas fa-eye"></i> Show a broken tree</button>';
+    g.appendChild(d);
+  });
+  RULES.forEach(function(r,i){ drawRule(i,false); });
+})();
+function drawRule(i, broken){
+  var r = RULES[i], st = document.getElementById('ruleStage'+i);
+  st.innerHTML = buildDep(r.tok, broken ? r.err : r.good);
+  st.querySelector('svg').classList.add('visible');
+  if(broken) markArcs(st, r.be, 'bad');
+}
+var ruleState = [false,false,false,false];
+function ruleFlip(i){
+  ruleState[i] = !ruleState[i];
+  drawRule(i, ruleState[i]);
+  document.getElementById('ruleTxt'+i).innerHTML = ruleState[i]
+     ? '<span style="color:#b91c1c;font-weight:600"><i class="fas fa-ban"></i> Broken: </span>'+RULES[i].bad
+     : RULES[i].ok;
+  document.getElementById('ruleBtn'+i).innerHTML = ruleState[i]
+     ? '<i class="fas fa-check"></i> Show the correct tree' : '<i class="fas fa-eye"></i> Show a broken tree';
+}
+
+/* ================= 5. PROJECTIVITY ================= */
+var projCur = 'p', crossOn = false;
+function projView(v, btn){
+  projCur = v; crossOn = false;
+  document.getElementById('projP').style.display = v==='p' ? '' : 'none';
+  document.getElementById('projN').style.display = v==='n' ? '' : 'none';
+  btn.parentElement.querySelectorAll('.btn').forEach(function(b){ if(b.textContent.indexOf('example')>=0) b.classList.remove('active'); });
+  btn.classList.add('active');
+  clearMarks(document.getElementById('projPStage')); clearMarks(document.getElementById('projNStage'));
+  document.getElementById('crossBtnTxt').textContent = 'Check for crossings';
+  document.getElementById('crossMsg').innerHTML = 'Press the button to test the arcs.';
+  document.getElementById('crossMsg').style.color = '#5f7d97';
+}
+function toggleCross(){
+  var st = document.getElementById(projCur==='p' ? 'projPStage' : 'projNStage');
+  var msg = document.getElementById('crossMsg');
+  crossOn = !crossOn;
+  document.getElementById('crossBtnTxt').textContent = crossOn ? 'Hide the test' : 'Check for crossings';
+  if(!crossOn){ clearMarks(st); msg.innerHTML='Press the button to test the arcs.'; msg.style.color='#5f7d97'; return; }
+  var arcs = JSON.parse(st.dataset.dep).arcs, bad = [];
+  for(var i=0;i<arcs.length;i++) for(var j=i+1;j<arcs.length;j++){
+    var a1=Math.min(arcs[i].h,arcs[i].d), b1=Math.max(arcs[i].h,arcs[i].d);
+    var a2=Math.min(arcs[j].h,arcs[j].d), b2=Math.max(arcs[j].h,arcs[j].d);
+    if((a1<a2 && a2<b1 && b1<b2) || (a2<a1 && a1<b2 && b2<b1)){ bad.push(i); bad.push(j); }
+  }
+  if(bad.length){
+    markArcs(st, bad, 'bad');
+    msg.innerHTML = '<i class="fas fa-times-circle"></i> '+(bad.length/2)+' crossing pair found → this tree is <strong>NON-PROJECTIVE</strong>.';
+    msg.style.color = '#b91c1c';
+    st.classList.remove('shake'); void st.offsetWidth; st.classList.add('shake');
+  } else {
+    msg.innerHTML = '<i class="fas fa-check-circle"></i> No arc crosses another → this tree is <strong>PROJECTIVE</strong>.';
+    msg.style.color = '#15803d';
+  }
+}
+
+/* ================= 6. UD LABEL EXPLORER ================= */
+var UD = [
+ {l:'root',  g:'Other',         m:'The top word of the sentence, attached to the invisible ROOT node. Exactly one per sentence.', t:['ROOT','Birds','fly'], a:[{h:0,d:2,l:'root'},{h:2,d:1,l:'nsubj'}], hi:0},
+ {l:'nsubj', g:'Core argument', m:'Nominal subject: the doer of the action.', t:['The','dog','barks'], a:[{h:1,d:0,l:'det'},{h:2,d:1,l:'nsubj'}], hi:1},
+ {l:'obj',   g:'Core argument', m:'Direct object: the thing the verb acts on. No preposition.', t:['She','ate','the','cake'], a:[{h:1,d:0,l:'nsubj'},{h:3,d:2,l:'det'},{h:1,d:3,l:'obj'}], hi:2},
+ {l:'iobj',  g:'Core argument', m:'Indirect object: the receiver, when there is already a direct object.', t:['He','gave','her','flowers'], a:[{h:1,d:0,l:'nsubj'},{h:1,d:2,l:'iobj'},{h:1,d:3,l:'obj'}], hi:1},
+ {l:'obl',   g:'Modifier',      m:'Oblique: a noun phrase attached through a preposition. Usually optional.', t:['He','slept','on','the','sofa'], a:[{h:1,d:0,l:'nsubj'},{h:4,d:2,l:'case'},{h:4,d:3,l:'det'},{h:1,d:4,l:'obl'}], hi:3},
+ {l:'csubj', g:'Clause',        m:'Clausal subject: a whole clause doing the job of a subject.', t:['What','he','said','matters'], a:[{h:2,d:0,l:'obj'},{h:2,d:1,l:'nsubj'},{h:3,d:2,l:'csubj'}], hi:2},
+ {l:'ccomp', g:'Clause',        m:'Clausal complement that has its own subject.', t:['I','know','she','left'], a:[{h:1,d:0,l:'nsubj'},{h:3,d:2,l:'nsubj'},{h:1,d:3,l:'ccomp'}], hi:2},
+ {l:'xcomp', g:'Clause',        m:'Open complement: a clause that borrows its subject from the main verb.', t:['She','wants','to','leave'], a:[{h:1,d:0,l:'nsubj'},{h:3,d:2,l:'mark'},{h:1,d:3,l:'xcomp'}], hi:2},
+ {l:'advcl', g:'Clause',        m:'Adverbial clause: a clause modifying a verb (when, because, if).', t:['He','left','because','it','rained'], a:[{h:1,d:0,l:'nsubj'},{h:4,d:2,l:'mark'},{h:4,d:3,l:'nsubj'},{h:1,d:4,l:'advcl'}], hi:3},
+ {l:'acl',   g:'Clause',        m:'Clause modifying a noun, including relative clauses.', t:['the','book','she','read'], a:[{h:1,d:0,l:'det'},{h:3,d:2,l:'nsubj'},{h:1,d:3,l:'acl'}], hi:2},
+ {l:'amod',  g:'Modifier',      m:'Adjectival modifier: an adjective describing a noun.', t:['a','red','car'], a:[{h:2,d:0,l:'det'},{h:2,d:1,l:'amod'}], hi:1},
+ {l:'advmod',g:'Modifier',      m:'Adverbial modifier: an adverb modifying a verb, adjective or other adverb.', t:['She','runs','fast'], a:[{h:1,d:0,l:'nsubj'},{h:1,d:2,l:'advmod'}], hi:1},
+ {l:'nmod',  g:'Modifier',      m:'A noun modifying another noun, normally through a preposition or possessive.', t:['the','roof','of','the','house'], a:[{h:1,d:0,l:'det'},{h:4,d:2,l:'case'},{h:4,d:3,l:'det'},{h:1,d:4,l:'nmod'}], hi:3},
+ {l:'nummod',g:'Modifier',      m:'A number modifying a noun.', t:['three','books'], a:[{h:1,d:0,l:'nummod'}], hi:0},
+ {l:'appos', g:'Modifier',      m:'Apposition: a second noun phrase that renames the first.', t:['Ali',',','my','friend'], a:[{h:0,d:1,l:'punct'},{h:3,d:2,l:'nmod:poss'},{h:0,d:3,l:'appos'}], hi:2},
+ {l:'det',   g:'Function word', m:'Determiner: a, the, this, every.', t:['the','book'], a:[{h:1,d:0,l:'det'}], hi:0},
+ {l:'case',  g:'Function word', m:'Preposition or case marker. In UD it hangs off the noun, not the other way round.', t:['in','Paris'], a:[{h:1,d:0,l:'case'}], hi:0},
+ {l:'aux',   g:'Function word', m:'Auxiliary verb: have, will, can, do.', t:['She','has','left'], a:[{h:2,d:0,l:'nsubj'},{h:2,d:1,l:'aux'}], hi:1},
+ {l:'cop',   g:'Function word', m:'Copula. In UD the verb "be" is a dependent of the predicate, not the head.', t:['She','is','happy'], a:[{h:2,d:0,l:'nsubj'},{h:2,d:1,l:'cop'}], hi:1},
+ {l:'mark',  g:'Function word', m:'Subordinating word that introduces a clause: that, if, to, because.', t:['that','she','came'], a:[{h:2,d:0,l:'mark'},{h:2,d:1,l:'nsubj'}], hi:0},
+ {l:'cc',    g:'Function word', m:'The coordinating word itself: and, or, but.', t:['tea','and','coffee'], a:[{h:0,d:1,l:'cc'},{h:0,d:2,l:'conj'}], hi:0},
+ {l:'conj',  g:'Other',         m:'The second and later items of a coordination, attached to the first item.', t:['tea','and','coffee'], a:[{h:0,d:1,l:'cc'},{h:0,d:2,l:'conj'}], hi:1},
+ {l:'compound',g:'Other',       m:'Parts of a compound noun. The last word is normally the head.', t:['phone','number'], a:[{h:1,d:0,l:'compound'}], hi:0},
+ {l:'punct', g:'Other',         m:'Punctuation, attached to the head of the clause it belongs to.', t:['Stop','!'], a:[{h:0,d:1,l:'punct'}], hi:0}
+];
+function renderChips(filter){
+  var box = document.getElementById('labelChips'); box.innerHTML = '';
+  UD.forEach(function(u,i){
+    if(filter!=='all' && u.g!==filter) return;
+    var b = document.createElement('button');
+    b.className='chip'; b.textContent=u.l; b.onclick=function(){ showLabel(i); };
+    b.dataset.li=i; box.appendChild(b);
+  });
+}
+function showLabel(i){
+  var u = UD[i];
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.toggle('on', +c.dataset.li===i); });
+  var d = document.getElementById('labelDetail');
+  d.innerHTML = '<div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.4rem;">'+
+    '<span class="mono" style="background:#0b2a4a;color:#fff;padding:.2rem .7rem;border-radius:6px;font-weight:600;">'+u.l+'</span>'+
+    '<span class="muted" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;">'+u.g+'</span></div>'+
+    '<p style="margin-bottom:.6rem;">'+u.m+'</p><div class="dep-stage" id="labStage"></div>';
+  var st = document.getElementById('labStage');
+  st.innerHTML = buildDep(u.t, u.a);
+  st.querySelector('svg').classList.add('visible');
+  markArcs(st, [u.hi], 'hl');
+  d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop');
+}
+function filterLabels(f, btn){
+  document.querySelectorAll('#labelFilter .btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active'); renderChips(f);
+}
+renderChips('all'); showLabel(1);
+
+/* ================= 6b. obj vs obl DROP TEST ================= */
+function dropTest(k){
+  var m = document.getElementById('dropMsg');
+  if(k==='obj'){
+    m.innerHTML = '<i class="fas fa-times-circle"></i> "She read in the garden." Still a sentence, but you no longer know <em>what</em> she read. The verb <strong>needs</strong> its object, so it is <code>obj</code>.';
+    m.style.color = '#b91c1c';
+  } else {
+    m.innerHTML = '<i class="fas fa-check-circle"></i> "She read the book." Perfectly fine. Nothing essential is lost, so the phrase is an optional extra: <code>obl</code>.';
+    m.style.color = '#15803d';
+  }
+}
+
+/* ================= 8. TRANSITION PARSER ================= */
+var TB_TOK = ['ROOT','The','student','reads','a','book'];
+var TB = [
+ {a:'<strong>Initialise.</strong> ROOT sits alone on the stack; every word waits in the buffer.', s:[0], b:[1,2,3,4,5], arcs:[]},
+ {a:'<strong>SHIFT.</strong> We cannot decide anything about <em>The</em> yet, so push it.', s:[0,1], b:[2,3,4,5], arcs:[]},
+ {a:'<strong>SHIFT.</strong> Push <em>student</em>. Now the top two words are a pair we can judge.', s:[0,1,2], b:[3,4,5], arcs:[]},
+ {a:'<strong>LEFT-ARC(det).</strong> <em>student</em> is head of <em>The</em>. Add the arc and remove <em>The</em>, which is now finished forever.', s:[0,2], b:[3,4,5], arcs:[{h:2,d:1,l:'det'}]},
+ {a:'<strong>SHIFT.</strong> Push the verb <em>reads</em>.', s:[0,2,3], b:[4,5], arcs:[{h:2,d:1,l:'det'}]},
+ {a:'<strong>LEFT-ARC(nsubj).</strong> <em>reads</em> is head of <em>student</em>. The subject is attached and leaves the stack.', s:[0,3], b:[4,5], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'}]},
+ {a:'<strong>SHIFT.</strong> Push <em>a</em>.', s:[0,3,4], b:[5], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'}]},
+ {a:'<strong>SHIFT.</strong> Push <em>book</em>. The buffer is now empty.', s:[0,3,4,5], b:[], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'}]},
+ {a:'<strong>LEFT-ARC(det).</strong> <em>book</em> is head of <em>a</em>.', s:[0,3,5], b:[], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'},{h:5,d:4,l:'det'}]},
+ {a:'<strong>RIGHT-ARC(obj).</strong> Now the lower word is the head: <em>reads</em> takes <em>book</em> as its object. The top word is removed.', s:[0,3], b:[], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'},{h:5,d:4,l:'det'},{h:3,d:5,l:'obj'}]},
+ {a:'<strong>RIGHT-ARC(root).</strong> ROOT takes <em>reads</em>. Only ROOT is left and the buffer is empty → <span style="color:#15803d;font-weight:700">DONE.</span> 5 words, 5 arcs, 10 moves, which is roughly 2n.', s:[0], b:[], arcs:[{h:2,d:1,l:'det'},{h:3,d:2,l:'nsubj'},{h:5,d:4,l:'det'},{h:3,d:5,l:'obj'},{h:0,d:3,l:'root'}]}
+];
+var tbI = 0, tbTimer = null;
+function tbDraw(){
+  var s = TB[tbI];
+  document.getElementById('tbNum').textContent = tbI;
+  document.getElementById('tbAction').innerHTML = s.a;
+  document.getElementById('tbStack').innerHTML  = s.s.map(function(i,k){ return '<span class="tok'+(k===s.s.length-1?' top':'')+'">'+TB_TOK[i]+'</span>'; }).join('');
+  document.getElementById('tbBuffer').innerHTML = s.b.length ? s.b.map(function(i){ return '<span class="tok">'+TB_TOK[i]+'</span>'; }).join('')
+                                                             : '<span class="muted" style="font-size:.85rem;padding:.25rem">empty</span>';
+  var st = document.getElementById('tbTree');
+  st.innerHTML = buildDep(TB_TOK, s.arcs);
+  st.querySelector('svg').classList.add('visible');
+  if(s.arcs.length) markArcs(st, [s.arcs.length-1], 'hl');
+}
+function tbStep(d){ tbI = Math.max(0, Math.min(TB.length-1, tbI+d)); tbDraw(); }
+function tbReset(){ tbI = 0; tbDraw(); if(tbTimer){ clearInterval(tbTimer); tbTimer=null; document.getElementById('tbPlayBtn').innerHTML='<i class="fas fa-play"></i> Play'; } }
+function tbPlay(){
+  var btn = document.getElementById('tbPlayBtn');
+  if(tbTimer){ clearInterval(tbTimer); tbTimer=null; btn.innerHTML='<i class="fas fa-play"></i> Play'; return; }
+  btn.innerHTML='<i class="fas fa-pause"></i> Pause';
+  tbTimer = setInterval(function(){
+    if(tbI >= TB.length-1){ clearInterval(tbTimer); tbTimer=null; btn.innerHTML='<i class="fas fa-play"></i> Play'; return; }
+    tbStep(1);
+  }, 1500);
+}
+tbDraw();
+
+/* ================= 12. APPLICATIONS ================= */
+var APPS = [
+ ['fa-language','Machine translation','Word order changes between languages, but the arcs do not. Reordering a tree is safer than reordering a string.'],
+ ['fa-circle-question','Question answering','"Who wrote Hamlet?" Follow the nsubj arc from the verb and you have the slot the answer must fill.'],
+ ['fa-diagram-project','Relation extraction','The shortest path along the arcs between two entities is the classic feature for deciding how they are related.'],
+ ['fa-compress','Summarisation','Prune optional subtrees (obl, amod, advmod) and the sentence gets shorter while staying grammatical.'],
+ ['fa-face-smile','Sentiment analysis','"Not good" needs the advmod arc from <em>good</em> to <em>not</em> to flip the polarity onto the right target.'],
+ ['fa-network-wired','Knowledge graphs','Subject–verb–object triples read straight off nsubj and obj arcs become graph edges.'],
+ ['fa-comments','Conversational AI','Intent and slots are easier to fill when you know which noun is the argument of which verb.'],
+ ['fa-spell-check','Grammar checking','Agreement errors show up as a mismatch between a head and its dependent, which is exactly the pair the tree gives you.']
+];
+(function(){
+  var g=document.getElementById('appGrid');
+  APPS.forEach(function(a){
+    var d=document.createElement('div'); d.className='appcard';
+    d.innerHTML='<i class="fas '+a[0]+'" style="color:#1a4a6e;font-size:1.3rem;"></i>'+
+                '<h4 style="margin:.45rem 0 .25rem;color:#0b2a4a;">'+a[1]+'</h4>'+
+                '<p class="muted" style="margin:0;font-size:.88rem;">'+a[2]+'</p>';
+    g.appendChild(d);
+  });
+})();
+
+/* ================= BOOT ================= */
+document.querySelectorAll('.dep-stage[data-dep]').forEach(renderStage);
+document.querySelectorAll('.fade-up').forEach(function(el){ obs.observe(el); });
+document.querySelectorAll('.draw-svg').forEach(function(el){ obs.observe(el); });
+</script>
+</body>
+</html>

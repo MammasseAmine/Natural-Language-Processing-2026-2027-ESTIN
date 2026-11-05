@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chapter 06 – Constituency Parsing</title>
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="../assets/all.min.css" />
+
+    <!-- Google Fonts -->
+
+    <!-- Font Awesome 6 -->
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f4f7fc;
+            color: #1e293b;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .presentation-card {
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 4px 24px rgba(0, 20, 40, 0.06);
+            overflow: hidden;
+        }
+
+        /* ---------- HEADER ---------- */
+        .hero {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            padding: 2rem 3rem;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-nav {
+            position: absolute;
+            z-index: 2;
+            top: 50%;
+            display: grid;
+            width: 52px;
+            height: 52px;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.34);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 24px;
+            text-decoration: none;
+            transform: translateY(-50%);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .hero-nav:hover,
+        .hero-nav:focus-visible {
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-50%) scale(1.05);
+        }
+        .hero-nav:focus-visible {
+            outline: 3px solid #8ec6ef;
+            outline-offset: 3px;
+        }
+        .hero-nav.previous { left: 14px; }
+        .hero-nav.next { right: 14px; }
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.2rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.4rem;
+        }
+        .hero .chapter-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 0.3rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            margin-top: 0.5rem;
+        }
+        .hero p.sub {
+            margin-top: 0.8rem;
+            font-size: 1.02rem;
+            color: #cfe0f2;
+            max-width: 760px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ---------- CONTENT ---------- */
+        .content { padding: 2.5rem 3rem 3rem; width: 100%; }
+
+        section { margin-bottom: 3.2rem; }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0b2a4a;
+        }
+        .section-title i { color: #1a4a6e; font-size: 1.4rem; width: 2rem; text-align: center; }
+        .title-line { flex: 1; height: 2px; background: linear-gradient(90deg, #dce5ef, transparent); margin-left: 0.5rem; }
+
+        p.lead { margin-bottom: 1rem; }
+        strong { color: #0b2a4a; }
+
+        /* ---------- ANIMATIONS ---------- */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        .draw-svg path, .draw-svg circle, .draw-svg rect, .draw-svg line, .draw-svg ellipse {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+        .draw-svg.visible path, .draw-svg.visible circle, .draw-svg.visible rect,
+        .draw-svg.visible line, .draw-svg.visible ellipse { stroke-dashoffset: 0; }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.7); }
+            70% { transform: scale(1.06); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .pop { animation: popIn 0.45s ease forwards; }
+
+        /* ---------- GENERIC BOXES ---------- */
+        .info-box {
+            background: #eef4fb;
+            border-left: 4px solid #1a4a6e;
+            border-radius: 10px;
+            padding: 1.1rem 1.4rem;
+            margin: 1.2rem 0;
+        }
+        .info-box.gold { background: #fdf6e7; border-left-color: #c9962e; }
+        .info-box.green { background: #eefaf1; border-left-color: #2e9e5b; }
+        .info-box .box-title { font-weight: 700; color: #0b2a4a; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.4rem; margin: 1.4rem 0; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 1.4rem 0; }
+
+        table.neat {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.2rem 0;
+            font-size: 0.95rem;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,20,40,0.06);
+        }
+        table.neat th { background: #0b2a4a; color: #fff; padding: 0.7rem 0.9rem; text-align: left; font-weight: 600; }
+        table.neat td { padding: 0.65rem 0.9rem; border-bottom: 1px solid #e6edf5; background: #fff; }
+        table.neat tr:nth-child(even) td { background: #f7fafd; }
+        table.neat td.ok { color: #2e9e5b; font-weight: 600; }
+        table.neat td.bad { color: #c0392b; font-weight: 600; }
+
+        code, .mono { font-family: 'Consolas', 'Menlo', monospace; }
+        .rule-chip {
+            display: inline-block;
+            font-family: 'Consolas', 'Menlo', monospace;
+            background: #0b2a4a;
+            color: #ffd98a;
+            padding: 0.25rem 0.7rem;
+            border-radius: 8px;
+            margin: 0.2rem;
+            font-size: 0.92rem;
+        }
+
+        /* ---------- AMBIGUITY TOGGLE ---------- */
+        .toggle-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin: 1rem 0 1.2rem; }
+        .toggle-btn {
+            flex: 1;
+            min-width: 240px;
+            padding: 0.85rem 1.1rem;
+            border: 2px solid #d5e0ec;
+            background: #fff;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.97rem;
+            font-weight: 600;
+            color: #33506b;
+            transition: all 0.25s ease;
+            text-align: left;
+        }
+        .toggle-btn i { margin-right: 0.5rem; }
+        .toggle-btn:hover { border-color: #1a4a6e; transform: translateY(-2px); }
+        .toggle-btn.active { background: #0b2a4a; color: #fff; border-color: #0b2a4a; box-shadow: 0 6px 16px rgba(11,42,74,0.25); }
+
+        .tree-stage {
+            background: #f8fafd;
+            border: 1px solid #e2eaf3;
+            border-radius: 14px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .tree-stage svg { max-width: 100%; height: auto; }
+        .meaning-caption {
+            margin-top: 0.6rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a4a6e;
+        }
+
+        /* ---------- TEST CARDS ---------- */
+        .test-card {
+            background: #fff;
+            border: 1px solid #e2eaf3;
+            border-radius: 14px;
+            padding: 1.2rem 1.3rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(0,20,40,0.04);
+        }
+        .test-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,20,40,0.1); border-color: #b9cde2; }
+        .test-card .emoji { font-size: 1.6rem; }
+        .test-card h4 { color: #0b2a4a; margin: 0.4rem 0 0.3rem; font-size: 1.05rem; }
+        .test-card .question { font-size: 0.92rem; color: #55708c; }
+        .test-card .reveal {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, margin-top 0.5s ease;
+            font-size: 0.92rem;
+        }
+        .test-card.open .reveal { max-height: 260px; margin-top: 0.7rem; }
+        .test-card .hint { font-size: 0.8rem; color: #98abc0; margin-top: 0.6rem; font-weight: 600; }
+        .yes { color: #2e9e5b; font-weight: 700; }
+        .no  { color: #c0392b; font-weight: 700; }
+
+        /* ---------- PHRASE EXPLORER ---------- */
+        .phrase-card {
+            background: linear-gradient(160deg, #ffffff, #f3f8fe);
+            border: 1px solid #dfe9f4;
+            border-radius: 14px;
+            padding: 1.1rem 1.2rem;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .phrase-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,20,40,0.1); }
+        .phrase-card .tag {
+            display: inline-block;
+            font-family: 'Consolas', monospace;
+            font-weight: 700;
+            color: #fff;
+            padding: 0.15rem 0.7rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+        }
+        .phrase-card ul { margin: 0.4rem 0 0 1.1rem; font-size: 0.92rem; color: #43607d; }
+        .phrase-card .head-note { font-size: 0.85rem; color: #7189a2; margin-top: 0.5rem; font-style: italic; }
+
+        /* clickable sentence */
+        .click-sentence {
+            font-size: 1.25rem;
+            text-align: center;
+            margin: 1.2rem 0 0.8rem;
+            line-height: 2.4;
+        }
+        .click-sentence .w {
+            display: inline-block;
+            padding: 0.15rem 0.45rem;
+            margin: 0 0.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .click-sentence .w:hover { background: #eaf2fb; }
+        .click-sentence .w.hl-np  { background: #dbeafe; border-color: #3b82f6; }
+        .click-sentence .w.hl-vp  { background: #dcfce7; border-color: #22c55e; }
+        .click-sentence .w.hl-pp  { background: #fef3c7; border-color: #f59e0b; }
+        .phrase-legend { text-align: center; font-size: 0.9rem; color: #55708c; margin-bottom: 0.5rem; }
+        .legend-chip { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 8px; margin: 0 0.25rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; }
+        .legend-chip.np { background: #dbeafe; color: #1e40af; }
+        .legend-chip.vp { background: #dcfce7; color: #166534; }
+        .legend-chip.pp { background: #fef3c7; color: #92400e; }
+        .legend-chip.on { border-color: currentColor; }
+
+        /* ---------- DERIVATION STEPPER ---------- */
+        .stepper-wrap { display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.5rem; align-items: start; }
+        @media (max-width: 860px) { .stepper-wrap { grid-template-columns: 1fr; } }
+
+        .stepper-col-title {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-weight: 700; color: #0b2a4a; font-size: 0.95rem;
+            margin-bottom: 0.6rem;
+        }
+        .stepper-col-title .num-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.6rem; height: 1.6rem; border-radius: 50%;
+            background: #1a4a6e; color: #fff; font-size: 0.8rem; font-weight: 700;
+        }
+
+        .deriv-panel {
+            background: #0b2a4a;
+            border-radius: 14px;
+            padding: 1.2rem 1.4rem;
+            color: #dce8f5;
+            font-family: 'Consolas', 'Menlo', monospace;
+            font-size: 0.97rem;
+            min-height: 300px;
+        }
+        .deriv-line {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.35rem 0.5rem; border-radius: 6px; opacity: 0.32; transition: all 0.35s ease;
+        }
+        .deriv-line .step-dot {
+            flex: 0 0 auto;
+            width: 1.35rem; height: 1.35rem; border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            color: #7fb2e0;
+            font-size: 0.72rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .deriv-line .line-text { flex: 1; }
+        .deriv-line.done { opacity: 1; }
+        .deriv-line.done .step-dot { background: rgba(46, 158, 91, 0.25); color: #7fe3a2; }
+        .deriv-line.now { opacity: 1; background: rgba(255, 217, 138, 0.15); color: #ffd98a; font-weight: 700; }
+        .deriv-line.now .step-dot { background: #ffd98a; color: #0b2a4a; }
+        .deriv-line .used-rule { color: #7fb2e0; font-size: 0.8rem; font-weight: 400; white-space: nowrap; }
+
+        .step-controls { display: flex; gap: 0.7rem; margin-top: 1rem; flex-wrap: wrap; }
+        .btn {
+            padding: 0.6rem 1.3rem;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn.primary { background: #1a4a6e; color: #fff; }
+        .btn.primary:hover { background: #0b2a4a; transform: translateY(-2px); }
+        .btn.ghost { background: #eef4fb; color: #1a4a6e; }
+        .btn.ghost:hover { background: #dde9f6; }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        /* growing tree nodes */
+        #growTree .gnode { opacity: 0; transition: opacity 0.4s ease; }
+        #growTree .gnode.show { opacity: 1; }
+
+
+        /* ---------- BRACKET TOGGLE ---------- */
+        .view-toggle { display: inline-flex; background: #eef4fb; border-radius: 100px; padding: 0.25rem; margin-bottom: 1rem; }
+        .view-toggle button {
+            border: none; background: transparent; padding: 0.45rem 1.3rem; border-radius: 100px;
+            font-family: inherit; font-weight: 600; font-size: 0.9rem; color: #33506b; cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .view-toggle button.active { background: #0b2a4a; color: #fff; }
+        .bracket-box {
+            background: #0b2a4a;
+            color: #dce8f5;
+            border-radius: 14px;
+            padding: 1.3rem 1.6rem;
+            font-family: 'Consolas', 'Menlo', monospace;
+            font-size: 0.98rem;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .bracket-box .cat { color: #ffd98a; font-weight: 700; }
+        .bracket-box .word { color: #8fd3a7; }
+
+        /* ---------- ALGORITHM RACE ---------- */
+        .algo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 860px) { .algo-grid { grid-template-columns: 1fr; } }
+        .algo-col {
+            background: #f8fafd;
+            border: 1px solid #e2eaf3;
+            border-radius: 14px;
+            padding: 1.2rem 1.3rem;
+        }
+        .algo-col h4 { color: #0b2a4a; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+        .algo-col .dir { font-size: 0.85rem; color: #7189a2; margin-bottom: 0.8rem; }
+        .algo-steps { font-family: 'Consolas', monospace; font-size: 0.9rem; min-height: 230px; }
+        .algo-steps div { padding: 0.2rem 0.45rem; border-radius: 6px; opacity: 0.25; transition: all 0.3s ease; }
+        .algo-steps div.done { opacity: 1; }
+        .algo-steps div.now { opacity: 1; background: #fdf1d8; color: #8a6414; font-weight: 700; }
+
+        /* ---------- CHART PARSING ---------- */
+        .chart-words { display: flex; justify-content: center; gap: 0; margin: 1rem 0 0.4rem; flex-wrap: wrap; }
+        .chart-word {
+            padding: 0.5rem 0.9rem;
+            border: 1px solid #d5e0ec;
+            background: #fff;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .chart-word:first-child { border-radius: 10px 0 0 10px; }
+        .chart-word:last-child { border-radius: 0 10px 10px 0; }
+        .chart-word.lit { background: #fdf1d8; border-color: #c9962e; color: #8a6414; transform: translateY(-3px); }
+        .chart-word .pos-idx {
+            position: absolute; left: -6px; top: -12px;
+            font-size: 0.7rem; color: #98abc0; font-weight: 700;
+        }
+        .chart-word:last-child .pos-idx-end {
+            position: absolute; right: -6px; top: -12px;
+            font-size: 0.7rem; color: #98abc0; font-weight: 700;
+        }
+        .span-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin: 1.1rem 0 0.6rem; }
+        .span-chip {
+            font-family: 'Consolas', monospace;
+            padding: 0.4rem 0.9rem;
+            border-radius: 100px;
+            border: 2px solid #d5e0ec;
+            background: #fff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #33506b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .span-chip:hover { border-color: #c9962e; }
+        .span-chip.on { background: #c9962e; border-color: #c9962e; color: #fff; }
+        .chart-word .pos-tag {
+            display: block;
+            font-size: 0.7rem;
+            font-family: 'Consolas', monospace;
+            font-weight: 700;
+            color: #c9962e;
+            margin-top: 0.2rem;
+            min-height: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .chart-word .pos-tag.on { opacity: 1; }
+        .chart-note { text-align: center; font-size: 0.9rem; color: #55708c; min-height: 1.5rem; }
+        .span-chip.pending { display: none; }
+        .span-chip.revealed { display: inline-block; animation: popIn 0.5s ease; }
+        .chart-fix-wrap { display: grid; grid-template-columns: 1fr 1.25fr; gap: 1.5rem; align-items: start; margin-top: 1rem; }
+        @media (max-width: 860px) { .chart-fix-wrap { grid-template-columns: 1fr; } }
+
+        /* ---------- APPLICATIONS ---------- */
+        .app-card {
+            background: #fff;
+            border: 1px solid #e2eaf3;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            text-align: center;
+            transition: all 0.25s ease;
+        }
+        .app-card:hover { transform: translateY(-4px); box-shadow: 0 10px 22px rgba(0,20,40,0.1); }
+        .app-card i { font-size: 1.6rem; color: #1a4a6e; margin-bottom: 0.5rem; }
+        .app-card h5 { color: #0b2a4a; font-size: 0.95rem; margin-bottom: 0.25rem; }
+        .app-card p { font-size: 0.83rem; color: #63798f; }
+
+
+        /* ---------- SUMMARY / FOOTER ---------- */
+        .summary-strip {
+            background: linear-gradient(145deg, #0b2a4a 0%, #1a4a6e 100%);
+            border-radius: 16px;
+            color: #fff;
+            padding: 1.6rem 2rem;
+        }
+        .summary-strip h3 { margin-bottom: 0.8rem; }
+        .summary-strip ul { margin-left: 1.2rem; }
+        .summary-strip li { margin-bottom: 0.4rem; font-size: 0.96rem; color: #dce8f5; }
+        .summary-strip li strong { color: #ffd98a; }
+
+        footer {
+            text-align: center;
+            padding: 1.4rem;
+            font-size: 0.85rem;
+            color: #8aa0b6;
+        }
+
+        @media (max-width: 720px) {
+            .hero { padding: 1.6rem 1.2rem; }
+            .hero h1 { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+            .content { padding: 1.6rem 1.2rem 2rem; }
+            .click-sentence { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="presentation-card">
+
+    <!-- ================= HERO ================= -->
+    <div class="hero">
+        <a class="hero-nav previous" href="Chapter_06.html" aria-label="Previous chapter" title="Previous chapter">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </a>
+        <a class="hero-nav next" href="Dependency_Parsing.html" aria-label="Next lesson" title="Next lesson">
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </a>
+        <h1>Constituency Parsing</h1>
+        <div class="chapter-badge">How a machine turns a flat line of words into a tree of nested phrases, and why translation, question answering and LLMs need that tree</div>
+    </div>
+
+    <div class="content">
+
+    <!-- ================= 1. HOOK: AMBIGUITY ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-binoculars"></i> One Sentence, Two Meanings <div class="title-line"></div></div>
+
+        <p class="lead">Read this sentence: <strong>“I saw the man with the telescope.”</strong> Who holds the telescope: me, or the man? The words never change. Only the hidden <strong>structure</strong> changes. Click each reading and watch the tree redraw itself.</p>
+
+        <div class="toggle-row">
+            <button class="toggle-btn active" id="readA" onclick="showReading('A')"><i class="fa-solid fa-eye"></i> Reading 1: <em>I</em> used the telescope to see him</button>
+            <button class="toggle-btn" id="readB" onclick="showReading('B')"><i class="fa-solid fa-user"></i> Reading 2: the <em>man</em> was holding the telescope</button>
+        </div>
+
+        <div class="tree-stage">
+            <!-- Reading A: PP attaches to VP -->
+            <svg id="treeA" class="draw-svg visible" viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg">
+                <g stroke="#1a4a6e" stroke-width="2" fill="none">
+                    <line x1="380" y1="40" x2="115" y2="94"/>
+                    <line x1="380" y1="40" x2="480" y2="94"/>
+                    <line x1="115" y1="120" x2="115" y2="158"/>
+                    <line x1="480" y1="122" x2="265" y2="168"/>
+                    <line x1="480" y1="122" x2="480" y2="168"/>
+                    <line x1="265" y1="194" x2="265" y2="232"/>
+                    <line x1="480" y1="194" x2="428" y2="232"/>
+                    <line x1="480" y1="194" x2="530" y2="232"/>
+                    <line x1="648" y1="194" x2="588" y2="232"/>
+                    <line x1="648" y1="194" x2="650" y2="232"/>
+                    <line x1="648" y1="194" x2="714" y2="232"/>
+                </g>
+                <line x1="480" y1="122" x2="648" y2="168" stroke="#d97706" stroke-width="3" stroke-dasharray="7 5"/>
+                <g font-family="Consolas, Menlo, monospace" font-weight="700" text-anchor="middle">
+                    <text x="380" y="32" fill="#0b2a4a" font-size="20">S</text>
+                    <text x="115" y="114" fill="#3b82f6" font-size="17">NP</text>
+                    <text x="480" y="114" fill="#22a05a" font-size="17">VP</text>
+                    <text x="265" y="188" fill="#22a05a" font-size="15">V</text>
+                    <text x="480" y="188" fill="#3b82f6" font-size="15">NP</text>
+                    <text x="648" y="188" fill="#d97706" font-size="15">PP ★</text>
+                </g>
+                <g font-family="Inter, sans-serif" font-size="15" fill="#33506b" text-anchor="middle">
+                    <text x="115" y="182">I</text>
+                    <text x="265" y="256">saw</text>
+                    <text x="428" y="256">the</text>
+                    <text x="530" y="256">man</text>
+                    <text x="586" y="256">with</text>
+                    <text x="650" y="256">the</text>
+                    <text x="716" y="256">telescope</text>
+                </g>
+            </svg>
+
+            <!-- Reading B: PP attaches to NP -->
+            <svg id="treeB" class="draw-svg" viewBox="0 0 760 350" xmlns="http://www.w3.org/2000/svg" style="display:none">
+                <g stroke="#1a4a6e" stroke-width="2" fill="none">
+                    <line x1="380" y1="40" x2="115" y2="94"/>
+                    <line x1="380" y1="40" x2="465" y2="94"/>
+                    <line x1="115" y1="120" x2="115" y2="158"/>
+                    <line x1="465" y1="122" x2="280" y2="168"/>
+                    <line x1="465" y1="122" x2="565" y2="168"/>
+                    <line x1="280" y1="194" x2="280" y2="232"/>
+                    <line x1="565" y1="194" x2="470" y2="238"/>
+                    <line x1="470" y1="264" x2="428" y2="298"/>
+                    <line x1="470" y1="264" x2="516" y2="298"/>
+                    <line x1="668" y1="264" x2="608" y2="298"/>
+                    <line x1="668" y1="264" x2="668" y2="298"/>
+                    <line x1="668" y1="264" x2="728" y2="298"/>
+                </g>
+                <line x1="565" y1="194" x2="668" y2="238" stroke="#d97706" stroke-width="3" stroke-dasharray="7 5"/>
+                <g font-family="Consolas, Menlo, monospace" font-weight="700" text-anchor="middle">
+                    <text x="380" y="32" fill="#0b2a4a" font-size="20">S</text>
+                    <text x="115" y="114" fill="#3b82f6" font-size="17">NP</text>
+                    <text x="465" y="114" fill="#22a05a" font-size="17">VP</text>
+                    <text x="280" y="188" fill="#22a05a" font-size="15">V</text>
+                    <text x="565" y="188" fill="#3b82f6" font-size="15">NP</text>
+                    <text x="470" y="258" fill="#3b82f6" font-size="14">NP</text>
+                    <text x="668" y="258" fill="#d97706" font-size="14">PP ★</text>
+                </g>
+                <g font-family="Inter, sans-serif" font-size="15" fill="#33506b" text-anchor="middle">
+                    <text x="115" y="182">I</text>
+                    <text x="280" y="256">saw</text>
+                    <text x="428" y="322">the</text>
+                    <text x="516" y="322">man</text>
+                    <text x="606" y="322">with</text>
+                    <text x="668" y="322">the</text>
+                    <text x="734" y="322">telescope</text>
+                </g>
+            </svg>
+            <div class="meaning-caption" id="meaningCap">★ The PP “with the telescope” attaches to the <span style="color:#22a05a">VP</span> → it describes <em>how I saw</em>.</div>
+        </div>
+
+        <div class="info-box">
+            <div class="box-title"><i class="fa-solid fa-lightbulb"></i> The lesson</div>
+            Meaning depends on structure. A machine that only sees a flat list of words cannot tell these two readings apart. <strong>Constituency parsing</strong> recovers the hidden tree, so later steps (machine translation, question answering, information extraction, summarization, dialogue systems, even large language models) can use it.
+        </div>
+        <div class="info-box gold">
+            <div class="box-title"><i class="fa-solid fa-link"></i> Link to earlier chapters</div>
+            POS tagging (Chapter 3) gave each word one label: <em>Noun, Verb, Det…</em> Parsing climbs one level higher: it groups labeled words into <strong>phrases</strong>, and shows how phrases nest inside bigger phrases up to the full sentence.
+        </div>
+    </section>
+
+    <!-- ================= 2. CONSTITUENTS ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-cubes"></i> What Is a Constituent? <div class="title-line"></div></div>
+
+        <p class="lead">A <strong>constituent</strong> is a word or group of words that acts as <strong>one single unit</strong> inside a bigger structure. It can be a word, a phrase, a clause, or the whole sentence. In <em>“The old man fed the pigeons”</em>, the words <em>“the old man”</em> form one unit: a noun phrase. But <em>“man fed the”</em> is not a unit at all. How do linguists check? With <strong>four classic tests</strong>. Click each card.</p>
+
+        <div class="grid-2">
+            <div class="test-card" onclick="this.classList.toggle('open')">
+                <span class="emoji">💬</span>
+                <h4>1 · Substitution</h4>
+                <div class="question">Can one small word (a pronoun) replace the whole group?</div>
+                <div class="reveal">
+                    <span class="yes">✓</span> “<strong>The old man</strong> fed the pigeons” → “<strong>He</strong> fed the pigeons.”<br>
+                    <span class="no">✗</span> No single word can ever replace “man fed the”.
+                </div>
+                <div class="hint">CLICK TO TEST ↓</div>
+            </div>
+            <div class="test-card" onclick="this.classList.toggle('open')">
+                <span class="emoji">↔️</span>
+                <h4>2 · Movement</h4>
+                <div class="question">Can the group move to another position, all together?</div>
+                <div class="reveal">
+                    <span class="yes">✓</span> “The teacher gave a book <strong>to the student</strong>” → “<strong>To the student</strong>, the teacher gave a book.”<br>
+                    <span class="no">✗</span> “*Student to the, the teacher gave a book”. Pieces cannot travel alone.
+                </div>
+                <div class="hint">CLICK TO TEST ↓</div>
+            </div>
+            <div class="test-card" onclick="this.classList.toggle('open')">
+                <span class="emoji">➕</span>
+                <h4>3 · Coordination</h4>
+                <div class="question">Can you join it with “and” to a similar group?</div>
+                <div class="reveal">
+                    <span class="yes">✓</span> “The teacher read <strong>the book</strong> and <strong>the article</strong>.”<br>
+                    Only units of the <em>same type</em> (NP + NP, VP + VP…) can be joined by <em>and</em>.
+                </div>
+                <div class="hint">CLICK TO TEST ↓</div>
+            </div>
+            <div class="test-card" onclick="this.classList.toggle('open')">
+                <span class="emoji">💬</span>
+                <h4>4 · Stand-alone Answer</h4>
+                <div class="question">Can the group answer a question by itself?</div>
+                <div class="reveal">
+                    “What did the student buy?” <span class="yes">✓</span> “<strong>A laptop.</strong>”<br>
+                    <span class="no">✗</span> “*Man fed the” can never be an answer on its own.
+                </div>
+                <div class="hint">CLICK TO TEST ↓</div>
+            </div>
+        </div>
+
+        <div class="info-box green">
+            <div class="box-title"><i class="fa-solid fa-bookmark"></i> Definition to remember</div>
+            Constituency parsing = finding <strong>all</strong> the constituents of a sentence and how they nest inside each other, then drawing the result as a tree.
+        </div>
+    </section>
+
+    <!-- ================= 3. PHRASE TYPES ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-shapes"></i> The Five Common Phrase Types <div class="title-line"></div></div>
+
+        <p class="lead">Every phrase is named after its most important word: its <strong>head</strong>. A phrase built around a noun is an NP; around a verb, a VP; and so on.</p>
+
+        <div class="grid-3">
+            <div class="phrase-card">
+                <span class="tag" style="background:#3b82f6">NP · Noun Phrase</span>
+                <ul><li>the student</li><li>an interesting book</li><li>the large university building</li></ul>
+                <div class="head-note">Head = a noun</div>
+            </div>
+            <div class="phrase-card">
+                <span class="tag" style="background:#22c55e">VP · Verb Phrase</span>
+                <ul><li>reads a book</li><li>writes programs</li><li>is studying NLP</li></ul>
+                <div class="head-note">Head = a verb</div>
+            </div>
+            <div class="phrase-card">
+                <span class="tag" style="background:#f59e0b">PP · Prepositional Phrase</span>
+                <ul><li>in the room</li><li>on the table</li><li>with a telescope</li></ul>
+                <div class="head-note">Head = a preposition</div>
+            </div>
+            <div class="phrase-card">
+                <span class="tag" style="background:#8b5cf6">AdjP · Adjective Phrase</span>
+                <ul><li>very intelligent</li><li>extremely difficult</li></ul>
+                <div class="head-note">Head = an adjective</div>
+            </div>
+            <div class="phrase-card">
+                <span class="tag" style="background:#ec4899">AdvP · Adverb Phrase</span>
+                <ul><li>very quickly</li><li>quite slowly</li></ul>
+                <div class="head-note">Head = an adverb</div>
+            </div>
+        </div>
+
+        <p class="lead" style="margin-top:1.4rem"><strong>Try it yourself.</strong> Click a colored chip, then see which words of the sentence belong to that phrase:</p>
+        <div class="phrase-legend">
+            <span class="legend-chip np" onclick="litePhrase('np', this)">NP (subject)</span>
+            <span class="legend-chip vp" onclick="litePhrase('vp', this)">VP</span>
+            <span class="legend-chip pp" onclick="litePhrase('pp', this)">PP</span>
+        </div>
+        <div class="click-sentence" id="phraseSent">
+            <span class="w" data-g="np">The</span><span class="w" data-g="np">little</span><span class="w" data-g="np">girl</span><span class="w" data-g="vp">opened</span><span class="w" data-g="vp">the</span><span class="w" data-g="vp">red</span><span class="w" data-g="vp">door</span><span class="w" data-g="pp">with</span><span class="w" data-g="pp">a</span><span class="w" data-g="pp">key</span>
+        </div>
+        <p style="text-align:center; font-size:0.9rem; color:#55708c" id="phraseNote">Notice: the VP <em>“opened the red door with a key”</em> contains a smaller NP and a PP inside it. Phrases nest!</p>
+    </section>
+
+    <!-- ================= 4. CFG ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-scroll"></i> Where Trees Come From: Context-Free Grammar <div class="title-line"></div></div>
+
+        <p class="lead">Constituency parsing is built on <strong>Phrase Structure Grammar</strong>, better known as a <strong>Context-Free Grammar (CFG)</strong>: a set of <em>rewrite rules</em> that says which structures a language allows. A CFG has exactly four ingredients:</p>
+
+        <table class="neat">
+            <tr><th>Ingredient</th><th>Symbol</th><th>Meaning</th><th>Example</th></tr>
+            <tr><td>Non-terminals</td><td class="mono">N</td><td>phrase &amp; POS labels</td><td class="mono">S, NP, VP, Det, N, V</td></tr>
+            <tr><td>Terminals</td><td class="mono">Σ</td><td>the actual words</td><td><em>the, dog, cat, chased</em></td></tr>
+            <tr><td>Rules</td><td class="mono">R</td><td>A → Î² &nbsp;(rewrite A as Î²)</td><td class="mono">VP → V NP</td></tr>
+            <tr><td>Start symbol</td><td class="mono">S</td><td>where every derivation begins</td><td class="mono">S</td></tr>
+        </table>
+
+        <div class="info-box">
+            <div class="box-title"><i class="fa-solid fa-circle-question"></i> Why “context-free”?</div>
+            A rule like <span class="mono">NP → Det N</span> can be applied <strong>wherever</strong> an NP appears; its neighbors (the context) never matter. This is what keeps CFGs simple and fast, and it is exactly the property that chart algorithms exploit.
+        </div>
+
+        <p class="lead" style="margin-top:1.3rem"><strong>A tiny toy grammar</strong>: six rules are enough to generate real sentences:</p>
+        <div style="text-align:center; margin-bottom:1.3rem">
+            <span class="rule-chip">S → NP VP</span>
+            <span class="rule-chip">NP → Det N</span>
+            <span class="rule-chip">VP → V NP</span>
+            <span class="rule-chip">Det → the | a</span>
+            <span class="rule-chip">N → dog | cat</span>
+            <span class="rule-chip">V → chased | saw</span>
+        </div>
+
+        <p class="lead"><strong>Watch a derivation live.</strong> We start from S and rewrite one symbol at a time until only words remain. Press <em>Next step</em> and watch the tree grow at the same time:</p>
+
+        <div class="stepper-wrap">
+            <div>
+                <div class="stepper-col-title"><span class="num-badge">1</span> Rule-by-rule derivation</div>
+                <div class="deriv-panel" id="derivPanel">
+                    <div class="deriv-line" data-i="0"><span class="step-dot">0</span><span class="line-text">S</span><span class="used-rule">start</span></div>
+                    <div class="deriv-line" data-i="1"><span class="step-dot">1</span><span class="line-text">→ NP VP</span><span class="used-rule">S → NP VP</span></div>
+                    <div class="deriv-line" data-i="2"><span class="step-dot">2</span><span class="line-text">→ Det N VP</span><span class="used-rule">NP → Det N</span></div>
+                    <div class="deriv-line" data-i="3"><span class="step-dot">3</span><span class="line-text">→ the dog VP</span><span class="used-rule">Det, N</span></div>
+                    <div class="deriv-line" data-i="4"><span class="step-dot">4</span><span class="line-text">→ the dog V NP</span><span class="used-rule">VP → V NP</span></div>
+                    <div class="deriv-line" data-i="5"><span class="step-dot">5</span><span class="line-text">→ the dog chased NP</span><span class="used-rule">V → chased</span></div>
+                    <div class="deriv-line" data-i="6"><span class="step-dot">6</span><span class="line-text">→ the dog chased Det N</span><span class="used-rule">NP → Det N</span></div>
+                    <div class="deriv-line" data-i="7"><span class="step-dot">7</span><span class="line-text">→ the dog chased a cat</span><span class="used-rule">Det, N ✓</span></div>
+                </div>
+                <div class="step-controls">
+                    <button class="btn primary" id="nextStepBtn" onclick="derivNext()"><i class="fa-solid fa-forward-step"></i> Next step</button>
+                    <button class="btn ghost" onclick="derivReset()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="stepper-col-title"><span class="num-badge">2</span> Growing parse tree</div>
+                <div class="tree-stage">
+                <svg id="growTree" viewBox="0 0 640 330" xmlns="http://www.w3.org/2000/svg">
+                    <!-- step 1 -->
+                    <g class="gnode show" data-step="0">
+                        <text x="320" y="30" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="19" fill="#0b2a4a">S</text>
+                    </g>
+                    <g class="gnode" data-step="1" stroke="#1a4a6e" stroke-width="2">
+                        <line x1="320" y1="38" x2="170" y2="88"/>
+                        <line x1="320" y1="38" x2="450" y2="88"/>
+                    </g>
+                    <g class="gnode" data-step="1">
+                        <text x="170" y="108" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="17" fill="#3b82f6">NP</text>
+                        <text x="450" y="108" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="17" fill="#22a05a">VP</text>
+                    </g>
+                    <g class="gnode" data-step="2" stroke="#1a4a6e" stroke-width="2">
+                        <line x1="170" y1="116" x2="100" y2="166"/>
+                        <line x1="170" y1="116" x2="240" y2="166"/>
+                    </g>
+                    <g class="gnode" data-step="2">
+                        <text x="100" y="186" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="15" fill="#63798f">Det</text>
+                        <text x="240" y="186" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="15" fill="#63798f">N</text>
+                    </g>
+                    <g class="gnode" data-step="3" stroke="#98abc0" stroke-width="1.5">
+                        <line x1="100" y1="194" x2="100" y2="224"/>
+                        <line x1="240" y1="194" x2="240" y2="224"/>
+                    </g>
+                    <g class="gnode" data-step="3">
+                        <text x="100" y="244" text-anchor="middle" font-family="Inter" font-size="14" fill="#33506b">the</text>
+                        <text x="240" y="244" text-anchor="middle" font-family="Inter" font-size="14" fill="#33506b">dog</text>
+                    </g>
+                    <g class="gnode" data-step="4" stroke="#1a4a6e" stroke-width="2">
+                        <line x1="450" y1="116" x2="380" y2="166"/>
+                        <line x1="450" y1="116" x2="520" y2="166"/>
+                    </g>
+                    <g class="gnode" data-step="4">
+                        <text x="380" y="186" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="15" fill="#63798f">V</text>
+                        <text x="520" y="186" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="15" fill="#3b82f6">NP</text>
+                    </g>
+                    <g class="gnode" data-step="5" stroke="#98abc0" stroke-width="1.5">
+                        <line x1="380" y1="194" x2="380" y2="224"/>
+                    </g>
+                    <g class="gnode" data-step="5">
+                        <text x="380" y="244" text-anchor="middle" font-family="Inter" font-size="14" fill="#33506b">chased</text>
+                    </g>
+                    <g class="gnode" data-step="6" stroke="#1a4a6e" stroke-width="2">
+                        <line x1="520" y1="194" x2="480" y2="238"/>
+                        <line x1="520" y1="194" x2="565" y2="238"/>
+                    </g>
+                    <g class="gnode" data-step="6">
+                        <text x="480" y="258" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="14" fill="#63798f">Det</text>
+                        <text x="565" y="258" text-anchor="middle" font-family="Consolas" font-weight="700" font-size="14" fill="#63798f">N</text>
+                    </g>
+                    <g class="gnode" data-step="7" stroke="#98abc0" stroke-width="1.5">
+                        <line x1="480" y1="266" x2="480" y2="290"/>
+                        <line x1="565" y1="266" x2="565" y2="290"/>
+                    </g>
+                    <g class="gnode" data-step="7">
+                        <text x="480" y="310" text-anchor="middle" font-family="Inter" font-size="14" fill="#33506b">a</text>
+                        <text x="565" y="310" text-anchor="middle" font-family="Inter" font-size="14" fill="#33506b">cat</text>
+                    </g>
+                </svg>
+                <div class="meaning-caption" id="growCap">Press “Next step” to begin the derivation.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 6. PENN TREEBANK ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-database"></i> Treebanks &amp; Penn Notation <div class="title-line"></div></div>
+
+        <p class="lead">Where do parsers learn from? From a <strong>Treebank</strong>: a corpus of sentences hand-annotated with parse trees. Treebanks are essential both for <strong>training</strong> parsers and for <strong>evaluating</strong> them. Famous examples: the <strong>Penn Treebank</strong> (millions of words with POS tags and constituency trees, built at the University of Pennsylvania, the most influential resource in the field), the Chinese Treebank, the Arabic Treebank, and the Universal Dependencies treebanks.</p>
+
+        <p class="lead">On disk, trees are stored as <strong>bracket notation</strong>: the same structure written with parentheses. Toggle between the two views of <em>“The dog chased the cat”</em>:</p>
+
+        <div class="view-toggle">
+            <button class="active" id="vtTree" onclick="setView('tree')"><i class="fa-solid fa-sitemap"></i> Tree view</button>
+            <button id="vtBracket" onclick="setView('bracket')"><i class="fa-solid fa-code"></i> Bracket view</button>
+        </div>
+
+        <div id="viewTree" class="tree-stage">
+            <svg class="draw-svg" viewBox="0 0 640 330" xmlns="http://www.w3.org/2000/svg">
+                <g stroke="#1a4a6e" stroke-width="2" fill="none">
+                    <line x1="320" y1="38" x2="170" y2="88"/>
+                    <line x1="320" y1="38" x2="450" y2="88"/>
+                    <line x1="170" y1="116" x2="100" y2="166"/>
+                    <line x1="170" y1="116" x2="240" y2="166"/>
+                    <line x1="450" y1="116" x2="380" y2="166"/>
+                    <line x1="450" y1="116" x2="520" y2="166"/>
+                    <line x1="520" y1="194" x2="480" y2="238"/>
+                    <line x1="520" y1="194" x2="565" y2="238"/>
+                </g>
+                <g font-family="Consolas, Menlo, monospace" font-weight="700" text-anchor="middle">
+                    <text x="320" y="30" font-size="19" fill="#0b2a4a">S</text>
+                    <text x="170" y="108" font-size="17" fill="#3b82f6">NP</text>
+                    <text x="450" y="108" font-size="17" fill="#22a05a">VP</text>
+                    <text x="100" y="186" font-size="15" fill="#63798f">DT</text>
+                    <text x="240" y="186" font-size="15" fill="#63798f">NN</text>
+                    <text x="380" y="186" font-size="15" fill="#63798f">VBD</text>
+                    <text x="520" y="186" font-size="15" fill="#3b82f6">NP</text>
+                    <text x="480" y="258" font-size="14" fill="#63798f">DT</text>
+                    <text x="565" y="258" font-size="14" fill="#63798f">NN</text>
+                </g>
+                <g stroke="#98abc0" stroke-width="1.5">
+                    <line x1="100" y1="194" x2="100" y2="224"/>
+                    <line x1="240" y1="194" x2="240" y2="224"/>
+                    <line x1="380" y1="194" x2="380" y2="224"/>
+                    <line x1="480" y1="266" x2="480" y2="290"/>
+                    <line x1="565" y1="266" x2="565" y2="290"/>
+                </g>
+                <g font-family="Inter, sans-serif" font-size="14" fill="#33506b" text-anchor="middle">
+                    <text x="100" y="244">The</text>
+                    <text x="240" y="244">dog</text>
+                    <text x="380" y="244">chased</text>
+                    <text x="480" y="310">the</text>
+                    <text x="565" y="310">cat</text>
+                </g>
+            </svg>
+            <div class="meaning-caption">Penn POS tags: DT = determiner, NN = noun, VBD = past-tense verb.</div>
+        </div>
+
+        <div id="viewBracket" class="bracket-box" style="display:none">(<span class="cat">S</span>
+   (<span class="cat">NP</span> (<span class="cat">DT</span> <span class="word">The</span>) (<span class="cat">NN</span> <span class="word">dog</span>))
+   (<span class="cat">VP</span> (<span class="cat">VBD</span> <span class="word">chased</span>)
+       (<span class="cat">NP</span> (<span class="cat">DT</span> <span class="word">the</span>) (<span class="cat">NN</span> <span class="word">cat</span>))))</div>
+
+        <div class="info-box gold" style="margin-top:1.2rem">
+            <div class="box-title"><i class="fa-solid fa-lightbulb"></i> Same tree, two costumes</div>
+            The bracket string and the drawing carry <strong>identical information</strong>: every pair of parentheses = one node of the tree. This compact format is what parsers are actually trained on.
+        </div>
+    </section>
+
+    <!-- ================= 7. PARSING ALGORITHMS ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-gears"></i> Parsing Algorithms: Two Directions <div class="title-line"></div></div>
+
+        <p class="lead">A grammar tells us which structures are <em>possible</em>. A <strong>parsing algorithm</strong> does the opposite job: given a sentence and a grammar, it must decide whether the grammar can generate the sentence, and build the tree if yes. There are two natural directions. Press either button below to watch that algorithm work, alone, on <em>“the dog chased the cat”</em>:</p>
+
+        <div class="algo-grid">
+            <div class="algo-col">
+                <h4><i class="fa-solid fa-arrow-down" style="color:#1a4a6e"></i> Top-Down</h4>
+                <div class="dir">Starts from <strong>S</strong> (the goal) and expands rules until it reaches the words. “Guess the structure, then check the words.”</div>
+                <div class="algo-steps" id="tdSteps">
+                    <div>S</div>
+                    <div>→ NP VP</div>
+                    <div>→ Det N VP</div>
+                    <div>→ the dog VP</div>
+                    <div>→ the dog V NP</div>
+                    <div>→ the dog chased NP</div>
+                    <div>→ the dog chased Det N</div>
+                    <div>→ the dog chased the cat ✓</div>
+                </div>
+                <div class="step-controls">
+                    <button class="btn primary" id="tdBtn" onclick="playAlgo('td')"><i class="fa-solid fa-play"></i> Play Top-Down</button>
+                    <button class="btn ghost" onclick="resetAlgo('td')"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+            </div>
+            <div class="algo-col">
+                <h4><i class="fa-solid fa-arrow-up" style="color:#2e9e5b"></i> Bottom-Up</h4>
+                <div class="dir">Starts from the <strong>words</strong> (the evidence) and combines them into bigger constituents. “Read the words, then build up.”</div>
+                <div class="algo-steps" id="buSteps">
+                    <div>the → Det &nbsp;&nbsp; dog → N</div>
+                    <div>Det N → NP&nbsp; (the dog)</div>
+                    <div>chased → V</div>
+                    <div>the → Det &nbsp;&nbsp; cat → N</div>
+                    <div>Det N → NP&nbsp; (the cat)</div>
+                    <div>V NP → VP</div>
+                    <div>NP VP → S ✓</div>
+                    <div>&nbsp;</div>
+                </div>
+                <div class="step-controls">
+                    <button class="btn primary" id="buBtn" onclick="playAlgo('bu')"><i class="fa-solid fa-play"></i> Play Bottom-Up</button>
+                    <button class="btn ghost" onclick="resetAlgo('bu')"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <table class="neat" style="margin-top:1.5rem">
+            <tr><th></th><th><i class="fa-solid fa-arrow-down"></i> Top-Down</th><th><i class="fa-solid fa-arrow-up"></i> Bottom-Up</th></tr>
+            <tr><td><strong>Strength</strong></td><td class="ok">Simple; follows the grammar directly; never builds a node the grammar forbids</td><td class="ok">Uses the actual words immediately; never expands a rule the input cannot support</td></tr>
+            <tr><td><strong>Weakness</strong></td><td class="bad">Explores many impossible paths; backtracking is expensive; struggles with ambiguous grammars</td><td class="bad">Builds many constituents that end up useless; still slow for large grammars</td></tr>
+            <tr><td><strong>Shared problem</strong></td><td colspan="2" style="text-align:center; font-weight:600; color:#8a6414; background:#fdf6e7">Both recompute the same constituents again and again ↓</td></tr>
+        </table>
+    </section>
+
+    <!-- ================= 8. CHART PARSING ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-table-cells"></i> The Fix: Dynamic Programming &amp; Chart Parsing <div class="title-line"></div></div>
+
+        <p class="lead">In an ambiguous sentence, many candidate trees share the same pieces: the NP <em>“the dog”</em> is the same NP in every tree that contains it. So why compute it twice? <strong>Dynamic programming</strong> computes each constituent <strong>once</strong>, stores it, and reuses it. This one idea turns exponential search into polynomial work.</p>
+
+        <p class="lead"><strong>Chart parsing</strong> applies this idea with a table called a <strong>chart</strong>. Positions are placed <em>between</em> words, and every discovered constituent is stored as a <strong>span</strong> <span class="mono">Label(start, end)</span>, computed once and never rebuilt.</p>
+
+        <div class="info-box">
+            <div class="box-title"><i class="fa-solid fa-list-ol"></i> How the chart fills, step by step</div>
+            The algorithm works in two passes. <strong>Pass 1:</strong> look up each single word's category (a lexical span of length 1). <strong>Pass 2:</strong> repeatedly combine two adjacent spans already in the chart into a bigger one, exactly as the grammar's rules allow, until the whole sentence is covered by <span class="mono">S(0,5)</span>. Press <em>Next step</em> to fill the chart for <em>“The dog chased the cat”</em> one entry at a time:
+        </div>
+
+        <div class="chart-fix-wrap">
+            <div>
+                <div class="stepper-col-title"><span class="num-badge">1</span> Chart entries, in order</div>
+                <div class="deriv-panel" id="chartStepPanel">
+                    <div class="deriv-line" data-i="0"><span class="step-dot">0</span><span class="line-text">chart is empty</span><span class="used-rule">start</span></div>
+                    <div class="deriv-line" data-i="1"><span class="step-dot">1</span><span class="line-text">Det(0,1) := “The”</span><span class="used-rule">lexical lookup</span></div>
+                    <div class="deriv-line" data-i="2"><span class="step-dot">2</span><span class="line-text">N(1,2) := “dog”</span><span class="used-rule">lexical lookup</span></div>
+                    <div class="deriv-line" data-i="3"><span class="step-dot">3</span><span class="line-text">NP(0,2) → Det(0,1) N(1,2)</span><span class="used-rule">combine</span></div>
+                    <div class="deriv-line" data-i="4"><span class="step-dot">4</span><span class="line-text">V(2,3) := “chased”</span><span class="used-rule">lexical lookup</span></div>
+                    <div class="deriv-line" data-i="5"><span class="step-dot">5</span><span class="line-text">Det(3,4) := “the”</span><span class="used-rule">lexical lookup</span></div>
+                    <div class="deriv-line" data-i="6"><span class="step-dot">6</span><span class="line-text">N(4,5) := “cat”</span><span class="used-rule">lexical lookup</span></div>
+                    <div class="deriv-line" data-i="7"><span class="step-dot">7</span><span class="line-text">NP(3,5) → Det(3,4) N(4,5)</span><span class="used-rule">combine</span></div>
+                    <div class="deriv-line" data-i="8"><span class="step-dot">8</span><span class="line-text">VP(2,5) → V(2,3) NP(3,5)</span><span class="used-rule">reuse!</span></div>
+                    <div class="deriv-line" data-i="9"><span class="step-dot">9</span><span class="line-text">S(0,5) → NP(0,2) VP(2,5)</span><span class="used-rule">reuse! ✓</span></div>
+                </div>
+                <div class="step-controls">
+                    <button class="btn primary" id="chartNextBtn" onclick="chartNext()"><i class="fa-solid fa-forward-step"></i> Next step</button>
+                    <button class="btn ghost" onclick="chartReset()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="stepper-col-title"><span class="num-badge">2</span> The chart, filling up live</div>
+                <div class="tree-stage">
+                    <div class="chart-words" id="chartWords">
+                        <div class="chart-word" data-i="0"><span class="pos-idx">0</span>The<span class="pos-tag" id="posTag0"></span></div>
+                        <div class="chart-word" data-i="1"><span class="pos-idx">1</span>dog<span class="pos-tag" id="posTag1"></span></div>
+                        <div class="chart-word" data-i="2"><span class="pos-idx">2</span>chased<span class="pos-tag" id="posTag2"></span></div>
+                        <div class="chart-word" data-i="3"><span class="pos-idx">3</span>the<span class="pos-tag" id="posTag3"></span></div>
+                        <div class="chart-word" data-i="4"><span class="pos-idx">4</span>cat<span class="pos-idx-end">5</span><span class="pos-tag" id="posTag4"></span></div>
+                    </div>
+
+                    <div class="span-chips" id="spanChips">
+                        <button class="span-chip pending" data-s="0" data-e="2" id="chipNP02" data-note="“The dog”: found once, reused later when S(0,5) is built.">NP(0,2)</button>
+                        <button class="span-chip pending" data-s="3" data-e="5" id="chipNP35" data-note="“the cat”: found once, reused when VP(2,5) is built.">NP(3,5)</button>
+                        <button class="span-chip pending" data-s="2" data-e="5" id="chipVP25" data-note="“chased the cat”: built by combining V(2,3) with the NP(3,5) already sitting in the chart. No recomputation needed!">VP(2,5)</button>
+                        <button class="span-chip pending" data-s="0" data-e="5" id="chipS05" data-note="The full sentence: NP(0,2) + VP(2,5) → S. Both pieces were already in the chart. Parsing succeeded!">S(0,5)</button>
+                    </div>
+                    <div class="chart-note" id="chartNote">Press “Next step” to start filling the chart.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box green" style="margin-top:1.2rem">
+            <div class="box-title"><i class="fa-solid fa-bolt"></i> Key idea in one line</div>
+            Chart = memory. Steps 8 and 9 above never recompute NP(3,5) or NP(0,2): they just look them up. Every partial result <span class="mono">Label(start, end)</span> is saved once and shared by all trees, no constituent is ever rebuilt. This is the foundation of the CKY and Earley algorithms used in practice.
+        </div>
+    </section>
+
+    <!-- ================= 9. WHY IT MATTERS ================= -->
+    <section class="fade-up">
+        <div class="section-title"><i class="fa-solid fa-rocket"></i> Why Constituency Parsing Matters <div class="title-line"></div></div>
+        <div class="grid-3">
+            <div class="app-card"><i class="fa-solid fa-language"></i><h5>Machine Translation</h5><p>Reorder whole phrases, not word by word</p></div>
+            <div class="app-card"><i class="fa-solid fa-circle-question"></i><h5>Question Answering</h5><p>“What did the student buy?” → find the object NP</p></div>
+            <div class="app-card"><i class="fa-solid fa-magnifying-glass-chart"></i><h5>Information Extraction</h5><p>Pull out exactly the right phrase</p></div>
+            <div class="app-card"><i class="fa-solid fa-file-lines"></i><h5>Summarization</h5><p>Drop optional constituents, keep the core S</p></div>
+            <div class="app-card"><i class="fa-solid fa-comments"></i><h5>Dialogue Systems</h5><p>Understand user requests correctly</p></div>
+            <div class="app-card"><i class="fa-solid fa-brain"></i><h5>Explainability</h5><p>A tree shows <em>why</em> a reading was chosen: rich, human-readable syntax</p></div>
+        </div>
+    </section>
+
+    <!-- ================= SUMMARY ================= -->
+    <section class="fade-up">
+        <div class="summary-strip">
+            <h3><i class="fa-solid fa-key"></i> Takeaways</h3>
+            <ul>
+                <li><strong>Constituent</strong>: a group of words acting as one unit; proven by substitution, movement, coordination, and stand-alone-answer tests.</li>
+                <li><strong>Phrase types</strong>: NP, VP, PP, AdjP, AdvP, each named after its head word.</li>
+                <li><strong>CFG</strong>: four ingredients (non-terminals, terminals, rules, start symbol); rules apply anywhere, regardless of context.</li>
+                <li><strong>Parse tree</strong>: root S, internal category nodes, word leaves; stored as Penn-style bracket notation in treebanks.</li>
+                <li><strong>Top-down vs bottom-up</strong>: guess-then-check vs build-from-words; both waste work on repeated constituents.</li>
+                <li><strong>Chart parsing</strong>: dynamic programming saves every span once, making efficient algorithms like CKY possible.</li>
+            </ul>
+        </div>
+    </section>
+
+    </div><!-- /content -->
+</div>
+
+
+<script>
+/* ---------- fade-up & draw-svg on scroll ---------- */
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            e.target.querySelectorAll('.draw-svg').forEach(s => s.classList.add('visible'));
+        }
+    });
+}, { threshold: 0.12 });
+document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+
+/* ---------- 1. ambiguity toggle ---------- */
+function showReading(which) {
+    const a = document.getElementById('treeA'), b = document.getElementById('treeB');
+    const cap = document.getElementById('meaningCap');
+    document.getElementById('readA').classList.toggle('active', which === 'A');
+    document.getElementById('readB').classList.toggle('active', which === 'B');
+    const show = which === 'A' ? a : b, hide = which === 'A' ? b : a;
+    hide.style.display = 'none';
+    show.style.display = '';
+    show.classList.remove('visible');
+    void show.getBoundingClientRect();          // restart draw animation
+    requestAnimationFrame(() => show.classList.add('visible'));
+    cap.innerHTML = which === 'A'
+        ? '★ The PP “with the telescope” attaches to the <span style="color:#22a05a">VP</span> → it describes <em>how I saw</em>.'
+        : '★ The PP “with the telescope” attaches to the object <span style="color:#3b82f6">NP</span> → it describes <em>the man</em>.';
+}
+
+/* ---------- 3. phrase highlighter ---------- */
+function litePhrase(g, chip) {
+    const on = !chip.classList.contains('on');
+    document.querySelectorAll('.legend-chip').forEach(c => c.classList.remove('on'));
+    document.querySelectorAll('#phraseSent .w').forEach(w => w.classList.remove('hl-np','hl-vp','hl-pp'));
+    if (on) {
+        chip.classList.add('on');
+        const cls = 'hl-' + g;
+        document.querySelectorAll('#phraseSent .w').forEach(w => {
+            if (g === 'np' && w.dataset.g === 'np') w.classList.add(cls);
+            if (g === 'pp' && w.dataset.g === 'pp') w.classList.add(cls);
+            if (g === 'vp' && (w.dataset.g === 'vp' || w.dataset.g === 'pp')) w.classList.add(cls);
+        });
+        document.getElementById('phraseNote').innerHTML =
+            g === 'np' ? 'The subject NP <em>“The little girl”</em>: replaceable by <strong>She</strong> (substitution test ✓).' :
+            g === 'pp' ? 'The PP <em>“with a key”</em>: movable to the front: <em>“With a key, the little girl opened the red door”</em> ✓.' :
+            'The full VP: everything the subject <em>does</em>. Notice the smaller NP <em>“the red door”</em> and PP <em>“with a key”</em> nested inside: phrases nest!';
+    }
+}
+
+/* ---------- 4. derivation stepper ---------- */
+let dStep = -1;
+const dMax = 7;
+const dCaps = [
+    'Start symbol S: the whole sentence to be.',
+    'S splits into a subject NP and a predicate VP.',
+    'The subject NP splits into Det + N.',
+    'Det and N become real words: “the dog”.',
+    'The VP splits into V + object NP.',
+    'V becomes the word “chased”.',
+    'The object NP splits into Det + N.',
+    'Only words remain. Derivation complete ✓'
+];
+function derivNext() {
+    if (dStep >= dMax) return;
+    dStep++;
+    document.querySelectorAll('.deriv-line').forEach(l => {
+        const i = +l.dataset.i;
+        l.classList.toggle('done', i < dStep);
+        l.classList.toggle('now', i === dStep);
+    });
+    document.querySelectorAll('#growTree .gnode').forEach(n => {
+        if (+n.dataset.step <= dStep) n.classList.add('show');
+    });
+    document.getElementById('growCap').textContent = dCaps[dStep];
+    document.getElementById('nextStepBtn').disabled = (dStep >= dMax);
+}
+function derivReset() {
+    dStep = -1;
+    document.querySelectorAll('.deriv-line').forEach(l => l.classList.remove('done','now'));
+    document.querySelectorAll('#growTree .gnode').forEach(n => n.classList.remove('show'));
+    document.querySelector('#growTree .gnode[data-step="0"]').classList.add('show');
+    document.getElementById('growCap').textContent = 'Press “Next step” to begin the derivation.';
+    document.getElementById('nextStepBtn').disabled = false;
+}
+
+/* ---------- 6. tree vs bracket toggle ---------- */
+function setView(v) {
+    document.getElementById('vtTree').classList.toggle('active', v === 'tree');
+    document.getElementById('vtBracket').classList.toggle('active', v === 'bracket');
+    document.getElementById('viewTree').style.display = v === 'tree' ? '' : 'none';
+    document.getElementById('viewBracket').style.display = v === 'bracket' ? '' : 'none';
+    if (v === 'tree') {
+        const svg = document.querySelector('#viewTree svg');
+        svg.classList.remove('visible');
+        void svg.getBoundingClientRect();
+        requestAnimationFrame(() => svg.classList.add('visible'));
+    }
+}
+
+/* ---------- 7. independent algorithm players ---------- */
+const algoTimers = { td: null, bu: null };
+function playAlgo(which) {
+    resetAlgo(which);
+    const btn = document.getElementById(which === 'td' ? 'tdBtn' : 'buBtn');
+    const steps = document.querySelectorAll('#' + which + 'Steps div');
+    btn.disabled = true;
+    let i = 0;
+    algoTimers[which] = setInterval(() => {
+        steps.forEach((el, j) => {
+            el.classList.toggle('done', j < i);
+            el.classList.toggle('now', j === i);
+        });
+        i++;
+        if (i > steps.length) { clearInterval(algoTimers[which]); btn.disabled = false; }
+    }, 850);
+}
+function resetAlgo(which) {
+    if (algoTimers[which]) clearInterval(algoTimers[which]);
+    document.querySelectorAll('#' + which + 'Steps div').forEach(el => el.classList.remove('done','now'));
+    document.getElementById(which === 'td' ? 'tdBtn' : 'buBtn').disabled = false;
+}
+
+/* ---------- 8. chart spans: step-by-step fill ---------- */
+let chartStep = 0;
+const chartMax = 9;
+const chartCaps = [
+    'Chart is empty. We will fill it one entry at a time, left to right, then combine.',
+    '“The” looked up as Det. Stored as Det(0,1).',
+    '“dog” looked up as N. Stored as N(1,2).',
+    'Det(0,1) and N(1,2) are adjacent, so NP → Det N applies: NP(0,2) is built and stored.',
+    '“chased” looked up as V. Stored as V(2,3).',
+    '“the” looked up as Det. Stored as Det(3,4).',
+    '“cat” looked up as N. Stored as N(4,5).',
+    'Det(3,4) and N(4,5) combine: NP(3,5) is built and stored.',
+    'V(2,3) combines with NP(3,5), already sitting in the chart from step 7, no recomputation: VP(2,5) is built.',
+    'NP(0,2) and VP(2,5), both already in the chart, combine into S(0,5). The sentence is fully parsed ✓'
+];
+function chartNext() {
+    if (chartStep >= chartMax) return;
+    chartStep++;
+    document.querySelectorAll('#chartStepPanel .deriv-line').forEach(l => {
+        const i = +l.dataset.i;
+        l.classList.toggle('done', i < chartStep);
+        l.classList.toggle('now', i === chartStep);
+    });
+    document.querySelectorAll('.chart-word').forEach(w => w.classList.remove('lit'));
+    const tagFor = { 1:[0,'Det'], 2:[1,'N'], 4:[2,'V'], 5:[3,'Det'], 6:[4,'N'] };
+    if (tagFor[chartStep]) {
+        const [idx, tag] = tagFor[chartStep];
+        const tagEl = document.getElementById('posTag' + idx);
+        tagEl.textContent = tag;
+        tagEl.classList.add('on');
+        document.querySelector('.chart-word[data-i="' + idx + '"]').classList.add('lit');
+    }
+    const chipFor = { 3: 'chipNP02', 7: 'chipNP35', 8: 'chipVP25', 9: 'chipS05' };
+    if (chipFor[chartStep]) {
+        const chip = document.getElementById(chipFor[chartStep]);
+        chip.classList.remove('pending');
+        chip.classList.add('revealed');
+        const s = +chip.dataset.s, e = +chip.dataset.e;
+        document.querySelectorAll('.chart-word').forEach(w => {
+            const i = +w.dataset.i;
+            if (i >= s && i < e) w.classList.add('lit');
+        });
+    }
+    document.getElementById('chartNote').textContent = chartCaps[chartStep];
+    document.getElementById('chartNextBtn').disabled = (chartStep >= chartMax);
+}
+function chartReset() {
+    chartStep = 0;
+    document.querySelectorAll('#chartStepPanel .deriv-line').forEach(l => l.classList.remove('done','now'));
+    document.querySelectorAll('.chart-word').forEach(w => w.classList.remove('lit'));
+    document.querySelectorAll('.pos-tag').forEach(t => { t.textContent = ''; t.classList.remove('on'); });
+    document.querySelectorAll('.span-chip').forEach(c => { c.classList.add('pending'); c.classList.remove('revealed','on'); });
+    document.getElementById('chartNote').textContent = 'Press “Next step” to start filling the chart.';
+    document.getElementById('chartNextBtn').disabled = false;
+}
+document.querySelectorAll('.span-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        if (!chip.classList.contains('revealed')) return;
+        const on = !chip.classList.contains('on');
+        document.querySelectorAll('.span-chip').forEach(c => c.classList.remove('on'));
+        document.querySelectorAll('.chart-word').forEach(w => w.classList.remove('lit'));
+        if (on) {
+            chip.classList.add('on');
+            const s = +chip.dataset.s, e = +chip.dataset.e;
+            document.querySelectorAll('.chart-word').forEach(w => {
+                const i = +w.dataset.i;
+                if (i >= s && i < e) w.classList.add('lit');
+            });
+            document.getElementById('chartNote').innerHTML = '<strong>' + chip.textContent + '</strong>: ' + chip.dataset.note;
+        } else {
+            document.getElementById('chartNote').textContent = chartCaps[chartStep];
+        }
+    });
+});
+</script>
+</body>
+</html>
